@@ -1,0 +1,1408 @@
+
+
+
+/**
+ * StatusCamera - Professional Camera with Mesh Effects
+ * AR mesh filters with crystalline overlays, real-time mesh pattern generation
+ * Professional camera controls with mesh UI, voice reactive mesh patterns
+ */
+
+import React, { useRef, useState, useEffect, useCallback } from 'react';
+import {
+  View,
+  Text,
+  TouchableOpacity,
+  Animated,
+  Dimensions,
+  StyleSheet,
+  Alert,
+  Modal,
+  ScrollView,
+  PanResponder,
+} from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
+import { Camera } from 'expo-camera';
+import { Audio } from 'expo-av';
+import * as MediaLibrary from 'expo-media-library';
+import { Ionicons, MaterialIcons } from '@expo/vector-icons';
+import { LinearGradient } from 'expo-linear-gradient';
+import { BlurView } from 'expo-blur';
+import Svg, {
+  Circle,
+  Path,
+  G,
+  Defs,
+  LinearGradient as SvgGradient,
+  Stop,
+  AnimatedCircle,
+  AnimatedPath,
+  Pattern,
+  Rect,
+  Polygon,
+} from 'react-native-svg';
+
+// Import our mesh components
+import CrystallineMesh from '../../components/ndeip/CrystallineMesh';
+import QuantumLoader from '../../components/ndeip/QuantumLoader';
+import { useMeshTheme, useMeshColors, useMeshAnimations } from '../../hooks/useMeshTheme';
+import { generateUserMesh } from '../../utils/MeshGenerator';
+import {
+  MeshColors,
+  MeshTypography,
+  MeshSpacing,
+  MeshBorderRadius,
+  MeshShadows,
+  getDynamicColor,
+} from '../../constants/ndeipBrandSystem';
+
+const { width: screenWidth, height: screenHeight } = Dimensions.get('window');
+
+// Camera modes
+const CAMERA_MODES = {
+  PHOTO: 'photo',
+  VIDEO: 'video',
+  STORY: 'story',
+  LIVE: 'live',
+};
+
+// Filter types
+const FILTER_TYPES = {
+  NONE: 'none',
+  MESH_OVERLAY: 'mesh_overlay',
+  CRYSTALLINE: 'crystalline',
+  NEON_GRID: 'neon_grid',
+  PARTICLE_FLOW: 'particle_flow',
+  QUANTUM_BLUR: 'quantum_blur',
+  VOICE_REACTIVE: 'voice_reactive',
+  AR_MESH: 'ar_mesh',
+};
+
+// Recording states
+const RECORDING_STATES = {
+  IDLE: 'idle',
+  RECORDING: 'recording',
+  PAUSED: 'paused',
+  PROCESSING: 'processing',
+};
+
+const StatusCamera = ({
+  navigation,
+  onCapture,
+  onClose,
+  initialMode = CAMERA_MODES.PHOTO,
+  allowModeSwitch = true,
+  showFilters = true,
+  enableVoiceReactive = true,
+}) => {
+  const { colors } = useMeshColors();
+  const { timing } = useMeshAnimations();
+
+  // Camera state
+  const [hasPermission, setHasPermission] = useState(null);
+  const [cameraType, setCameraType] = useState(Camera.Constants.Type.back);
+  const [mode, setMode] = useState(initialMode);
+  const [recordingState, setRecordingState] = useState(RECORDING_STATES.IDLE);
+  const [flashMode, setFlashMode] = useState(Camera.Constants.FlashMode.off);
+  const [zoom, setZoom] = useState(0);
+
+  // Filter and effects state
+  const [activeFilter, setActiveFilter] = useState(FILTER_TYPES.NONE);
+  const [showFilterMenu, setShowFilterMenu] = useState(false);
+  const [meshIntensity, setMeshIntensity] = useState(0.5);
+  const [voiceAmplitude, setVoiceAmplitude] = useState(0);
+
+  // UI state
+  const [showControls, setShowControls] = useState(true);
+  const [isProcessing, setIsProcessing] = useState(false);
+  const [recordingDuration, setRecordingDuration] = useState(0);
+
+  // Animation refs
+  const cameraAnimation = useRef(new Animated.Value(0)).current;
+  const filterAnimation = useRef(new Animated.Value(0)).current;
+  const recordingAnimation = useRef(new Animated.Value(0)).current;
+  const meshAnimation = useRef(new Animated.Value(0)).current;
+  const voiceAnimation = useRef(new Animated.Value(0)).current;
+  const controlsOpacity = useRef(new Animated.Value(1)).current;
+
+  // Camera and audio refs
+  const cameraRef = useRef(null);
+  const recordingRef = useRef(null);
+  const voiceMonitor = useRef(null);
+
+  // Timer refs
+  const recordingTimer = useRef(null);
+
+  // Gesture handling
+  const panResponder = useRef(
+    PanResponder.create({
+      onMoveShouldSetPanResponder: () => true,
+      onPanResponderMove: (event, gestureState) => {
+        // Handle zoom gesture
+        const { dy } = gestureState;
+        const newZoom = Math.max(0, Math.min(1, zoom - dy * 0.01));
+        setZoom(newZoom);
+      },
+      onPanResponderRelease: () => {
+        // Reset or apply zoom
+      },
+    })
+  ).current;
+
+  // Initialize camera
+  useEffect(() => {
+    initializeCamera();
+    startMeshAnimation();
+    
+    return () => {
+      cleanup();
+    };
+  }, []);
+
+  // Handle recording state changes
+  useEffect(() => {
+    if (recordingState === RECORDING_STATES.RECORDING) {
+      startRecordingTimer();
+      startRecordingAnimation();
+      if (enableVoiceReactive) {
+        startVoiceMonitoring();
+      }
+    } else {
+      stopRecordingTimer();
+      stopRecordingAnimation();
+      stopVoiceMonitoring();
+    }
+  }, [recordingState]);
+
+  // Initialize camera permissions and setup
+  const initializeCamera = async () => {
+    try {
+      const { status: cameraStatus } = await Camera.requestCameraPermissionsAsync();
+      const { status: audioStatus } = await Audio.requestPermissionsAsync();
+      const { status: mediaStatus } = await MediaLibrary.requestPermissionsAsync();
+
+      if (cameraStatus === 'granted' && audioStatus === 'granted' && mediaStatus === 'granted') {
+        setHasPermission(true);
+        
+        // Animate camera in
+        Animated.timing(cameraAnimation, {
+          toValue: 1,
+          duration: timing.normal,
+          useNativeDriver: true,
+        }).start();
+      } else {
+        setHasPermission(false);
+        Alert.alert('Permission Required', 'Camera and microphone access is required for this feature.');
+      }
+    } catch (error) {
+      console.error('Failed to initialize camera:', error);
+      setHasPermission(false);
+    }
+  };
+
+  // Start mesh animation
+  const startMeshAnimation = () => {
+    Animated.loop(
+      Animated.sequence([
+        Animated.timing(meshAnimation, {
+          toValue: 1,
+          duration: timing.mesh * 2,
+          useNativeDriver: true,
+        }),
+        Animated.timing(meshAnimation, {
+          toValue: 0,
+          duration: timing.mesh * 2,
+          useNativeDriver: true,
+        }),
+      ])
+    ).start();
+  };
+
+  // Start recording timer
+  const startRecordingTimer = () => {
+    recordingTimer.current = setInterval(() => {
+      setRecordingDuration(prev => prev + 1);
+    }, 1000);
+  };
+
+  // Stop recording timer
+  const stopRecordingTimer = () => {
+    if (recordingTimer.current) {
+      clearInterval(recordingTimer.current);
+      recordingTimer.current = null;
+    }
+  };
+
+  // Start recording animation
+  const startRecordingAnimation = () => {
+    Animated.loop(
+      Animated.sequence([
+        Animated.timing(recordingAnimation, {
+          toValue: 1,
+          duration: timing.normal,
+          useNativeDriver: true,
+        }),
+        Animated.timing(recordingAnimation, {
+          toValue: 0,
+          duration: timing.normal,
+          useNativeDriver: true,
+        }),
+      ])
+    ).start();
+  };
+
+  // Stop recording animation
+  const stopRecordingAnimation = () => {
+    recordingAnimation.stopAnimation();
+    recordingAnimation.setValue(0);
+  };
+
+  // Start voice monitoring for reactive effects
+  const startVoiceMonitoring = async () => {
+    try {
+      await Audio.setAudioModeAsync({
+        allowsRecordingIOS: true,
+        playsInSilentModeIOS: true,
+      });
+
+      const { recording } = await Audio.Recording.createAsync(
+        Audio.RecordingOptionsPresets.HIGH_QUALITY
+      );
+
+      voiceMonitor.current = recording;
+
+      // Monitor voice levels
+      recording.setOnRecordingStatusUpdate((status) => {
+        if (status.metering) {
+          const amplitude = Math.max(0, Math.min(1, (status.metering + 60) / 60));
+          setVoiceAmplitude(amplitude);
+          
+          // Animate voice reactive effects
+          Animated.timing(voiceAnimation, {
+            toValue: amplitude,
+            duration: 100,
+            useNativeDriver: true,
+          }).start();
+        }
+      });
+
+      await recording.startAsync();
+    } catch (error) {
+      console.error('Failed to start voice monitoring:', error);
+    }
+  };
+
+  // Stop voice monitoring
+  const stopVoiceMonitoring = async () => {
+    if (voiceMonitor.current) {
+      try {
+        await voiceMonitor.current.stopAndUnloadAsync();
+        voiceMonitor.current = null;
+        setVoiceAmplitude(0);
+        voiceAnimation.setValue(0);
+      } catch (error) {
+        console.error('Failed to stop voice monitoring:', error);
+      }
+    }
+  };
+
+  // Handle photo capture
+  const handleCapture = async () => {
+    if (!cameraRef.current) return;
+
+    try {
+      setIsProcessing(true);
+      
+      const photo = await cameraRef.current.takePictureAsync({
+        quality: 0.8,
+        base64: false,
+        exif: true,
+      });
+
+      // Apply mesh filter if active
+      const processedPhoto = await applyMeshFilter(photo);
+
+      if (onCapture) {
+        onCapture(processedPhoto, mode);
+      }
+
+      // Save to media library
+      await MediaLibrary.saveToLibraryAsync(processedPhoto.uri);
+
+    } catch (error) {
+      console.error('Failed to capture photo:', error);
+      Alert.alert('Error', 'Failed to capture photo');
+    } finally {
+      setIsProcessing(false);
+    }
+  };
+
+  // Handle video recording
+  const handleVideoToggle = async () => {
+    if (!cameraRef.current) return;
+
+    try {
+      if (recordingState === RECORDING_STATES.RECORDING) {
+        // Stop recording
+        setRecordingState(RECORDING_STATES.PROCESSING);
+        const video = await cameraRef.current.stopRecording();
+        
+        // Apply mesh filter if active
+        const processedVideo = await applyMeshFilter(video);
+
+        if (onCapture) {
+          onCapture(processedVideo, mode);
+        }
+
+        // Save to media library
+        await MediaLibrary.saveToLibraryAsync(processedVideo.uri);
+        
+        setRecordingState(RECORDING_STATES.IDLE);
+        setRecordingDuration(0);
+      } else {
+        // Start recording
+        setRecordingState(RECORDING_STATES.RECORDING);
+        
+        recordingRef.current = await cameraRef.current.recordAsync({
+          quality: Camera.Constants.VideoQuality['720p'],
+          maxDuration: 60, // 60 seconds max
+          mute: false,
+        });
+      }
+    } catch (error) {
+      console.error('Failed to toggle video recording:', error);
+      setRecordingState(RECORDING_STATES.IDLE);
+    }
+  };
+
+  // Apply mesh filter to captured media
+  const applyMeshFilter = async (media) => {
+    if (activeFilter === FILTER_TYPES.NONE) {
+      return media;
+    }
+
+    // In a real implementation, this would process the image/video
+    // with the selected mesh filter using image processing libraries
+    
+    return {
+      ...media,
+      filter: activeFilter,
+      meshIntensity,
+    };
+  };
+
+  // Toggle camera type
+  const toggleCameraType = () => {
+    setCameraType(current =>
+      current === Camera.Constants.Type.back
+        ? Camera.Constants.Type.front
+        : Camera.Constants.Type.back
+    );
+  };
+
+  // Toggle flash mode
+  const toggleFlashMode = () => {
+    const modes = [
+      Camera.Constants.FlashMode.off,
+      Camera.Constants.FlashMode.on,
+      Camera.Constants.FlashMode.auto,
+    ];
+    const currentIndex = modes.indexOf(flashMode);
+    const nextIndex = (currentIndex + 1) % modes.length;
+    setFlashMode(modes[nextIndex]);
+  };
+
+  // Handle filter selection
+  const handleFilterSelect = (filter) => {
+    setActiveFilter(filter);
+    setShowFilterMenu(false);
+    
+    // Animate filter application
+    Animated.timing(filterAnimation, {
+      toValue: filter === FILTER_TYPES.NONE ? 0 : 1,
+      duration: timing.normal,
+      useNativeDriver: true,
+    }).start();
+  };
+
+  // Toggle controls visibility
+  const toggleControls = () => {
+    const newValue = showControls ? 0 : 1;
+    setShowControls(!showControls);
+    
+    Animated.timing(controlsOpacity, {
+      toValue: newValue,
+      duration: timing.normal,
+      useNativeDriver: true,
+    }).start();
+  };
+
+  // Cleanup resources
+  const cleanup = () => {
+    stopRecordingTimer();
+    stopRecordingAnimation();
+    stopVoiceMonitoring();
+  };
+
+  // Format recording duration
+  const formatDuration = (seconds) => {
+    const minutes = Math.floor(seconds / 60);
+    const secs = seconds % 60;
+    return `${minutes}:${secs.toString().padStart(2, '0')}`;
+  };
+
+  // Get flash icon
+  const getFlashIcon = () => {
+    switch (flashMode) {
+      case Camera.Constants.FlashMode.on:
+        return 'flash';
+      case Camera.Constants.FlashMode.auto:
+        return 'flash-auto';
+      default:
+        return 'flash-off';
+    }
+  };
+
+  // Render mesh filter overlay
+  const renderMeshFilterOverlay = () => {
+    if (activeFilter === FILTER_TYPES.NONE) return null;
+
+    return (
+      <Animated.View
+        style={[
+          StyleSheet.absoluteFillObject,
+          { opacity: filterAnimation },
+        ]}
+        pointerEvents="none"
+      >
+        {renderSpecificFilter()}
+      </Animated.View>
+    );
+  };
+
+  // Render specific filter effects
+  const renderSpecificFilter = () => {
+    const userMeshPattern = generateUserMesh('camera_filter');
+
+    switch (activeFilter) {
+      case FILTER_TYPES.MESH_OVERLAY:
+        return (
+          <Svg width={screenWidth} height={screenHeight} style={StyleSheet.absoluteFillObject}>
+            <Defs>
+              <SvgGradient id="meshOverlayGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+                <Stop offset="0%" stopColor={colors.primary} stopOpacity="0.3" />
+                <Stop offset="100%" stopColor={colors.secondary} stopOpacity="0.1" />
+              </SvgGradient>
+              
+              <Pattern id="meshOverlayPattern" x="0" y="0" width="40" height="40" patternUnits="userSpaceOnUse">
+                <Polygon
+                  points="0,20 20,0 40,20 20,40"
+                  fill="none"
+                  stroke={colors.primary}
+                  strokeWidth="1"
+                  opacity="0.4"
+                />
+                <Circle cx="20" cy="20" r="2" fill={colors.secondary} opacity="0.3" />
+              </Pattern>
+            </Defs>
+            
+            <Rect width="100%" height="100%" fill="url(#meshOverlayPattern)" />
+          </Svg>
+        );
+
+      case FILTER_TYPES.CRYSTALLINE:
+        return (
+          <Svg width={screenWidth} height={screenHeight} style={StyleSheet.absoluteFillObject}>
+            <Defs>
+              <SvgGradient id="crystallineGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+                <Stop offset="0%" stopColor="#00F5FF" stopOpacity="0.4" />
+                <Stop offset="50%" stopColor="#0A71EF" stopOpacity="0.6" />
+                <Stop offset="100%" stopColor="#320096" stopOpacity="0.4" />
+              </SvgGradient>
+            </Defs>
+            
+            {userMeshPattern.connections?.slice(0, 20).map((connection, index) => (
+              <AnimatedPath
+                key={index}
+                d={`M ${connection.from.x * screenWidth * 0.01} ${connection.from.y * screenHeight * 0.01} Q ${
+                  connection.controlPoint ? connection.controlPoint.x * screenWidth * 0.01 : (connection.from.x + connection.to.x) * screenWidth * 0.005
+                } ${
+                  connection.controlPoint ? connection.controlPoint.y * screenHeight * 0.01 : (connection.from.y + connection.to.y) * screenHeight * 0.005
+                } ${connection.to.x * screenWidth * 0.01} ${connection.to.y * screenHeight * 0.01}`}
+                stroke="url(#crystallineGradient)"
+                strokeWidth="2"
+                fill="none"
+                opacity={meshAnimation.interpolate({
+                  inputRange: [0, 1],
+                  outputRange: [0.2, 0.6],
+                })}
+              />
+            ))}
+          </Svg>
+        );
+
+      case FILTER_TYPES.VOICE_REACTIVE:
+        return (
+          <Svg width={screenWidth} height={screenHeight} style={StyleSheet.absoluteFillObject}>
+            <Defs>
+              <SvgGradient id="voiceGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+                <Stop offset="0%" stopColor="#FF00F5" stopOpacity="0.6" />
+                <Stop offset="100%" stopColor="#00F5FF" stopOpacity="0.3" />
+              </SvgGradient>
+            </Defs>
+            
+            {/* Voice reactive circles */}
+            {Array.from({ length: 5 }, (_, index) => {
+              const radius = 50 + index * 30;
+              const opacity = Math.max(0, voiceAmplitude - index * 0.2);
+              
+              return (
+                <AnimatedCircle
+                  key={index}
+                  cx={screenWidth / 2}
+                  cy={screenHeight / 2}
+                  r={radius * voiceAnimation._value}
+                  stroke="url(#voiceGradient)"
+                  strokeWidth="2"
+                  fill="none"
+                  opacity={opacity}
+                />
+              );
+            })}
+          </Svg>
+        );
+
+      case FILTER_TYPES.NEON_GRID:
+        return (
+          <Svg width={screenWidth} height={screenHeight} style={StyleSheet.absoluteFillObject}>
+            <Defs>
+              <SvgGradient id="neonGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+                <Stop offset="0%" stopColor="#00FF88" stopOpacity="0.8" />
+                <Stop offset="100%" stopColor="#0A71EF" stopOpacity="0.6" />
+              </SvgGradient>
+            </Defs>
+            
+            {/* Vertical lines */}
+            {Array.from({ length: 10 }, (_, index) => (
+              <AnimatedPath
+                key={`v-${index}`}
+                d={`M ${(index / 10) * screenWidth} 0 L ${(index / 10) * screenWidth} ${screenHeight}`}
+                stroke="url(#neonGradient)"
+                strokeWidth="1"
+                  opacity={meshAnimation.interpolate({
+                  inputRange: [0, 1],
+                  outputRange: [0.1, 0.3],
+                })}
+              />
+            ))}
+            
+            {/* Horizontal lines */}
+            {Array.from({ length: 8 }, (_, index) => (
+              <AnimatedPath
+                key={`h-${index}`}
+                d={`M 0 ${(index / 8) * screenHeight} L ${screenWidth} ${(index / 8) * screenHeight}`}
+                stroke="url(#neonGradient)"
+                strokeWidth="1"
+                opacity={meshAnimation.interpolate({
+                  inputRange: [0, 1],
+                  outputRange: [0.1, 0.3],
+                })}
+              />
+            ))}
+          </Svg>
+        );
+
+      default:
+        return null;
+    }
+  };
+
+  // Render camera controls
+  const renderCameraControls = () => (
+    <Animated.View
+      style={[
+        styles.controlsContainer,
+        { opacity: controlsOpacity },
+      ]}
+    >
+      {/* Top controls */}
+      <View style={styles.topControls}>
+        <TouchableOpacity
+          style={[styles.controlButton, { backgroundColor: getDynamicColor(colors.surface, 0.8) }]}
+          onPress={onClose}
+        >
+          <Ionicons name="close" size={24} color={colors.text} />
+        </TouchableOpacity>
+
+        <View style={styles.topCenterControls}>
+          {recordingState === RECORDING_STATES.RECORDING && (
+            <View style={[styles.recordingIndicator, { backgroundColor: colors.accents.mutedRed }]}>
+              <Animated.View
+                style={[
+                  styles.recordingDot,
+                  {
+                    backgroundColor: colors.crystallineWhite,
+                    opacity: recordingAnimation,
+                  },
+                ]}
+              />
+              <Text style={[styles.recordingText, { color: colors.crystallineWhite }]}>
+                REC {formatDuration(recordingDuration)}
+              </Text>
+            </View>
+          )}
+        </View>
+
+        <View style={styles.topRightControls}>
+          <TouchableOpacity
+            style={[styles.controlButton, { backgroundColor: getDynamicColor(colors.surface, 0.8) }]}
+            onPress={toggleFlashMode}
+          >
+            <Ionicons name={getFlashIcon()} size={24} color={colors.text} />
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={[styles.controlButton, { backgroundColor: getDynamicColor(colors.surface, 0.8) }]}
+            onPress={toggleCameraType}
+          >
+            <MaterialIcons name="flip-camera-ios" size={24} color={colors.text} />
+          </TouchableOpacity>
+        </View>
+      </View>
+
+      {/* Side controls */}
+      <View style={styles.sideControls}>
+        {showFilters && (
+          <TouchableOpacity
+            style={[
+              styles.sideControlButton,
+              { backgroundColor: getDynamicColor(colors.surface, 0.8) },
+              activeFilter !== FILTER_TYPES.NONE && { borderColor: colors.primary, borderWidth: 2 },
+            ]}
+            onPress={() => setShowFilterMenu(true)}
+          >
+            <MaterialIcons name="filter" size={20} color={colors.text} />
+            <Text style={[styles.sideControlText, { color: colors.text }]}>
+              Filters
+            </Text>
+          </TouchableOpacity>
+        )}
+
+        <TouchableOpacity
+          style={[styles.sideControlButton, { backgroundColor: getDynamicColor(colors.surface, 0.8) }]}
+          onPress={() => {/* Timer functionality */}}
+        >
+          <MaterialIcons name="timer" size={20} color={colors.text} />
+          <Text style={[styles.sideControlText, { color: colors.text }]}>
+            Timer
+          </Text>
+        </TouchableOpacity>
+
+        <View style={styles.zoomControl}>
+          <Text style={[styles.zoomText, { color: colors.text }]}>
+            {(zoom * 10).toFixed(1)}x
+          </Text>
+        </View>
+      </View>
+
+      {/* Bottom controls */}
+      <View style={styles.bottomControls}>
+        {allowModeSwitch && (
+          <View style={styles.modeSelector}>
+            {Object.values(CAMERA_MODES).map((cameraMode) => (
+              <TouchableOpacity
+                key={cameraMode}
+                style={[
+                  styles.modeButton,
+                  mode === cameraMode && { backgroundColor: colors.primary },
+                ]}
+                onPress={() => setMode(cameraMode)}
+              >
+                <Text
+                  style={[
+                    styles.modeText,
+                    { color: mode === cameraMode ? colors.crystallineWhite : colors.text },
+                  ]}
+                >
+                  {cameraMode.toUpperCase()}
+                </Text>
+              </TouchableOpacity>
+            ))}
+          </View>
+        )}
+
+        <View style={styles.captureControls}>
+          {/* Gallery preview */}
+          <TouchableOpacity style={styles.galleryPreview}>
+            <View style={[styles.galleryThumbnail, { backgroundColor: colors.surface }]}>
+              <MaterialIcons name="photo-library" size={20} color={colors.text} />
+            </View>
+          </TouchableOpacity>
+
+          {/* Capture button */}
+          <TouchableOpacity
+            style={[
+              styles.captureButton,
+              mode === CAMERA_MODES.VIDEO && recordingState === RECORDING_STATES.RECORDING
+                ? { backgroundColor: colors.accents.mutedRed }
+                : { backgroundColor: colors.crystallineWhite },
+            ]}
+            onPress={mode === CAMERA_MODES.VIDEO ? handleVideoToggle : handleCapture}
+            disabled={isProcessing}
+          >
+            {isProcessing ? (
+              <QuantumLoader type="dots" size="small" color={colors.primary} />
+            ) : mode === CAMERA_MODES.VIDEO && recordingState === RECORDING_STATES.RECORDING ? (
+              <View style={[styles.stopIcon, { backgroundColor: colors.crystallineWhite }]} />
+            ) : (
+              <View style={[styles.captureInner, { backgroundColor: colors.primary }]} />
+            )}
+
+            {/* Mesh border animation */}
+            <Svg width={80} height={80} style={StyleSheet.absoluteFillObject}>
+              <AnimatedCircle
+                cx="40"
+                cy="40"
+                r="35"
+                stroke={colors.primary}
+                strokeWidth="3"
+                fill="none"
+                strokeDasharray={meshAnimation.interpolate({
+                  inputRange: [0, 1],
+                  outputRange: [`0 ${2 * Math.PI * 35}`, `${2 * Math.PI * 35} 0`],
+                })}
+                opacity="0.6"
+              />
+            </Svg>
+          </TouchableOpacity>
+
+          {/* Switch camera mode */}
+          <TouchableOpacity
+            style={styles.switchModeButton}
+            onPress={() => setMode(mode === CAMERA_MODES.PHOTO ? CAMERA_MODES.VIDEO : CAMERA_MODES.PHOTO)}
+          >
+            <MaterialIcons
+              name={mode === CAMERA_MODES.PHOTO ? "videocam" : "photo-camera"}
+              size={24}
+              color={colors.text}
+            />
+          </TouchableOpacity>
+        </View>
+      </View>
+    </Animated.View>
+  );
+
+  // Render filter selection menu
+  const renderFilterMenu = () => (
+    <Modal
+      visible={showFilterMenu}
+      animationType="slide"
+      presentationStyle="pageSheet"
+      onRequestClose={() => setShowFilterMenu(false)}
+    >
+      <SafeAreaView style={[styles.filterMenuContainer, { backgroundColor: colors.background }]}>
+        <View style={styles.filterMenuHeader}>
+          <TouchableOpacity onPress={() => setShowFilterMenu(false)}>
+            <Ionicons name="close" size={24} color={colors.text} />
+          </TouchableOpacity>
+          <Text style={[styles.filterMenuTitle, { color: colors.text }]}>
+            Mesh Filters
+          </Text>
+          <View style={{ width: 24 }} />
+        </View>
+
+        <ScrollView style={styles.filterMenuContent}>
+          {Object.values(FILTER_TYPES).map((filter) => (
+            <TouchableOpacity
+              key={filter}
+              style={[
+                styles.filterOption,
+                activeFilter === filter && { backgroundColor: getDynamicColor(colors.primary, 0.1) },
+              ]}
+              onPress={() => handleFilterSelect(filter)}
+            >
+              <FilterPreview filter={filter} colors={colors} />
+              <View style={styles.filterInfo}>
+                <Text style={[styles.filterName, { color: colors.text }]}>
+                  {getFilterName(filter)}
+                </Text>
+                <Text style={[styles.filterDescription, { color: colors.textSecondary }]}>
+                  {getFilterDescription(filter)}
+                </Text>
+              </View>
+              {activeFilter === filter && (
+                <Ionicons name="checkmark" size={20} color={colors.primary} />
+              )}
+            </TouchableOpacity>
+          ))}
+
+          {/* Mesh intensity slider */}
+          {activeFilter !== FILTER_TYPES.NONE && (
+            <View style={styles.intensityControl}>
+              <Text style={[styles.intensityLabel, { color: colors.text }]}>
+                Mesh Intensity
+              </Text>
+              <View style={styles.intensitySlider}>
+                <View style={[styles.sliderTrack, { backgroundColor: colors.surface }]}>
+                  <View
+                    style={[
+                      styles.sliderFill,
+                      {
+                        backgroundColor: colors.primary,
+                        width: `${meshIntensity * 100}%`,
+                      },
+                    ]}
+                  />
+                </View>
+                <Text style={[styles.intensityValue, { color: colors.textSecondary }]}>
+                  {Math.round(meshIntensity * 100)}%
+                </Text>
+              </View>
+            </View>
+          )}
+        </ScrollView>
+      </SafeAreaView>
+    </Modal>
+  );
+
+  // Camera permission denied screen
+  if (hasPermission === false) {
+    return (
+      <View style={[styles.permissionContainer, { backgroundColor: colors.background }]}>
+        <MaterialIcons name="camera-alt" size={64} color={colors.textSecondary} />
+        <Text style={[styles.permissionTitle, { color: colors.text }]}>
+          Camera Access Required
+        </Text>
+        <Text style={[styles.permissionDescription, { color: colors.textSecondary }]}>
+          Please grant camera and microphone permissions to create status updates
+        </Text>
+        <TouchableOpacity
+          style={[styles.permissionButton, { backgroundColor: colors.primary }]}
+          onPress={initializeCamera}
+        >
+          <Text style={[styles.permissionButtonText, { color: colors.crystallineWhite }]}>
+            Grant Permissions
+          </Text>
+        </TouchableOpacity>
+      </View>
+    );
+  }
+
+  // Loading screen
+  if (hasPermission === null) {
+    return (
+      <View style={[styles.loadingContainer, { backgroundColor: colors.background }]}>
+        <QuantumLoader type="particles" size="large" color={colors.primary} />
+        <Text style={[styles.loadingText, { color: colors.text }]}>
+          Initializing Camera...
+        </Text>
+      </View>
+    );
+  }
+
+  return (
+    <View style={styles.container}>
+      {/* Camera view */}
+      <Animated.View
+        style={[
+          styles.cameraContainer,
+          {
+            opacity: cameraAnimation,
+            transform: [{
+              scale: cameraAnimation.interpolate({
+                inputRange: [0, 1],
+                outputRange: [0.9, 1],
+              }),
+            }],
+          },
+        ]}
+        {...panResponder.panHandlers}
+      >
+        <Camera
+          ref={cameraRef}
+          style={styles.camera}
+          type={cameraType}
+          flashMode={flashMode}
+          zoom={zoom}
+          onCameraReady={() => console.log('Camera ready')}
+          onMountError={(error) => console.error('Camera mount error:', error)}
+        >
+          {/* Mesh filter overlay */}
+          {renderMeshFilterOverlay()}
+
+          {/* Touch to focus indicator */}
+          <TouchableOpacity
+            style={styles.focusArea}
+            onPress={toggleControls}
+            activeOpacity={1}
+          />
+        </Camera>
+      </Animated.View>
+
+      {/* Camera controls */}
+      {renderCameraControls()}
+
+      {/* Filter menu */}
+      {renderFilterMenu()}
+
+      {/* Mesh background */}
+      <CrystallineMesh
+        variant="small"
+        animated={true}
+        intensity={0.05}
+        color={getDynamicColor(colors.primary, 0.02)}
+        style={[StyleSheet.absoluteFillObject, { zIndex: -1 }]}
+      />
+    </View>
+  );
+};
+
+// Filter preview component
+const FilterPreview = ({ filter, colors }) => {
+  const getFilterIcon = () => {
+    switch (filter) {
+      case FILTER_TYPES.MESH_OVERLAY:
+        return 'grid-on';
+      case FILTER_TYPES.CRYSTALLINE:
+        return 'auto-awesome';
+      case FILTER_TYPES.NEON_GRID:
+        return 'border-all';
+      case FILTER_TYPES.PARTICLE_FLOW:
+        return 'scatter-plot';
+      case FILTER_TYPES.QUANTUM_BLUR:
+        return 'blur-on';
+      case FILTER_TYPES.VOICE_REACTIVE:
+        return 'graphic-eq';
+      case FILTER_TYPES.AR_MESH:
+        return 'view-in-ar';
+      default:
+        return 'filter-none';
+    }
+  };
+
+  return (
+    <View style={[styles.filterPreview, { backgroundColor: getDynamicColor(colors.surface, 0.5) }]}>
+      <MaterialIcons name={getFilterIcon()} size={24} color={colors.primary} />
+    </View>
+  );
+};
+
+// Utility functions
+const getFilterName = (filter) => {
+  switch (filter) {
+    case FILTER_TYPES.NONE:
+      return 'No Filter';
+    case FILTER_TYPES.MESH_OVERLAY:
+      return 'Mesh Overlay';
+    case FILTER_TYPES.CRYSTALLINE:
+      return 'Crystalline';
+    case FILTER_TYPES.NEON_GRID:
+      return 'Neon Grid';
+    case FILTER_TYPES.PARTICLE_FLOW:
+      return 'Particle Flow';
+    case FILTER_TYPES.QUANTUM_BLUR:
+      return 'Quantum Blur';
+    case FILTER_TYPES.VOICE_REACTIVE:
+      return 'Voice Reactive';
+    case FILTER_TYPES.AR_MESH:
+      return 'AR Mesh';
+    default:
+      return 'Unknown Filter';
+  }
+};
+
+const getFilterDescription = (filter) => {
+  switch (filter) {
+    case FILTER_TYPES.NONE:
+      return 'Original camera view';
+    case FILTER_TYPES.MESH_OVERLAY:
+      return 'Subtle mesh pattern overlay';
+    case FILTER_TYPES.CRYSTALLINE:
+      return 'Dynamic crystalline mesh effects';
+    case FILTER_TYPES.NEON_GRID:
+      return 'Bright neon grid pattern';
+    case FILTER_TYPES.PARTICLE_FLOW:
+      return 'Flowing particle effects';
+    case FILTER_TYPES.QUANTUM_BLUR:
+      return 'Quantum-inspired blur effect';
+    case FILTER_TYPES.VOICE_REACTIVE:
+      return 'Reacts to your voice';
+    case FILTER_TYPES.AR_MESH:
+      return 'Augmented reality mesh';
+    default:
+      return 'Filter description';
+  }
+};
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    backgroundColor: '#000',
+  },
+
+  cameraContainer: {
+    flex: 1,
+    overflow: 'hidden',
+  },
+
+  camera: {
+    flex: 1,
+  },
+
+  focusArea: {
+    flex: 1,
+  },
+
+  controlsContainer: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    zIndex: 10,
+  },
+
+  topControls: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'flex-start',
+    paddingTop: 60,
+    paddingHorizontal: MeshSpacing.lg,
+  },
+
+  topCenterControls: {
+    flex: 1,
+    alignItems: 'center',
+  },
+
+  topRightControls: {
+    flexDirection: 'row',
+    gap: MeshSpacing.sm,
+  },
+
+  controlButton: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    justifyContent: 'center',
+    alignItems: 'center',
+    ...MeshShadows.floating.light,
+  },
+
+  recordingIndicator: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: MeshSpacing.md,
+    paddingVertical: MeshSpacing.sm,
+    borderRadius: MeshBorderRadius.lg,
+  },
+
+  recordingDot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    marginRight: MeshSpacing.xs,
+  },
+
+  recordingText: {
+    fontSize: MeshTypography.sizes.bodySmall,
+    fontWeight: MeshTypography.weights.semiBold,
+  },
+
+  sideControls: {
+    position: 'absolute',
+    right: MeshSpacing.lg,
+    top: '40%',
+    alignItems: 'center',
+    gap: MeshSpacing.md,
+  },
+
+  sideControlButton: {
+    width: 60,
+    paddingVertical: MeshSpacing.sm,
+    borderRadius: MeshBorderRadius.lg,
+    alignItems: 'center',
+    ...MeshShadows.floating.light,
+  },
+
+  sideControlText: {
+    fontSize: MeshTypography.sizes.caption,
+    marginTop: 2,
+  },
+
+  zoomControl: {
+    backgroundColor: getDynamicColor('#000', 0.6),
+    paddingHorizontal: MeshSpacing.sm,
+    paddingVertical: MeshSpacing.xs,
+    borderRadius: MeshBorderRadius.sm,
+  },
+
+  zoomText: {
+    fontSize: MeshTypography.sizes.caption,
+    fontWeight: MeshTypography.weights.semiBold,
+  },
+
+  bottomControls: {
+    position: 'absolute',
+    bottom: 40,
+    left: 0,
+    right: 0,
+    alignItems: 'center',
+  },
+
+  modeSelector: {
+    flexDirection: 'row',
+    backgroundColor: getDynamicColor('#000', 0.6),
+    borderRadius: MeshBorderRadius.lg,
+    padding: 4,
+    marginBottom: MeshSpacing.lg,
+  },
+
+  modeButton: {
+    paddingHorizontal: MeshSpacing.md,
+    paddingVertical: MeshSpacing.sm,
+    borderRadius: MeshBorderRadius.sm,
+    marginHorizontal: 2,
+  },
+
+  modeText: {
+    fontSize: MeshTypography.sizes.caption,
+    fontWeight: MeshTypography.weights.semiBold,
+  },
+
+  captureControls: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    width: screenWidth - MeshSpacing.xl * 2,
+    paddingHorizontal: MeshSpacing.lg,
+  },
+
+  galleryPreview: {
+    width: 50,
+    height: 50,
+  },
+
+  galleryThumbnail: {
+    width: '100%',
+    height: '100%',
+    borderRadius: MeshBorderRadius.sm,
+    justifyContent: 'center',
+    alignItems: 'center',
+    ...MeshShadows.floating.light,
+  },
+
+  captureButton: {
+    width: 80,
+    height: 80,
+    borderRadius: 40,
+    justifyContent: 'center',
+    alignItems: 'center',
+    position: 'relative',
+    ...MeshShadows.floating.heavy,
+  },
+
+  captureInner: {
+    width: 60,
+    height: 60,
+    borderRadius: 30,
+  },
+
+  stopIcon: {
+    width: 30,
+    height: 30,
+    borderRadius: 4,
+  },
+
+  switchModeButton: {
+    width: 50,
+    height: 50,
+    borderRadius: 25,
+    backgroundColor: getDynamicColor('#000', 0.6),
+    justifyContent: 'center',
+    alignItems: 'center',
+    ...MeshShadows.floating.light,
+  },
+
+  // Filter menu styles
+  filterMenuContainer: {
+    flex: 1,
+  },
+
+  filterMenuHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: MeshSpacing.lg,
+    paddingVertical: MeshSpacing.md,
+    borderBottomWidth: 1,
+    borderBottomColor: getDynamicColor(MeshColors.neutrals.mediumGrey, 0.2),
+  },
+
+  filterMenuTitle: {
+    fontSize: MeshTypography.sizes.h3,
+    fontWeight: MeshTypography.weights.semiBold,
+  },
+
+  filterMenuContent: {
+    flex: 1,
+    paddingHorizontal: MeshSpacing.lg,
+  },
+
+  filterOption: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: MeshSpacing.md,
+    borderRadius: MeshBorderRadius.sm,
+    marginVertical: MeshSpacing.xs,
+    paddingHorizontal: MeshSpacing.md,
+  },
+
+  filterPreview: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: MeshSpacing.md,
+  },
+
+  filterInfo: {
+    flex: 1,
+  },
+
+  filterName: {
+    fontSize: MeshTypography.sizes.body,
+    fontWeight: MeshTypography.weights.medium,
+    marginBottom: 2,
+  },
+
+  filterDescription: {
+    fontSize: MeshTypography.sizes.caption,
+  },
+
+  intensityControl: {
+    marginTop: MeshSpacing.lg,
+    paddingHorizontal: MeshSpacing.md,
+    paddingVertical: MeshSpacing.lg,
+    backgroundColor: getDynamicColor(MeshColors.neutrals.lightGrey, 0.1),
+    borderRadius: MeshBorderRadius.lg,
+  },
+
+  intensityLabel: {
+    fontSize: MeshTypography.sizes.bodySmall,
+    fontWeight: MeshTypography.weights.medium,
+    marginBottom: MeshSpacing.sm,
+  },
+
+  intensitySlider: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: MeshSpacing.md,
+  },
+
+  sliderTrack: {
+    flex: 1,
+    height: 4,
+    borderRadius: 2,
+    position: 'relative',
+  },
+
+  sliderFill: {
+    height: '100%',
+    borderRadius: 2,
+  },
+
+  intensityValue: {
+    fontSize: MeshTypography.sizes.caption,
+    minWidth: 40,
+    textAlign: 'right',
+  },
+
+  // Permission and loading screens
+  permissionContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingHorizontal: MeshSpacing.xl,
+  },
+
+  permissionTitle: {
+    fontSize: MeshTypography.sizes.h2,
+    fontWeight: MeshTypography.weights.semiBold,
+    marginTop: MeshSpacing.lg,
+    marginBottom: MeshSpacing.md,
+    textAlign: 'center',
+  },
+
+  permissionDescription: {
+    fontSize: MeshTypography.sizes.body,
+    textAlign: 'center',
+    marginBottom: MeshSpacing.xl,
+  },
+
+  permissionButton: {
+    paddingHorizontal: MeshSpacing.xl,
+    paddingVertical: MeshSpacing.md,
+    borderRadius: MeshBorderRadius.components.button,
+    ...MeshShadows.floating.medium,
+  },
+
+  permissionButtonText: {
+    fontSize: MeshTypography.sizes.body,
+    fontWeight: MeshTypography.weights.semiBold,
+  },
+
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+
+  loadingText: {
+    fontSize: MeshTypography.sizes.body,
+    marginTop: MeshSpacing.lg,
+  },
+});
+
+// Export specialized camera components
+export const PhotoStatusCamera = (props) => (
+  <StatusCamera {...props} initialMode={CAMERA_MODES.PHOTO} />
+);
+
+export const VideoStatusCamera = (props) => (
+  <StatusCamera {...props} initialMode={CAMERA_MODES.VIDEO} />
+);
+
+export const LiveStatusCamera = (props) => (
+  <StatusCamera {...props} initialMode={CAMERA_MODES.LIVE} />
+);
+
+// Hook for managing camera state
+export const useStatusCamera = () => {
+  const [isOpen, setIsOpen] = useState(false);
+  const [mode, setMode] = useState(CAMERA_MODES.PHOTO);
+  const [activeFilter, setActiveFilter] = useState(FILTER_TYPES.NONE);
+
+  const openCamera = useCallback((initialMode = CAMERA_MODES.PHOTO) => {
+    setMode(initialMode);
+    setIsOpen(true);
+  }, []);
+
+  const closeCamera = useCallback(() => {
+    setIsOpen(false);
+    setActiveFilter(FILTER_TYPES.NONE);
+  }, []);
+
+  return {
+    isOpen,
+    mode,
+    activeFilter,
+    openCamera,
+    closeCamera,
+    setMode,
+    setActiveFilter,
+  };
+};
+
+export default StatusCamera;
+export { CAMERA_MODES, FILTER_TYPES, RECORDING_STATES };
