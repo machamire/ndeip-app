@@ -12,25 +12,46 @@ import Colors, { NDEIP_COLORS } from '@/constants/Colors';
 import { useColorScheme } from '@/components/useColorScheme';
 import { Typography, Spacing, Radii, Glass } from '@/constants/ndeipBrandSystem';
 
-// ─── Mock Data ────────────────────────────────────────────
+// ─── TTL Utilities ───────────────────────────────────────
+const STORY_TTL_MS = 24 * 60 * 60 * 1000; // 24 hours
+
+function createStoryTimestamp(hoursAgo: number) {
+    const created = Date.now() - hoursAgo * 60 * 60 * 1000;
+    return { created_at: created, expires_at: created + STORY_TTL_MS };
+}
+
+function getTimeRemaining(expiresAt: number): string {
+    const remaining = expiresAt - Date.now();
+    if (remaining <= 0) return 'Expired';
+    const hours = Math.floor(remaining / (60 * 60 * 1000));
+    const minutes = Math.floor((remaining % (60 * 60 * 1000)) / (60 * 1000));
+    if (hours > 0) return `${hours}h left`;
+    return `${minutes}m left`;
+}
+
+function isStoryLive(story: { expires_at: number }) {
+    return story.expires_at > Date.now();
+}
+
+// ─── Mock Data ────────────────────────────────────────
 const MY_STORY = { hasStory: false, lastUpdate: null };
 
 const TOP_3_STORIES = [
-    { id: '1', name: 'Sarah', seen: false, count: 3 },
-    { id: '2', name: 'Marcus', seen: false, count: 1 },
-    { id: '3', name: 'Thandi', seen: true, count: 2 },
+    { id: '1', name: 'Sarah', seen: false, count: 3, ...createStoryTimestamp(2) },
+    { id: '2', name: 'Marcus', seen: false, count: 1, ...createStoryTimestamp(6) },
+    { id: '3', name: 'Thandi', seen: true, count: 2, ...createStoryTimestamp(18) },
 ];
 
 const RECENT_STORIES = [
-    { id: '4', name: 'Jordan Lee', seen: false, count: 2 },
-    { id: '5', name: 'Priya Sharma', seen: false, count: 4 },
-    { id: '6', name: 'Alex Kim', seen: true, count: 1 },
-    { id: '7', name: 'Naledi M.', seen: true, count: 1 },
-    { id: '8', name: 'Kai Chen', seen: true, count: 3 },
+    { id: '4', name: 'Jordan Lee', seen: false, count: 2, ...createStoryTimestamp(1) },
+    { id: '5', name: 'Priya Sharma', seen: false, count: 4, ...createStoryTimestamp(4) },
+    { id: '6', name: 'Alex Kim', seen: true, count: 1, ...createStoryTimestamp(20) },
+    { id: '7', name: 'Naledi M.', seen: true, count: 1, ...createStoryTimestamp(12) },
+    { id: '8', name: 'Kai Chen', seen: true, count: 3, ...createStoryTimestamp(22) },
 ];
 
 // ─── Story Avatar ─────────────────────────────────────────
-function StoryAvatar({ name, seen, count }: { name: string; seen: boolean; count: number }) {
+function StoryAvatar({ name, seen, count, expires_at }: { name: string; seen: boolean; count: number; expires_at: number }) {
     const initials = name.split(' ').map(n => n[0]).join('').slice(0, 2);
     const gradColors = [
         ['#1B4D3E', '#2563EB'], ['#2563EB', '#8B5CF6'], ['#10B981', '#06B6D4'],
@@ -76,6 +97,7 @@ function StoryAvatar({ name, seen, count }: { name: string; seen: boolean; count
                     {count > 2 && <View style={[styles.storyCountDot, !seen && styles.storyCountDotActive]} />}
                 </View>
             )}
+            <Text style={styles.storyTimeLeft}>{getTimeRemaining(expires_at)}</Text>
         </TouchableOpacity>
     );
 }
@@ -85,6 +107,10 @@ export default function StoriesScreen() {
     const isDark = colorScheme === 'dark';
     const colors = Colors[colorScheme];
     const bg = isDark ? NDEIP_COLORS.gray[950] : NDEIP_COLORS.gray[50];
+
+    // Filter expired stories (TTL enforcement)
+    const liveTop3 = React.useMemo(() => TOP_3_STORIES.filter(isStoryLive), []);
+    const liveRecent = React.useMemo(() => RECENT_STORIES.filter(isStoryLive), []);
 
     return (
         <ScrollView style={[styles.container, { backgroundColor: bg }]} contentContainerStyle={{ paddingBottom: 100 }}>
@@ -132,9 +158,11 @@ export default function StoriesScreen() {
                     </View>
                 </View>
                 <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.storiesScroll}>
-                    {TOP_3_STORIES.map(story => (
+                    {liveTop3.length > 0 ? liveTop3.map(story => (
                         <StoryAvatar key={story.id} {...story} />
-                    ))}
+                    )) : (
+                        <Text style={{ color: NDEIP_COLORS.gray[500], fontSize: 13, paddingHorizontal: Spacing.screenHorizontal }}>No stories right now</Text>
+                    )}
                 </ScrollView>
             </View>
 
@@ -144,9 +172,11 @@ export default function StoriesScreen() {
                     RECENT
                 </Text>
                 <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.storiesScroll}>
-                    {RECENT_STORIES.map(story => (
+                    {liveRecent.length > 0 ? liveRecent.map(story => (
                         <StoryAvatar key={story.id} {...story} />
-                    ))}
+                    )) : (
+                        <Text style={{ color: NDEIP_COLORS.gray[500], fontSize: 13, paddingHorizontal: Spacing.screenHorizontal }}>No stories right now</Text>
+                    )}
                 </ScrollView>
             </View>
 
@@ -311,6 +341,11 @@ const styles = StyleSheet.create({
         backgroundColor: NDEIP_COLORS.gray[600],
     },
     storyCountDotActive: { backgroundColor: NDEIP_COLORS.primaryTeal },
+    storyTimeLeft: {
+        fontSize: 9,
+        color: NDEIP_COLORS.gray[500],
+        marginTop: 2,
+    },
     // Sponsored
     sponsoredCard: {
         marginHorizontal: Spacing.screenHorizontal,
