@@ -75,9 +75,6 @@ function RootLayoutNav() {
             <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
             <Stack.Screen name="auth" options={{ headerShown: false }} />
             <Stack.Screen name="chat" options={{ headerShown: false }} />
-            <Stack.Screen name="calls" options={{ headerShown: false }} />
-            <Stack.Screen name="status" options={{ headerShown: false }} />
-            <Stack.Screen name="villages" options={{ headerShown: false }} />
             <Stack.Screen name="settings" options={{ headerShown: false }} />
             <Stack.Screen name="features" options={{ headerShown: false }} />
             <Stack.Screen name="modal" options={{ presentation: 'modal' }} />

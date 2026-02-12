@@ -100,6 +100,28 @@ export default function ChatsScreen() {
   const isDark = colorScheme === 'dark';
   const [activeFilter, setActiveFilter] = React.useState('All');
   const [searchFocused, setSearchFocused] = React.useState(false);
+  const [searchQuery, setSearchQuery] = React.useState('');
+
+  // ─── Filtered Conversations ─────────────────────────────
+  const filteredConversations = React.useMemo(() => {
+    let list = CONVERSATIONS;
+
+    // Apply filter pills
+    if (activeFilter === 'Unread') list = list.filter(c => c.unread > 0);
+    else if (activeFilter === 'Groups') list = list.filter(c => c.isGroup);
+    else if (activeFilter === 'Channels') list = list.filter(c => c.isGroup); // placeholder for channels
+
+    // Apply search query
+    if (searchQuery.trim()) {
+      const q = searchQuery.toLowerCase();
+      list = list.filter(c =>
+        c.name.toLowerCase().includes(q) ||
+        c.message.toLowerCase().includes(q)
+      );
+    }
+
+    return list;
+  }, [activeFilter, searchQuery]);
 
   const bg = isDark ? NDEIP_COLORS.gray[950] : NDEIP_COLORS.gray[50];
   const cardBg = isDark ? Glass.dark.background : Glass.light.background;
@@ -158,8 +180,12 @@ export default function ChatsScreen() {
             placeholder="Search conversations..."
             placeholderTextColor={NDEIP_COLORS.gray[500]}
             style={[styles.searchInput, { color: colors.text }]}
+            value={searchQuery}
+            onChangeText={setSearchQuery}
             onFocus={() => setSearchFocused(true)}
             onBlur={() => setSearchFocused(false)}
+            returnKeyType="search"
+            autoCorrect={false}
           />
         </View>
 
@@ -191,49 +217,57 @@ export default function ChatsScreen() {
           })}
         </ScrollView>
 
-        {/* ─── Conversation List ─── */}
         <View style={styles.conversationList}>
-          {CONVERSATIONS.map((chat, index) => (
-            <TouchableOpacity
-              key={chat.id}
-              style={[styles.conversationRow]}
-              activeOpacity={0.6}
-            >
-              <Avatar
-                name={chat.name}
-                size={Spacing.components.avatarSizeMedium}
-                online={chat.online}
-              />
-              <View style={styles.conversationContent}>
-                <View style={styles.conversationTop}>
-                  <Text style={[styles.conversationName, { color: colors.text }]} numberOfLines={1}>
-                    {chat.pinned && <Text style={{ color: NDEIP_COLORS.amber }}>★ </Text>}
-                    {chat.name}
-                  </Text>
-                  <Text style={[styles.conversationTime, { color: chat.unread > 0 ? NDEIP_COLORS.primaryTeal : NDEIP_COLORS.gray[500] }]}>
-                    {chat.time}
-                  </Text>
+          {filteredConversations.length === 0 ? (
+            <View style={styles.emptySearch}>
+              <FontAwesome name="search" size={32} color={NDEIP_COLORS.gray[600]} />
+              <Text style={[styles.emptySearchText, { color: NDEIP_COLORS.gray[500] }]}>
+                No conversations found
+              </Text>
+            </View>
+          ) : (
+            filteredConversations.map((chat, index) => (
+              <TouchableOpacity
+                key={chat.id}
+                style={[styles.conversationRow]}
+                activeOpacity={0.6}
+              >
+                <Avatar
+                  name={chat.name}
+                  size={Spacing.components.avatarSizeMedium}
+                  online={chat.online}
+                />
+                <View style={styles.conversationContent}>
+                  <View style={styles.conversationTop}>
+                    <Text style={[styles.conversationName, { color: colors.text }]} numberOfLines={1}>
+                      {chat.pinned && <Text style={{ color: NDEIP_COLORS.amber }}>★ </Text>}
+                      {chat.name}
+                    </Text>
+                    <Text style={[styles.conversationTime, { color: chat.unread > 0 ? NDEIP_COLORS.primaryTeal : NDEIP_COLORS.gray[500] }]}>
+                      {chat.time}
+                    </Text>
+                  </View>
+                  <View style={styles.conversationBottom}>
+                    <Text style={[styles.conversationMessage, { color: isDark ? NDEIP_COLORS.gray[500] : NDEIP_COLORS.gray[400] }]} numberOfLines={1}>
+                      {chat.message}
+                    </Text>
+                    {chat.unread > 0 && (
+                      <LinearGradient
+                        colors={NDEIP_COLORS.gradients.brand as any}
+                        start={{ x: 0, y: 0 }}
+                        end={{ x: 1, y: 1 }}
+                        style={styles.unreadBadge}
+                      >
+                        <Text style={styles.unreadText}>
+                          {chat.unread > 99 ? '99+' : chat.unread}
+                        </Text>
+                      </LinearGradient>
+                    )}
+                  </View>
                 </View>
-                <View style={styles.conversationBottom}>
-                  <Text style={[styles.conversationMessage, { color: isDark ? NDEIP_COLORS.gray[500] : NDEIP_COLORS.gray[400] }]} numberOfLines={1}>
-                    {chat.message}
-                  </Text>
-                  {chat.unread > 0 && (
-                    <LinearGradient
-                      colors={NDEIP_COLORS.gradients.brand as any}
-                      start={{ x: 0, y: 0 }}
-                      end={{ x: 1, y: 1 }}
-                      style={styles.unreadBadge}
-                    >
-                      <Text style={styles.unreadText}>
-                        {chat.unread > 99 ? '99+' : chat.unread}
-                      </Text>
-                    </LinearGradient>
-                  )}
-                </View>
-              </View>
-            </TouchableOpacity>
-          ))}
+              </TouchableOpacity>
+            ))
+          )}
         </View>
       </ScrollView>
 
@@ -411,5 +445,15 @@ const styles = StyleSheet.create({
     borderRadius: Spacing.components.fabSize / 2,
     alignItems: 'center',
     justifyContent: 'center',
+  },
+  // Empty search state
+  emptySearch: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 48,
+  },
+  emptySearchText: {
+    fontSize: Typography.sizes.bodySmall,
+    marginTop: 12,
   },
 });
