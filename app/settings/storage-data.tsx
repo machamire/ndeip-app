@@ -1,99 +1,104 @@
 import React from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, ScrollView } from 'react-native';
-import { NDEIP_COLORS } from '@/constants/Colors';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity } from 'react-native';
 import FontAwesome from '@expo/vector-icons/FontAwesome';
+import Colors, { NDEIP_COLORS } from '@/constants/Colors';
+import { useColorScheme } from '@/components/useColorScheme';
+import { Typography, Spacing, Radii, Glass } from '@/constants/ndeipBrandSystem';
+
+const STORAGE_INFO = [
+    { label: 'Photos', size: '1.2 GB', color: NDEIP_COLORS.electricBlue },
+    { label: 'Videos', size: '3.4 GB', color: NDEIP_COLORS.amethyst },
+    { label: 'Documents', size: '256 MB', color: NDEIP_COLORS.amber },
+    { label: 'Audio', size: '89 MB', color: NDEIP_COLORS.emerald },
+];
+
+const DATA_SETTINGS = [
+    { title: 'Use Less Data for Calls', value: 'Off', type: 'select' },
+    { title: 'Auto-Download Media', value: 'Wi-Fi Only', type: 'select' },
+    { title: 'Upload Quality', value: 'HD', type: 'select' },
+    { title: 'Network Stats', value: '', type: 'nav' },
+];
 
 export default function StorageDataScreen() {
+    const colorScheme = useColorScheme() ?? 'dark';
+    const isDark = colorScheme === 'dark';
+    const colors = Colors[colorScheme];
+    const bg = isDark ? NDEIP_COLORS.gray[950] : NDEIP_COLORS.gray[50];
+    const cardBg = isDark ? Glass.dark.background : Glass.light.background;
+    const borderC = isDark ? Glass.dark.borderSubtle : Glass.light.borderSubtle;
+    const totalGB = 5.0;
+
     return (
-        <ScrollView style={styles.container} contentContainerStyle={{ paddingBottom: 40 }}>
-            <Text style={styles.sectionHeader}>Storage</Text>
-            <TouchableOpacity style={styles.item} activeOpacity={0.7}>
-                <FontAwesome name="database" size={16} color={NDEIP_COLORS.primaryTeal} style={{ width: 24 }} />
-                <View style={{ flex: 1 }}>
-                    <Text style={styles.itemLabel}>Manage storage</Text>
+        <ScrollView style={[styles.container, { backgroundColor: bg }]} contentContainerStyle={{ paddingBottom: 60 }}>
+            {/* Storage Overview Card */}
+            <View style={[styles.overviewCard, { backgroundColor: cardBg, borderColor: borderC }]}>
+                <Text style={[styles.overviewTitle, { color: colors.text }]}>Storage Used</Text>
+                <Text style={[styles.overviewTotal, { color: NDEIP_COLORS.primaryTeal }]}>{totalGB.toFixed(1)} GB</Text>
+                {/* Bar */}
+                <View style={styles.storageBar}>
+                    {STORAGE_INFO.map((item, i) => (
+                        <View key={i} style={[styles.storageSegment, { backgroundColor: item.color, flex: parseFloat(item.size) / totalGB }]} />
+                    ))}
                 </View>
-                <FontAwesome name="chevron-right" size={12} color={NDEIP_COLORS.gray[600]} />
+                {/* Legend */}
+                <View style={styles.legend}>
+                    {STORAGE_INFO.map((item, i) => (
+                        <View key={i} style={styles.legendItem}>
+                            <View style={[styles.legendDot, { backgroundColor: item.color }]} />
+                            <Text style={[styles.legendLabel, { color: NDEIP_COLORS.gray[400] }]}>{item.label}</Text>
+                            <Text style={[styles.legendSize, { color: colors.text }]}>{item.size}</Text>
+                        </View>
+                    ))}
+                </View>
+            </View>
+
+            <TouchableOpacity style={[styles.clearBtn, { borderColor: borderC }]} activeOpacity={0.7}>
+                <FontAwesome name="trash-o" size={15} color={NDEIP_COLORS.rose} />
+                <Text style={[styles.clearText, { color: NDEIP_COLORS.rose }]}>Clear Cache</Text>
             </TouchableOpacity>
 
-            <Text style={styles.sectionHeader}>Network</Text>
-            {[
-                { icon: 'bar-chart', label: 'Network usage' },
-                { icon: 'phone', label: 'Use less data for calls', toggle: false },
-                { icon: 'globe', label: 'Proxy' },
-            ].map((item, i) => (
-                <TouchableOpacity key={i} style={styles.item} activeOpacity={0.7}>
-                    <FontAwesome name={item.icon as any} size={16} color={NDEIP_COLORS.primaryTeal} style={{ width: 24 }} />
-                    <Text style={[styles.itemLabel, { flex: 1 }]}>{item.label}</Text>
-                    {item.toggle !== undefined ? (
-                        <View style={styles.toggle}><View style={styles.toggleDot} /></View>
-                    ) : (
-                        <FontAwesome name="chevron-right" size={12} color={NDEIP_COLORS.gray[600]} />
-                    )}
-                </TouchableOpacity>
-            ))}
-
-            <Text style={styles.sectionHeader}>Media quality</Text>
-            {[
-                { icon: 'cloud-upload', label: 'Upload quality', value: 'HD' },
-                { icon: 'cloud-download', label: 'Auto-download quality', value: 'Standard' },
-            ].map((item, i) => (
-                <TouchableOpacity key={i} style={styles.item} activeOpacity={0.7}>
-                    <FontAwesome name={item.icon as any} size={16} color={NDEIP_COLORS.primaryTeal} style={{ width: 24 }} />
-                    <View style={{ flex: 1 }}>
-                        <Text style={styles.itemLabel}>{item.label}</Text>
-                        <Text style={styles.itemValue}>{item.value}</Text>
-                    </View>
-                    <FontAwesome name="chevron-right" size={12} color={NDEIP_COLORS.gray[600]} />
-                </TouchableOpacity>
-            ))}
-
-            <Text style={styles.sectionHeader}>Media auto-download</Text>
-            <Text style={styles.sectionSubtext}>Choose when to automatically download media</Text>
-            {[
-                { label: 'Photos', wifi: true, cell: true },
-                { label: 'Audio', wifi: true, cell: false },
-                { label: 'Video', wifi: true, cell: false },
-                { label: 'Documents', wifi: true, cell: true },
-            ].map((item, i) => (
-                <View key={i} style={styles.mediaItem}>
-                    <Text style={styles.mediaLabel}>{item.label}</Text>
-                    <View style={styles.mediaOptions}>
-                        <View style={[styles.mediaBadge, item.wifi && styles.mediaBadgeActive]}>
-                            <Text style={[styles.mediaBadgeText, item.wifi && styles.mediaBadgeTextActive]}>Wi-Fi</Text>
+            <Text style={[styles.sectionLabel, { color: isDark ? NDEIP_COLORS.gray[500] : NDEIP_COLORS.gray[400] }]}>DATA USAGE</Text>
+            <View style={[styles.card, { backgroundColor: cardBg, borderColor: borderC }]}>
+                {DATA_SETTINGS.map((item, i) => (
+                    <TouchableOpacity key={i} style={[styles.row, i < DATA_SETTINGS.length - 1 && { borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: isDark ? 'rgba(255,255,255,0.04)' : 'rgba(0,0,0,0.04)' }]} activeOpacity={0.6}>
+                        <View style={{ flex: 1 }}>
+                            <Text style={[styles.rowTitle, { color: colors.text }]}>{item.title}</Text>
+                            {item.value && <Text style={[styles.rowValue, { color: NDEIP_COLORS.gray[500] }]}>{item.value}</Text>}
                         </View>
-                        <View style={[styles.mediaBadge, item.cell && styles.mediaBadgeActive]}>
-                            <Text style={[styles.mediaBadgeText, item.cell && styles.mediaBadgeTextActive]}>Cellular</Text>
-                        </View>
-                    </View>
-                </View>
-            ))}
-
-            <TouchableOpacity style={styles.resetButton}>
-                <Text style={styles.resetText}>Reset auto-download settings</Text>
-            </TouchableOpacity>
-
-            <Text style={styles.footer}>Voice Messages are always automatically downloaded.</Text>
+                        <FontAwesome name="chevron-right" size={12} color={NDEIP_COLORS.gray[600]} style={{ opacity: 0.5 }} />
+                    </TouchableOpacity>
+                ))}
+            </View>
         </ScrollView>
     );
 }
 
 const styles = StyleSheet.create({
-    container: { flex: 1, backgroundColor: '#0A0F0F' },
-    sectionHeader: { fontSize: 13, fontWeight: '700', color: NDEIP_COLORS.gray[500], textTransform: 'uppercase', letterSpacing: 0.5, paddingHorizontal: 16, paddingTop: 24, paddingBottom: 8 },
-    sectionSubtext: { fontSize: 13, color: NDEIP_COLORS.gray[500], paddingHorizontal: 16, paddingBottom: 8 },
-    item: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 16, paddingVertical: 16, gap: 12, borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: 'rgba(255,255,255,0.04)' },
-    itemLabel: { fontSize: 16, fontWeight: '500', color: '#D8E0E0' },
-    itemValue: { fontSize: 13, color: NDEIP_COLORS.gray[500], marginTop: 2 },
-    toggle: { width: 46, height: 26, borderRadius: 13, backgroundColor: NDEIP_COLORS.gray[700], justifyContent: 'center', paddingHorizontal: 2 },
-    toggleDot: { width: 22, height: 22, borderRadius: 11, backgroundColor: '#fff' },
-    mediaItem: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 16, paddingVertical: 14, borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: 'rgba(255,255,255,0.04)' },
-    mediaLabel: { fontSize: 16, fontWeight: '500', color: '#D8E0E0' },
-    mediaOptions: { flexDirection: 'row', gap: 8 },
-    mediaBadge: { paddingHorizontal: 10, paddingVertical: 4, borderRadius: 8, backgroundColor: 'rgba(255,255,255,0.04)', borderWidth: 1, borderColor: 'rgba(255,255,255,0.06)' },
-    mediaBadgeActive: { backgroundColor: 'rgba(0,59,59,0.2)', borderColor: NDEIP_COLORS.primaryTeal },
-    mediaBadgeText: { fontSize: 12, fontWeight: '600', color: NDEIP_COLORS.gray[500] },
-    mediaBadgeTextActive: { color: NDEIP_COLORS.primaryTeal },
-    resetButton: { paddingHorizontal: 16, paddingVertical: 16 },
-    resetText: { fontSize: 14, color: NDEIP_COLORS.electricBlue, fontWeight: '600' },
-    footer: { fontSize: 12, color: NDEIP_COLORS.gray[600], paddingHorizontal: 16, fontStyle: 'italic' },
+    container: { flex: 1 },
+    overviewCard: {
+        margin: Spacing.screenHorizontal, marginTop: 16,
+        padding: 20, borderRadius: Radii.card,
+        borderWidth: StyleSheet.hairlineWidth,
+    },
+    overviewTitle: { fontSize: 14, fontWeight: '500', marginBottom: 4 },
+    overviewTotal: { fontSize: 28, fontWeight: '700', marginBottom: 16 },
+    storageBar: { flexDirection: 'row', height: 8, borderRadius: 4, overflow: 'hidden', gap: 2 },
+    storageSegment: { borderRadius: 4 },
+    legend: { marginTop: 16, gap: 8 },
+    legendItem: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+    legendDot: { width: 8, height: 8, borderRadius: 4 },
+    legendLabel: { flex: 1, fontSize: 13 },
+    legendSize: { fontSize: 13, fontWeight: '600' },
+    clearBtn: {
+        flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8,
+        marginHorizontal: Spacing.screenHorizontal, marginBottom: 8,
+        height: 44, borderRadius: Radii.button,
+        borderWidth: StyleSheet.hairlineWidth,
+    },
+    clearText: { fontSize: 14, fontWeight: '600' },
+    sectionLabel: { ...Typography.presets.sectionLabel as any, paddingHorizontal: Spacing.screenHorizontal, marginBottom: 8, marginTop: 16 },
+    card: { marginHorizontal: Spacing.screenHorizontal, borderRadius: Radii.card, borderWidth: StyleSheet.hairlineWidth, overflow: 'hidden' },
+    row: { flexDirection: 'row', alignItems: 'center', padding: 16, gap: 12 },
+    rowTitle: { fontSize: 15, fontWeight: '500' },
+    rowValue: { fontSize: 13, marginTop: 2 },
 });

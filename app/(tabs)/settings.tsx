@@ -1,145 +1,230 @@
 import React from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, ScrollView, Image } from 'react-native';
-import { useRouter } from 'expo-router';
-import { useAuth } from '@/contexts/AuthContext';
-import { NDEIP_COLORS } from '@/constants/Colors';
+import {
+    View,
+    Text,
+    StyleSheet,
+    ScrollView,
+    TouchableOpacity,
+    Image,
+} from 'react-native';
+import { LinearGradient } from 'expo-linear-gradient';
 import FontAwesome from '@expo/vector-icons/FontAwesome';
+import { useRouter } from 'expo-router';
+import Colors, { NDEIP_COLORS } from '@/constants/Colors';
+import { useColorScheme } from '@/components/useColorScheme';
+import { Typography, Spacing, Radii, Glass, Shadows } from '@/constants/ndeipBrandSystem';
 
-const MENU_ITEMS = [
-    { id: 'lists', label: 'Lists', icon: 'list-ul', route: '/settings/lists', color: NDEIP_COLORS.electricBlue },
-    { id: 'starred', label: 'Starred Messages', icon: 'star', route: '/settings/starred', color: NDEIP_COLORS.gold },
-    { id: 'chat_history', label: 'Chat History', icon: 'history', route: '/settings/chat-history', color: NDEIP_COLORS.meshCyan },
-    { id: 'account', label: 'Account', icon: 'key', route: '/settings/account', color: NDEIP_COLORS.emerald },
-    { id: 'privacy', label: 'Privacy', icon: 'lock', route: '/settings/privacy', color: '#9333EA' },
-    { id: 'chats', label: 'Chats', icon: 'comments-o', route: '/settings/chats-settings', color: NDEIP_COLORS.primaryTeal },
-    { id: 'notifications', label: 'Notifications', icon: 'bell', route: '/settings/notifications', color: NDEIP_COLORS.rose },
-    { id: 'storage', label: 'Storage and Data', icon: 'database', route: '/settings/storage-data', color: '#F97316' },
-    { id: 'help', label: 'Help', icon: 'question-circle', route: '/settings/help-feedback', color: NDEIP_COLORS.gray[400] },
+const SETTINGS_GROUPS = [
+    {
+        label: 'GENERAL',
+        items: [
+            { title: 'Account', desc: 'Security, passkeys, email', icon: 'lock', color: NDEIP_COLORS.electricBlue, route: '/settings/account' },
+            { title: 'Privacy', desc: 'Last seen, profile photo, groups', icon: 'shield', color: NDEIP_COLORS.primaryTeal, route: '/settings/privacy' },
+            { title: 'Notifications', desc: 'Tones, vibrations, alerts', icon: 'bell', color: NDEIP_COLORS.amber, route: '/settings/notifications' },
+            { title: 'Chat Settings', desc: 'Wallpaper, font size, history', icon: 'comment', color: NDEIP_COLORS.emerald, route: '/settings/chats-settings' },
+        ],
+    },
+    {
+        label: 'DATA',
+        items: [
+            { title: 'Storage & Data', desc: 'Network usage, auto-download', icon: 'database', color: NDEIP_COLORS.amethyst, route: '/settings/storage-data' },
+            { title: 'Linked Devices', desc: 'Manage your devices', icon: 'laptop', color: NDEIP_COLORS.cyan, route: '/settings/linked-devices' },
+        ],
+    },
+    {
+        label: 'MORE',
+        items: [
+            { title: 'Lists', desc: 'Organize your chats', icon: 'list', color: NDEIP_COLORS.gray[400], route: '/settings/lists' },
+            { title: 'Starred Messages', desc: 'Your saved messages', icon: 'star', color: NDEIP_COLORS.amber, route: '/settings/starred' },
+            { title: 'Help & Feedback', desc: 'FAQ, contact us, report', icon: 'question-circle', color: NDEIP_COLORS.gray[400], route: '/settings/help-feedback' },
+        ],
+    },
 ];
 
 export default function SettingsScreen() {
+    const colorScheme = useColorScheme() ?? 'dark';
+    const isDark = colorScheme === 'dark';
+    const colors = Colors[colorScheme];
     const router = useRouter();
-    const { user } = useAuth();
-
-    const dndMode = user?.dnd_mode || 'available';
-    const dndConfig: any = {
-        available: { label: 'Available', icon: 'circle', color: NDEIP_COLORS.emerald },
-        be_quiet: { label: 'Be Quiet', icon: 'moon-o', color: NDEIP_COLORS.gold },
-        get_busy: { label: 'Get Busy', icon: 'briefcase', color: '#FF8C00' },
-        do_not_disturb: { label: 'DND', icon: 'minus-circle', color: NDEIP_COLORS.rose },
-    };
-    const currentDnd = dndConfig[dndMode];
+    const bg = isDark ? NDEIP_COLORS.gray[950] : NDEIP_COLORS.gray[50];
 
     return (
-        <ScrollView style={styles.container} contentContainerStyle={{ paddingBottom: 40 }}>
-            {/* Profile Card */}
+        <ScrollView style={[styles.container, { backgroundColor: bg }]} contentContainerStyle={{ paddingBottom: 100 }}>
+
+            {/* ─── Profile Card ─── */}
             <TouchableOpacity
-                style={styles.profileCard}
-                onPress={() => router.push('/settings/edit-profile' as any)}
+                style={[styles.profileCard, {
+                    backgroundColor: isDark ? Glass.dark.background : Glass.light.background,
+                    borderColor: isDark ? Glass.dark.borderSubtle : Glass.light.borderSubtle,
+                }]}
                 activeOpacity={0.7}
+                onPress={() => router.push('/settings/edit-profile' as any)}
             >
-                <View style={styles.profileAvatar}>
-                    <Text style={styles.profileAvatarText}>
-                        {(user?.name || 'U').charAt(0).toUpperCase()}
-                    </Text>
-                </View>
+                <LinearGradient
+                    colors={NDEIP_COLORS.gradients.brand as any}
+                    style={styles.profileAvatar}
+                >
+                    <Text style={styles.profileInitials}>Y</Text>
+                </LinearGradient>
                 <View style={styles.profileInfo}>
-                    <Text style={styles.profileName}>{user?.name || 'User'}</Text>
-                    <Text style={styles.profileAbout}>{user?.about || 'Hey there! I\'m using ndeip'}</Text>
+                    <Text style={[styles.profileName, { color: colors.text }]}>Your Name</Text>
+                    <Text style={[styles.profileAbout, { color: isDark ? NDEIP_COLORS.gray[500] : NDEIP_COLORS.gray[400] }]}>
+                        Hey there! I'm using ndeip
+                    </Text>
                 </View>
                 <FontAwesome name="chevron-right" size={14} color={NDEIP_COLORS.gray[600]} />
             </TouchableOpacity>
 
-            {/* Quick Settings */}
-            <View style={styles.quickRow}>
+            {/* ─── Quick Access — DND & Top 3 ─── */}
+            <View style={styles.quickAccessRow}>
                 <TouchableOpacity
-                    style={styles.quickCard}
+                    style={[styles.quickCard, {
+                        backgroundColor: isDark ? Glass.dark.background : Glass.light.background,
+                        borderColor: isDark ? Glass.dark.borderSubtle : Glass.light.borderSubtle,
+                    }]}
+                    activeOpacity={0.7}
                     onPress={() => router.push('/features/dnd-settings' as any)}
-                    activeOpacity={0.7}
                 >
-                    <View style={[styles.quickIcon, { backgroundColor: currentDnd.color + '15' }]}>
-                        <FontAwesome name={currentDnd.icon} size={16} color={currentDnd.color} />
+                    <View style={[styles.quickIcon, { backgroundColor: 'rgba(16,185,129,0.12)' }]}>
+                        <FontAwesome name="moon-o" size={16} color={NDEIP_COLORS.emerald} />
                     </View>
-                    <Text style={styles.quickLabel}>Availability</Text>
-                    <Text style={[styles.quickValue, { color: currentDnd.color }]}>{currentDnd.label}</Text>
+                    <Text style={[styles.quickLabel, { color: colors.text }]}>Do Not Disturb</Text>
+                    <Text style={[styles.quickValue, { color: NDEIP_COLORS.emerald }]}>Available</Text>
                 </TouchableOpacity>
 
                 <TouchableOpacity
-                    style={styles.quickCard}
-                    onPress={() => router.push('/features/top3' as any)}
+                    style={[styles.quickCard, {
+                        backgroundColor: isDark ? Glass.dark.background : Glass.light.background,
+                        borderColor: isDark ? Glass.dark.borderSubtle : Glass.light.borderSubtle,
+                    }]}
                     activeOpacity={0.7}
+                    onPress={() => router.push('/features/top3' as any)}
                 >
-                    <View style={[styles.quickIcon, { backgroundColor: NDEIP_COLORS.gold + '15' }]}>
-                        <FontAwesome name="star" size={16} color={NDEIP_COLORS.gold} />
+                    <View style={[styles.quickIcon, { backgroundColor: 'rgba(245,158,11,0.12)' }]}>
+                        <FontAwesome name="star" size={16} color={NDEIP_COLORS.amber} />
                     </View>
-                    <Text style={styles.quickLabel}>Favorites</Text>
-                    <Text style={[styles.quickValue, { color: NDEIP_COLORS.gold }]}>Top 3</Text>
+                    <Text style={[styles.quickLabel, { color: colors.text }]}>Top 3</Text>
+                    <Text style={[styles.quickValue, { color: NDEIP_COLORS.amber }]}>3 contacts</Text>
                 </TouchableOpacity>
             </View>
 
-            {/* Menu Items */}
-            <View style={styles.menuSection}>
-                {MENU_ITEMS.map(item => (
-                    <TouchableOpacity
-                        key={item.id}
-                        style={styles.menuItem}
-                        onPress={() => router.push(item.route as any)}
-                        activeOpacity={0.65}
-                    >
-                        <View style={[styles.menuIcon, { backgroundColor: item.color + '12' }]}>
-                            <FontAwesome name={item.icon as any} size={15} color={item.color} />
-                        </View>
-                        <Text style={styles.menuLabel}>{item.label}</Text>
-                        <FontAwesome name="chevron-right" size={11} color={NDEIP_COLORS.gray[700]} />
-                    </TouchableOpacity>
-                ))}
-            </View>
+            {/* ─── Settings Groups ─── */}
+            {SETTINGS_GROUPS.map((group, gi) => (
+                <View key={gi} style={styles.settingsGroup}>
+                    <Text style={[styles.groupLabel, { color: isDark ? NDEIP_COLORS.gray[500] : NDEIP_COLORS.gray[400] }]}>
+                        {group.label}
+                    </Text>
+                    {group.items.map((item, ii) => (
+                        <TouchableOpacity
+                            key={ii}
+                            style={styles.settingsRow}
+                            activeOpacity={0.6}
+                            onPress={() => router.push(item.route as any)}
+                        >
+                            <View style={[styles.settingsIconCircle, { backgroundColor: `${item.color}15` }]}>
+                                <FontAwesome name={item.icon as any} size={15} color={item.color} />
+                            </View>
+                            <View style={styles.settingsContent}>
+                                <Text style={[styles.settingsTitle, { color: colors.text }]}>{item.title}</Text>
+                                <Text style={[styles.settingsDesc, { color: isDark ? NDEIP_COLORS.gray[500] : NDEIP_COLORS.gray[400] }]}>{item.desc}</Text>
+                            </View>
+                            <FontAwesome name="chevron-right" size={12} color={NDEIP_COLORS.gray[600]} style={{ opacity: 0.5 }} />
+                        </TouchableOpacity>
+                    ))}
+                </View>
+            ))}
 
-            {/* App Info */}
-            <View style={styles.appInfo}>
+            {/* ─── Footer ─── */}
+            <View style={styles.footer}>
                 <Image
                     source={require('../../assets/images/ndeip-logo.png')}
-                    style={{ width: 80, height: 32, resizeMode: 'contain', marginBottom: 8 }}
+                    resizeMode="contain"
+                    style={styles.footerLogo}
                 />
-                <Text style={styles.appVersion}>Version 1.0.0</Text>
+                <Text style={[styles.footerVersion, { color: NDEIP_COLORS.gray[600] }]}>ndeip v1.0.0</Text>
             </View>
         </ScrollView>
     );
 }
 
 const styles = StyleSheet.create({
-    container: { flex: 1, backgroundColor: NDEIP_COLORS.gray[950] },
-
+    container: { flex: 1 },
+    // Profile Card
     profileCard: {
-        flexDirection: 'row', alignItems: 'center', margin: 16, padding: 18, gap: 14,
-        backgroundColor: 'rgba(255,255,255,0.03)', borderRadius: 20, borderWidth: 1, borderColor: 'rgba(255,255,255,0.05)',
+        flexDirection: 'row',
+        alignItems: 'center',
+        margin: Spacing.screenHorizontal,
+        marginTop: 8,
+        padding: 16,
+        borderRadius: Radii.card,
+        borderWidth: StyleSheet.hairlineWidth,
+        gap: 14,
     },
     profileAvatar: {
-        width: 56, height: 56, borderRadius: 18, backgroundColor: NDEIP_COLORS.primaryTeal,
-        justifyContent: 'center', alignItems: 'center',
+        width: Spacing.components.avatarSizeXL,
+        height: Spacing.components.avatarSizeXL,
+        borderRadius: Spacing.components.avatarSizeXL / 2,
+        alignItems: 'center',
+        justifyContent: 'center',
     },
-    profileAvatarText: { color: '#fff', fontSize: 22, fontWeight: '700' },
+    profileInitials: { color: '#fff', fontSize: 28, fontWeight: '700' },
     profileInfo: { flex: 1 },
-    profileName: { fontSize: 18, fontWeight: '700', color: NDEIP_COLORS.gray[100] },
-    profileAbout: { fontSize: 13, color: NDEIP_COLORS.gray[400], marginTop: 3 },
-
-    quickRow: { flexDirection: 'row', paddingHorizontal: 16, gap: 12, marginBottom: 20 },
+    profileName: { fontSize: Typography.sizes.title2, fontWeight: '700' },
+    profileAbout: { fontSize: Typography.sizes.caption, marginTop: 3 },
+    // Quick Access
+    quickAccessRow: {
+        flexDirection: 'row',
+        paddingHorizontal: Spacing.screenHorizontal,
+        gap: 12,
+        marginBottom: 8,
+    },
     quickCard: {
-        flex: 1, alignItems: 'center', padding: 16, gap: 8, backgroundColor: 'rgba(255,255,255,0.03)',
-        borderRadius: 16, borderWidth: 1, borderColor: 'rgba(255,255,255,0.05)',
+        flex: 1,
+        padding: 14,
+        borderRadius: Radii.card,
+        borderWidth: StyleSheet.hairlineWidth,
+        gap: 8,
     },
-    quickIcon: { width: 40, height: 40, borderRadius: 12, justifyContent: 'center', alignItems: 'center' },
-    quickLabel: { fontSize: 11, fontWeight: '600', color: NDEIP_COLORS.gray[500], textTransform: 'uppercase', letterSpacing: 0.5 },
-    quickValue: { fontSize: 13, fontWeight: '700' },
-
-    menuSection: { marginHorizontal: 16 },
-    menuItem: {
-        flexDirection: 'row', alignItems: 'center', paddingVertical: 14, gap: 14,
-        borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: 'rgba(255,255,255,0.03)',
+    quickIcon: {
+        width: Spacing.components.iconCircleSize,
+        height: Spacing.components.iconCircleSize,
+        borderRadius: 10,
+        alignItems: 'center',
+        justifyContent: 'center',
     },
-    menuIcon: { width: 36, height: 36, borderRadius: 10, justifyContent: 'center', alignItems: 'center' },
-    menuLabel: { flex: 1, fontSize: 15, fontWeight: '500', color: NDEIP_COLORS.gray[200] },
-
-    appInfo: { alignItems: 'center', paddingTop: 32 },
-    appVersion: { fontSize: 12, color: NDEIP_COLORS.gray[600] },
+    quickLabel: { fontSize: 14, fontWeight: '600' },
+    quickValue: { fontSize: 12, fontWeight: '500' },
+    // Groups
+    settingsGroup: { marginTop: 8 },
+    groupLabel: {
+        ...Typography.presets.sectionLabel as any,
+        paddingHorizontal: Spacing.screenHorizontal,
+        marginBottom: 8,
+        marginTop: 16,
+    },
+    settingsRow: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        paddingHorizontal: Spacing.screenHorizontal,
+        paddingVertical: 13,
+        gap: 14,
+    },
+    settingsIconCircle: {
+        width: Spacing.components.iconCircleSize,
+        height: Spacing.components.iconCircleSize,
+        borderRadius: 10,
+        alignItems: 'center',
+        justifyContent: 'center',
+    },
+    settingsContent: { flex: 1 },
+    settingsTitle: { fontSize: 15, fontWeight: '500' },
+    settingsDesc: { fontSize: 12, marginTop: 2 },
+    // Footer
+    footer: {
+        alignItems: 'center',
+        paddingVertical: 32,
+        gap: 8,
+    },
+    footerLogo: { width: 60, height: 24, opacity: 0.4 },
+    footerVersion: { fontSize: 11 },
 });

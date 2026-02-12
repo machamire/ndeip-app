@@ -1,54 +1,55 @@
 import React from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, ScrollView } from 'react-native';
-import { NDEIP_COLORS } from '@/constants/Colors';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Alert } from 'react-native';
 import FontAwesome from '@expo/vector-icons/FontAwesome';
+import Colors, { NDEIP_COLORS } from '@/constants/Colors';
+import { useColorScheme } from '@/components/useColorScheme';
+import { Typography, Spacing, Radii, Glass } from '@/constants/ndeipBrandSystem';
+
+const HISTORY_ACTIONS = [
+    { title: 'Export Chat History', desc: 'Save all messages as a file', icon: 'download', color: NDEIP_COLORS.electricBlue },
+    { title: 'Clear All Chats', desc: 'Remove messages but keep contacts', icon: 'eraser', color: NDEIP_COLORS.amber },
+    { title: 'Delete All Chats', desc: 'Remove all chats and messages', icon: 'trash', color: NDEIP_COLORS.rose },
+];
 
 export default function ChatHistoryScreen() {
+    const colorScheme = useColorScheme() ?? 'dark';
+    const isDark = colorScheme === 'dark';
+    const colors = Colors[colorScheme];
+    const bg = isDark ? NDEIP_COLORS.gray[950] : NDEIP_COLORS.gray[50];
+    const cardBg = isDark ? Glass.dark.background : Glass.light.background;
+    const borderC = isDark ? Glass.dark.borderSubtle : Glass.light.borderSubtle;
+
     return (
-        <ScrollView style={styles.container} contentContainerStyle={{ paddingBottom: 40, flexGrow: 1 }}>
-            {/* Sync Status */}
-            <View style={styles.syncCard}>
-                <View style={styles.syncHeader}>
-                    <FontAwesome name="exclamation-circle" size={20} color={NDEIP_COLORS.warning} />
-                    <Text style={styles.syncTitle}>Couldn't finish syncing</Text>
-                </View>
-                <Text style={styles.syncDescription}>
-                    Use the Wi-Fi and set up on your phone to continue syncing your chat history.
-                </Text>
-                <TouchableOpacity style={styles.learnMore}>
-                    <Text style={styles.learnMoreText}>Learn more</Text>
-                </TouchableOpacity>
+        <ScrollView style={[styles.container, { backgroundColor: bg }]} contentContainerStyle={{ paddingBottom: 60 }}>
+            <Text style={[styles.sectionLabel, { color: isDark ? NDEIP_COLORS.gray[500] : NDEIP_COLORS.gray[400] }]}>CHAT HISTORY</Text>
+            <View style={[styles.card, { backgroundColor: cardBg, borderColor: borderC }]}>
+                {HISTORY_ACTIONS.map((item, i) => (
+                    <TouchableOpacity key={i} style={[styles.row, i < HISTORY_ACTIONS.length - 1 && { borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: isDark ? 'rgba(255,255,255,0.04)' : 'rgba(0,0,0,0.04)' }]} activeOpacity={0.6}>
+                        <View style={[styles.iconCircle, { backgroundColor: `${item.color}15` }]}>
+                            <FontAwesome name={item.icon as any} size={15} color={item.color} />
+                        </View>
+                        <View style={{ flex: 1 }}>
+                            <Text style={[styles.rowTitle, { color: item.color === NDEIP_COLORS.rose ? NDEIP_COLORS.rose : colors.text }]}>{item.title}</Text>
+                            <Text style={[styles.rowDesc, { color: NDEIP_COLORS.gray[500] }]}>{item.desc}</Text>
+                        </View>
+                        <FontAwesome name="chevron-right" size={12} color={NDEIP_COLORS.gray[600]} style={{ opacity: 0.5 }} />
+                    </TouchableOpacity>
+                ))}
             </View>
-
-            {/* Partially Synced Info */}
-            <View style={styles.infoCard}>
-                <FontAwesome name="cloud" size={16} color={NDEIP_COLORS.gray[400]} />
-                <View style={{ flex: 1 }}>
-                    <Text style={styles.infoTitle}>Partially Synced</Text>
-                    <Text style={styles.infoText}>Your chat history isn't on this device. To see all your messages, restore from a backup.</Text>
-                </View>
-            </View>
-
-            {/* End-to-end encrypted note */}
-            <View style={styles.encryptedNote}>
-                <FontAwesome name="lock" size={12} color={NDEIP_COLORS.success} />
-                <Text style={styles.encryptedText}>End-to-end encrypted</Text>
-            </View>
+            <Text style={[styles.warning, { color: NDEIP_COLORS.gray[600] }]}>
+                ⚠️ Deleting chats is permanent and cannot be undone. Export your history first if you need a backup.
+            </Text>
         </ScrollView>
     );
 }
 
 const styles = StyleSheet.create({
-    container: { flex: 1, backgroundColor: '#0A0F0F' },
-    syncCard: { margin: 16, padding: 18, backgroundColor: 'rgba(255,184,0,0.08)', borderRadius: 14, borderWidth: 1, borderColor: 'rgba(255,184,0,0.15)' },
-    syncHeader: { flexDirection: 'row', alignItems: 'center', gap: 10, marginBottom: 8 },
-    syncTitle: { fontSize: 16, fontWeight: '700', color: NDEIP_COLORS.warning },
-    syncDescription: { fontSize: 14, color: NDEIP_COLORS.gray[400], lineHeight: 20, marginBottom: 12 },
-    learnMore: { alignSelf: 'flex-start', paddingVertical: 6 },
-    learnMoreText: { fontSize: 14, fontWeight: '600', color: NDEIP_COLORS.electricBlue },
-    infoCard: { flexDirection: 'row', alignItems: 'flex-start', gap: 12, margin: 16, padding: 16, backgroundColor: 'rgba(255,255,255,0.03)', borderRadius: 12 },
-    infoTitle: { fontSize: 15, fontWeight: '600', color: '#D8E0E0', marginBottom: 4 },
-    infoText: { fontSize: 13, color: NDEIP_COLORS.gray[500], lineHeight: 20 },
-    encryptedNote: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, position: 'absolute', bottom: 20, left: 0, right: 0 },
-    encryptedText: { fontSize: 12, color: NDEIP_COLORS.success, fontWeight: '500' },
+    container: { flex: 1 },
+    sectionLabel: { ...Typography.presets.sectionLabel as any, paddingHorizontal: Spacing.screenHorizontal, marginBottom: 8, marginTop: 16 },
+    card: { marginHorizontal: Spacing.screenHorizontal, borderRadius: Radii.card, borderWidth: StyleSheet.hairlineWidth, overflow: 'hidden' },
+    row: { flexDirection: 'row', alignItems: 'center', padding: 16, gap: 12 },
+    iconCircle: { width: 36, height: 36, borderRadius: 10, alignItems: 'center', justifyContent: 'center' },
+    rowTitle: { fontSize: 15, fontWeight: '600' },
+    rowDesc: { fontSize: 12, marginTop: 2 },
+    warning: { fontSize: 12, lineHeight: 18, paddingHorizontal: Spacing.screenHorizontal + 4, marginTop: 12 },
 });

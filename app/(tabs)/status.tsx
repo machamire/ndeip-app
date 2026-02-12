@@ -1,199 +1,348 @@
-import React, { useState } from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, FlatList, ScrollView } from 'react-native';
-import { NDEIP_COLORS } from '@/constants/Colors';
+import React from 'react';
+import {
+    View,
+    Text,
+    StyleSheet,
+    ScrollView,
+    TouchableOpacity,
+} from 'react-native';
+import { LinearGradient } from 'expo-linear-gradient';
 import FontAwesome from '@expo/vector-icons/FontAwesome';
+import Colors, { NDEIP_COLORS } from '@/constants/Colors';
+import { useColorScheme } from '@/components/useColorScheme';
+import { Typography, Spacing, Radii, Glass } from '@/constants/ndeipBrandSystem';
 
-const MY_STORIES = { id: '0', name: 'My Stories', description: 'Tap to add a story', initials: 'ME', hasNew: false };
+// ─── Mock Data ────────────────────────────────────────────
+const MY_STORY = { hasStory: false, lastUpdate: null };
 
-const TOP3_STORIES = [
-    { id: '1', name: 'Sarah J.', initials: 'SJ', time: '12 min ago', isTop3: true, viewed: false, color: NDEIP_COLORS.primaryTeal },
-    { id: '2', name: 'Marcus', initials: 'MW', time: '25 min ago', isTop3: true, viewed: false, color: NDEIP_COLORS.electricBlue },
-    { id: '3', name: 'Lisa', initials: 'LC', time: '1 hr ago', isTop3: true, viewed: true, color: NDEIP_COLORS.meshCyan },
+const TOP_3_STORIES = [
+    { id: '1', name: 'Sarah', seen: false, count: 3 },
+    { id: '2', name: 'Marcus', seen: false, count: 1 },
+    { id: '3', name: 'Thandi', seen: true, count: 2 },
 ];
 
-const OTHER_STORIES = [
-    { id: '4', name: 'Amara O.', initials: 'AO', time: '2 hrs ago', isTop3: false, viewed: false, color: NDEIP_COLORS.emerald },
-    { id: '5', name: 'Robert', initials: 'RT', time: '3 hrs ago', isTop3: false, viewed: true, color: NDEIP_COLORS.gold },
-    { id: '6', name: 'Emma W.', initials: 'EW', time: '5 hrs ago', isTop3: false, viewed: false, color: '#9333EA' },
+const RECENT_STORIES = [
+    { id: '4', name: 'Jordan Lee', seen: false, count: 2 },
+    { id: '5', name: 'Priya Sharma', seen: false, count: 4 },
+    { id: '6', name: 'Alex Kim', seen: true, count: 1 },
+    { id: '7', name: 'Naledi M.', seen: true, count: 1 },
+    { id: '8', name: 'Kai Chen', seen: true, count: 3 },
 ];
 
-const AD_ENTRY = { id: 'ad', isAd: true };
-
-const TABS = ['Stories', 'Regional News'];
-
-export default function StoriesScreen() {
-    const [activeTab, setActiveTab] = useState('Stories');
-
-    const listData: any[] = [
-        { ...MY_STORIES, isMyStory: true },
-        { type: 'sectionHeader', title: '★ Top 3' },
-        ...TOP3_STORIES,
-        { ...AD_ENTRY },
-        { type: 'sectionHeader', title: 'Recent Stories' },
-        ...OTHER_STORIES,
-        { ...AD_ENTRY, id: 'ad2' },
+// ─── Story Avatar ─────────────────────────────────────────
+function StoryAvatar({ name, seen, count }: { name: string; seen: boolean; count: number }) {
+    const initials = name.split(' ').map(n => n[0]).join('').slice(0, 2);
+    const gradColors = [
+        ['#1B4D3E', '#2563EB'], ['#2563EB', '#8B5CF6'], ['#10B981', '#06B6D4'],
+        ['#F59E0B', '#EF4444'], ['#8B5CF6', '#F43F5E'],
     ];
+    const ci = name.charCodeAt(0) % gradColors.length;
 
     return (
-        <View style={styles.container}>
-            {/* Tab Bar */}
-            <View style={styles.tabBar}>
-                {TABS.map(tab => (
-                    <TouchableOpacity
-                        key={tab}
-                        style={[styles.tab, activeTab === tab && styles.tabActive]}
-                        onPress={() => setActiveTab(tab)}
-                    >
-                        <Text style={[styles.tabText, activeTab === tab && styles.tabTextActive]}>{tab}</Text>
-                    </TouchableOpacity>
-                ))}
-            </View>
-
-            {activeTab === 'Stories' ? (
-                <FlatList
-                    data={listData}
-                    keyExtractor={(item: any) => item.id || item.title || Math.random().toString()}
-                    showsVerticalScrollIndicator={false}
-                    contentContainerStyle={{ paddingBottom: 80 }}
-                    renderItem={({ item }: any) => {
-                        if (item.type === 'sectionHeader') {
-                            return (
-                                <Text style={styles.sectionHeader}>{item.title}</Text>
-                            );
-                        }
-                        if (item.isAd) {
-                            return (
-                                <View style={styles.adCard}>
-                                    <View style={styles.adBadge}>
-                                        <FontAwesome name="bullhorn" size={10} color={NDEIP_COLORS.gray[500]} />
-                                        <Text style={styles.adBadgeText}>Sponsored</Text>
-                                    </View>
-                                    <View style={styles.adContent}>
-                                        <View style={styles.adIcon}>
-                                            <FontAwesome name="shopping-bag" size={16} color={NDEIP_COLORS.gray[500]} />
-                                        </View>
-                                        <View style={{ flex: 1 }}>
-                                            <Text style={styles.adTitle}>Ad placeholder</Text>
-                                            <Text style={styles.adDesc}>Sponsored content will appear here</Text>
-                                        </View>
-                                    </View>
-                                </View>
-                            );
-                        }
-                        if (item.isMyStory) {
-                            return (
-                                <TouchableOpacity style={styles.myStoryRow} activeOpacity={0.7}>
-                                    <View style={styles.myStoryAvatar}>
-                                        <FontAwesome name="plus" size={18} color={NDEIP_COLORS.electricBlue} />
-                                    </View>
-                                    <View style={{ flex: 1 }}>
-                                        <Text style={styles.myStoryName}>My Stories</Text>
-                                        <Text style={styles.myStoryHint}>Tap to add a story  ·  <Text style={{ color: NDEIP_COLORS.gold }}>Disappears after 24h</Text></Text>
-                                    </View>
-                                    <FontAwesome name="camera" size={18} color={NDEIP_COLORS.emerald} />
-                                </TouchableOpacity>
-                            );
-                        }
-                        return (
-                            <TouchableOpacity style={styles.storyRow} activeOpacity={0.65}>
-                                <View style={[styles.storyRing, item.viewed ? styles.storyRingViewed : styles.storyRingNew]}>
-                                    <View style={[styles.storyAvatar, { backgroundColor: item.color || NDEIP_COLORS.primaryTeal }]}>
-                                        <Text style={styles.storyAvatarText}>{item.initials}</Text>
-                                    </View>
-                                </View>
-                                <View style={{ flex: 1 }}>
-                                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
-                                        <Text style={styles.storyName}>{item.name}</Text>
-                                        {item.isTop3 && (
-                                            <View style={styles.top3Tag}>
-                                                <FontAwesome name="star" size={8} color={NDEIP_COLORS.gold} />
-                                                <Text style={styles.top3TagText}>Top 3</Text>
-                                            </View>
-                                        )}
-                                    </View>
-                                    <Text style={styles.storyTime}>{item.time}</Text>
-                                </View>
-                            </TouchableOpacity>
-                        );
-                    }}
-                />
+        <TouchableOpacity style={styles.storyItem} activeOpacity={0.7}>
+            {!seen ? (
+                <LinearGradient
+                    colors={gradColors[ci] as any}
+                    start={{ x: 0, y: 0 }}
+                    end={{ x: 1, y: 1 }}
+                    style={styles.storyRingUnseen}
+                >
+                    <View style={styles.storyRingInner}>
+                        <LinearGradient
+                            colors={gradColors[ci] as any}
+                            style={styles.storyAvatar}
+                        >
+                            <Text style={styles.storyInitials}>{initials}</Text>
+                        </LinearGradient>
+                    </View>
+                </LinearGradient>
             ) : (
-                <View style={styles.emptyState}>
-                    <FontAwesome name="newspaper-o" size={48} color={NDEIP_COLORS.gray[600]} />
-                    <Text style={styles.emptyTitle}>Regional News</Text>
-                    <Text style={styles.emptySubtitle}>Local and regional news from your area will appear here</Text>
+                <View style={styles.storyRingSeen}>
+                    <LinearGradient
+                        colors={[NDEIP_COLORS.gray[700], NDEIP_COLORS.gray[600]] as any}
+                        style={[styles.storyAvatar, { opacity: 0.7 }]}
+                    >
+                        <Text style={styles.storyInitials}>{initials}</Text>
+                    </LinearGradient>
                 </View>
             )}
+            <Text style={[styles.storyName, seen && styles.storyNameSeen]} numberOfLines={1}>
+                {name.split(' ')[0]}
+            </Text>
+            {count > 1 && (
+                <View style={styles.storyCount}>
+                    <View style={[styles.storyCountDot, !seen && styles.storyCountDotActive]} />
+                    <View style={[styles.storyCountDot, !seen && styles.storyCountDotActive]} />
+                    {count > 2 && <View style={[styles.storyCountDot, !seen && styles.storyCountDotActive]} />}
+                </View>
+            )}
+        </TouchableOpacity>
+    );
+}
 
-            {/* FAB */}
-            <TouchableOpacity style={styles.fab} activeOpacity={0.85}>
-                <FontAwesome name="camera" size={20} color="#fff" />
+export default function StoriesScreen() {
+    const colorScheme = useColorScheme() ?? 'dark';
+    const isDark = colorScheme === 'dark';
+    const colors = Colors[colorScheme];
+    const bg = isDark ? NDEIP_COLORS.gray[950] : NDEIP_COLORS.gray[50];
+
+    return (
+        <ScrollView style={[styles.container, { backgroundColor: bg }]} contentContainerStyle={{ paddingBottom: 100 }}>
+            {/* ─── My Story Card ─── */}
+            <TouchableOpacity activeOpacity={0.8} style={styles.myStoryCard}>
+                <View style={[styles.myStoryCardInner, {
+                    backgroundColor: isDark ? Glass.dark.background : Glass.light.background,
+                    borderColor: isDark ? Glass.dark.borderSubtle : Glass.light.borderSubtle,
+                }]}>
+                    <View style={styles.myStoryLeft}>
+                        <LinearGradient
+                            colors={[NDEIP_COLORS.primaryTeal, NDEIP_COLORS.electricBlue] as any}
+                            style={styles.myStoryAvatar}
+                        >
+                            <Text style={{ color: '#fff', fontSize: 22, fontWeight: '700' }}>Y</Text>
+                        </LinearGradient>
+                        <View style={styles.myStoryAddBadge}>
+                            <LinearGradient
+                                colors={NDEIP_COLORS.gradients.brand as any}
+                                style={styles.myStoryAddBadgeInner}
+                            >
+                                <FontAwesome name="plus" size={10} color="#fff" />
+                            </LinearGradient>
+                        </View>
+                    </View>
+                    <View style={styles.myStoryText}>
+                        <Text style={[styles.myStoryTitle, { color: colors.text }]}>Add to your story</Text>
+                        <Text style={[styles.myStorySubtitle, { color: isDark ? NDEIP_COLORS.gray[500] : NDEIP_COLORS.gray[400] }]}>
+                            Tap to add · Disappears after 24h
+                        </Text>
+                    </View>
+                    <FontAwesome name="camera" size={18} color={NDEIP_COLORS.primaryTeal} />
+                </View>
             </TouchableOpacity>
-        </View>
+
+            {/* ─── Top 3 Stories ─── */}
+            <View style={styles.section}>
+                <View style={styles.sectionHeader}>
+                    <Text style={[styles.sectionLabel, { color: isDark ? NDEIP_COLORS.gray[500] : NDEIP_COLORS.gray[400] }]}>
+                        TOP 3
+                    </Text>
+                    <View style={styles.adFreeBadge}>
+                        <FontAwesome name="star" size={8} color={NDEIP_COLORS.amber} />
+                        <Text style={styles.adFreeText}>Ad-free</Text>
+                    </View>
+                </View>
+                <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.storiesScroll}>
+                    {TOP_3_STORIES.map(story => (
+                        <StoryAvatar key={story.id} {...story} />
+                    ))}
+                </ScrollView>
+            </View>
+
+            {/* ─── Recent Stories ─── */}
+            <View style={styles.section}>
+                <Text style={[styles.sectionLabel, { color: isDark ? NDEIP_COLORS.gray[500] : NDEIP_COLORS.gray[400] }]}>
+                    RECENT
+                </Text>
+                <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.storiesScroll}>
+                    {RECENT_STORIES.map(story => (
+                        <StoryAvatar key={story.id} {...story} />
+                    ))}
+                </ScrollView>
+            </View>
+
+            {/* ─── Sponsored ─── */}
+            <View style={styles.section}>
+                <Text style={[styles.sectionLabel, { color: isDark ? NDEIP_COLORS.gray[600] : NDEIP_COLORS.gray[400] }]}>
+                    SPONSORED
+                </Text>
+                <TouchableOpacity style={[styles.sponsoredCard, {
+                    borderColor: isDark ? NDEIP_COLORS.glass.border : NDEIP_COLORS.glass.borderLight,
+                    backgroundColor: isDark ? Glass.dark.background : Glass.light.background,
+                }]} activeOpacity={0.7}>
+                    <View style={styles.sponsoredContent}>
+                        <View style={styles.sponsoredAvatar}>
+                            <FontAwesome name="shopping-bag" size={20} color={NDEIP_COLORS.amethyst} />
+                        </View>
+                        <View style={{ flex: 1 }}>
+                            <Text style={[styles.sponsoredTitle, { color: colors.text }]}>Brand Partner</Text>
+                            <Text style={[styles.sponsoredDesc, { color: NDEIP_COLORS.gray[500] }]}>Tap to view promotion</Text>
+                        </View>
+                        <FontAwesome name="chevron-right" size={12} color={NDEIP_COLORS.gray[600]} />
+                    </View>
+                </TouchableOpacity>
+            </View>
+
+            {/* ─── Regional News ─── */}
+            <View style={styles.section}>
+                <Text style={[styles.sectionLabel, { color: isDark ? NDEIP_COLORS.gray[500] : NDEIP_COLORS.gray[400] }]}>
+                    REGIONAL NEWS
+                </Text>
+                <TouchableOpacity style={[styles.newsCard, {
+                    backgroundColor: isDark ? Glass.dark.background : Glass.light.background,
+                    borderColor: isDark ? Glass.dark.borderSubtle : Glass.light.borderSubtle,
+                }]} activeOpacity={0.7}>
+                    <FontAwesome name="newspaper-o" size={24} color={NDEIP_COLORS.electricBlue} />
+                    <View style={{ flex: 1, marginLeft: 14 }}>
+                        <Text style={[styles.newsTitle, { color: colors.text }]}>Local Updates</Text>
+                        <Text style={[styles.newsDesc, { color: NDEIP_COLORS.gray[500] }]}>3 new stories from your region</Text>
+                    </View>
+                    <FontAwesome name="chevron-right" size={12} color={NDEIP_COLORS.gray[600]} />
+                </TouchableOpacity>
+            </View>
+        </ScrollView>
     );
 }
 
 const styles = StyleSheet.create({
-    container: { flex: 1, backgroundColor: NDEIP_COLORS.gray[950] },
-
-    tabBar: { flexDirection: 'row', paddingHorizontal: 16, paddingTop: 8, paddingBottom: 4, gap: 8 },
-    tab: { flex: 1, paddingVertical: 10, alignItems: 'center', borderRadius: 12, backgroundColor: 'rgba(255,255,255,0.03)' },
-    tabActive: { backgroundColor: NDEIP_COLORS.primaryTeal + '18', borderWidth: 1, borderColor: NDEIP_COLORS.primaryTeal + '30' },
-    tabText: { fontSize: 13, fontWeight: '600', color: NDEIP_COLORS.gray[500] },
-    tabTextActive: { color: NDEIP_COLORS.emerald, fontWeight: '700' },
-
-    sectionHeader: {
-        fontSize: 11, fontWeight: '700', color: NDEIP_COLORS.gray[500], textTransform: 'uppercase',
-        letterSpacing: 1.2, paddingHorizontal: 16, paddingTop: 20, paddingBottom: 8,
+    container: { flex: 1 },
+    // My Story
+    myStoryCard: {
+        paddingHorizontal: Spacing.screenHorizontal,
+        paddingTop: 12,
+        paddingBottom: 4,
     },
-
-    myStoryRow: {
-        flexDirection: 'row', alignItems: 'center', paddingHorizontal: 16, paddingVertical: 14, gap: 14,
-        borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: 'rgba(255,255,255,0.03)',
+    myStoryCardInner: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        padding: 16,
+        borderRadius: Radii.card,
+        borderWidth: StyleSheet.hairlineWidth,
+        gap: 14,
     },
+    myStoryLeft: { position: 'relative' },
     myStoryAvatar: {
-        width: 52, height: 52, borderRadius: 18, backgroundColor: NDEIP_COLORS.electricBlue + '15',
-        justifyContent: 'center' as any, alignItems: 'center' as any, borderWidth: 2, borderColor: NDEIP_COLORS.electricBlue + '30',
+        width: 52,
+        height: 52,
+        borderRadius: 26,
+        alignItems: 'center',
+        justifyContent: 'center',
+    },
+    myStoryAddBadge: {
+        position: 'absolute',
+        bottom: -2,
+        right: -2,
+    },
+    myStoryAddBadgeInner: {
+        width: 22,
+        height: 22,
+        borderRadius: 11,
+        alignItems: 'center',
+        justifyContent: 'center',
+        borderWidth: 2,
+        borderColor: NDEIP_COLORS.gray[950],
+    },
+    myStoryText: { flex: 1 },
+    myStoryTitle: { fontSize: 16, fontWeight: '600' },
+    myStorySubtitle: { fontSize: 12, marginTop: 2 },
+    // Sections
+    section: { marginTop: 24 },
+    sectionHeader: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        paddingHorizontal: Spacing.screenHorizontal,
+        marginBottom: 12,
+        gap: 8,
+    },
+    sectionLabel: {
+        ...Typography.presets.sectionLabel as any,
+        paddingHorizontal: Spacing.screenHorizontal,
+        marginBottom: 12,
+    },
+    adFreeBadge: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 4,
+        backgroundColor: 'rgba(245,158,11,0.1)',
+        paddingHorizontal: 8,
+        paddingVertical: 3,
+        borderRadius: 10,
+    },
+    adFreeText: { fontSize: 10, color: NDEIP_COLORS.amber, fontWeight: '600' },
+    storiesScroll: {
+        paddingHorizontal: Spacing.screenHorizontal,
+        gap: 14,
+    },
+    // Story Item
+    storyItem: { alignItems: 'center', width: 74 },
+    storyRingUnseen: {
+        width: 72,
+        height: 72,
+        borderRadius: 36,
+        alignItems: 'center',
+        justifyContent: 'center',
+    },
+    storyRingInner: {
+        width: 66,
+        height: 66,
+        borderRadius: 33,
+        backgroundColor: NDEIP_COLORS.gray[950],
+        alignItems: 'center',
+        justifyContent: 'center',
+    },
+    storyRingSeen: {
+        width: 72,
+        height: 72,
+        borderRadius: 36,
+        borderWidth: 1.5,
+        borderColor: NDEIP_COLORS.gray[700],
+        alignItems: 'center',
+        justifyContent: 'center',
+    },
+    storyAvatar: {
+        width: 62,
+        height: 62,
+        borderRadius: 31,
+        alignItems: 'center',
+        justifyContent: 'center',
+    },
+    storyInitials: { color: '#fff', fontSize: 22, fontWeight: '600' },
+    storyName: {
+        fontSize: 11,
+        fontWeight: '500',
+        color: NDEIP_COLORS.gray[300],
+        marginTop: 6,
+    },
+    storyNameSeen: { opacity: 0.5 },
+    storyCount: { flexDirection: 'row', gap: 3, marginTop: 4 },
+    storyCountDot: {
+        width: 4,
+        height: 4,
+        borderRadius: 2,
+        backgroundColor: NDEIP_COLORS.gray[600],
+    },
+    storyCountDotActive: { backgroundColor: NDEIP_COLORS.primaryTeal },
+    // Sponsored
+    sponsoredCard: {
+        marginHorizontal: Spacing.screenHorizontal,
+        borderRadius: Radii.card,
+        borderWidth: StyleSheet.hairlineWidth,
         borderStyle: 'dashed',
     },
-    myStoryName: { fontSize: 15, fontWeight: '700', color: NDEIP_COLORS.gray[100] },
-    myStoryHint: { fontSize: 12, color: NDEIP_COLORS.gray[500], marginTop: 2 },
-
-    storyRow: {
-        flexDirection: 'row', alignItems: 'center', paddingHorizontal: 16, paddingVertical: 10, gap: 14,
-        borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: 'rgba(255,255,255,0.03)',
+    sponsoredContent: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        padding: 16,
+        gap: 12,
     },
-    storyRing: { width: 56, height: 56, borderRadius: 19, justifyContent: 'center', alignItems: 'center', borderWidth: 2.5 },
-    storyRingNew: { borderColor: NDEIP_COLORS.emerald },
-    storyRingViewed: { borderColor: NDEIP_COLORS.gray[700] },
-    storyAvatar: { width: 48, height: 48, borderRadius: 16, justifyContent: 'center', alignItems: 'center' },
-    storyAvatarText: { color: '#fff', fontSize: 16, fontWeight: '700' },
-    storyName: { fontSize: 15, fontWeight: '600', color: NDEIP_COLORS.gray[100] },
-    storyTime: { fontSize: 12, color: NDEIP_COLORS.gray[500], marginTop: 2 },
-    top3Tag: {
-        flexDirection: 'row', alignItems: 'center', gap: 3, backgroundColor: NDEIP_COLORS.gold + '15',
-        paddingHorizontal: 6, paddingVertical: 2, borderRadius: 6,
+    sponsoredAvatar: {
+        width: 44,
+        height: 44,
+        borderRadius: 12,
+        backgroundColor: 'rgba(139,92,246,0.1)',
+        alignItems: 'center',
+        justifyContent: 'center',
     },
-    top3TagText: { fontSize: 9, fontWeight: '800', color: NDEIP_COLORS.gold, textTransform: 'uppercase' },
-
-    adCard: {
-        marginHorizontal: 16, marginVertical: 8, padding: 14, backgroundColor: 'rgba(255,255,255,0.02)',
-        borderRadius: 14, borderWidth: 1, borderColor: 'rgba(255,255,255,0.04)',
+    sponsoredTitle: { fontSize: 15, fontWeight: '600' },
+    sponsoredDesc: { fontSize: 12, marginTop: 2 },
+    // News
+    newsCard: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        marginHorizontal: Spacing.screenHorizontal,
+        padding: 16,
+        borderRadius: Radii.card,
+        borderWidth: StyleSheet.hairlineWidth,
     },
-    adBadge: { flexDirection: 'row', alignItems: 'center', gap: 4, marginBottom: 8 },
-    adBadgeText: { fontSize: 9, fontWeight: '700', color: NDEIP_COLORS.gray[500], textTransform: 'uppercase', letterSpacing: 0.5 },
-    adContent: { flexDirection: 'row', alignItems: 'center', gap: 12 },
-    adIcon: { width: 40, height: 40, borderRadius: 12, backgroundColor: 'rgba(255,255,255,0.04)', justifyContent: 'center', alignItems: 'center' },
-    adTitle: { fontSize: 14, fontWeight: '600', color: NDEIP_COLORS.gray[300] },
-    adDesc: { fontSize: 12, color: NDEIP_COLORS.gray[500], marginTop: 2 },
-
-    emptyState: { flex: 1, justifyContent: 'center', alignItems: 'center', paddingHorizontal: 40, gap: 12 },
-    emptyTitle: { fontSize: 20, fontWeight: '700', color: NDEIP_COLORS.gray[300] },
-    emptySubtitle: { fontSize: 14, color: NDEIP_COLORS.gray[500], textAlign: 'center' },
-
-    fab: {
-        position: 'absolute', bottom: 20, right: 20, width: 56, height: 56, borderRadius: 16,
-        backgroundColor: NDEIP_COLORS.emerald, justifyContent: 'center', alignItems: 'center',
-        shadowColor: NDEIP_COLORS.emerald, shadowOffset: { width: 0, height: 6 }, shadowOpacity: 0.4, shadowRadius: 14, elevation: 8,
-    },
+    newsTitle: { fontSize: 15, fontWeight: '600' },
+    newsDesc: { fontSize: 12, marginTop: 2 },
 });

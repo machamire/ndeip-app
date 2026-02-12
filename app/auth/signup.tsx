@@ -1,187 +1,219 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState } from 'react';
 import {
-    View, Text, TextInput, TouchableOpacity, StyleSheet,
-    KeyboardAvoidingView, Platform, Animated, ScrollView,
-    ActivityIndicator, Image,
+    View,
+    Text,
+    StyleSheet,
+    TextInput,
+    TouchableOpacity,
+    ScrollView,
+    Image,
+    KeyboardAvoidingView,
+    Platform,
 } from 'react-native';
-import { useRouter, Link } from 'expo-router';
-import { useAuth } from '@/contexts/AuthContext';
-import { NDEIP_COLORS } from '@/constants/Colors';
+import { LinearGradient } from 'expo-linear-gradient';
 import FontAwesome from '@expo/vector-icons/FontAwesome';
+import { useRouter } from 'expo-router';
+import { NDEIP_COLORS } from '@/constants/Colors';
+import { Typography, Spacing, Radii, Glass } from '@/constants/ndeipBrandSystem';
 
 export default function SignupScreen() {
     const router = useRouter();
-    const { signUp, signInWithGoogle, isLoading } = useAuth();
     const [name, setName] = useState('');
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
-    const [confirm, setConfirm] = useState('');
-    const [showPw, setShowPw] = useState(false);
-    const [error, setError] = useState('');
+    const [showPassword, setShowPassword] = useState(false);
+    const [focused, setFocused] = useState<string | null>(null);
 
-    const fadeIn = useRef(new Animated.Value(0)).current;
-    const slideUp = useRef(new Animated.Value(30)).current;
-
-    useEffect(() => {
-        Animated.parallel([
-            Animated.timing(fadeIn, { toValue: 1, duration: 600, useNativeDriver: true }),
-            Animated.timing(slideUp, { toValue: 0, duration: 600, useNativeDriver: true }),
-        ]).start();
-    }, []);
-
-    const handleSignup = async () => {
-        setError('');
-        if (!name.trim()) { setError('Please enter your name'); return; }
-        if (!email.trim()) { setError('Please enter your email'); return; }
-        if (password.length < 6) { setError('Password must be at least 6 characters'); return; }
-        if (password !== confirm) { setError('Passwords do not match'); return; }
-        try { await signUp(email, password, name); } catch (e: any) { setError(e.message || 'Sign up failed'); }
-    };
+    // Password strength
+    const strength = password.length === 0 ? 0 : password.length < 6 ? 1 : password.length < 10 ? 2 : 3;
+    const strengthColor = ['transparent', NDEIP_COLORS.rose, NDEIP_COLORS.amber, NDEIP_COLORS.emerald];
+    const strengthLabel = ['', 'Weak', 'Good', 'Strong'];
 
     return (
-        <View style={styles.container}>
-            <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
-                <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
+        <LinearGradient
+            colors={['#0A0F0E', '#111918', '#0A0F0E'] as any}
+            style={styles.gradient}
+        >
+            <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={{ flex: 1 }}>
+                <ScrollView contentContainerStyle={styles.scroll} keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
 
-                    <Animated.View style={[styles.headerSection, { opacity: fadeIn }]}>
-                        <Image
-                            source={require('../../assets/images/ndeip-logo.png')}
-                            style={{ width: 120, height: 48, resizeMode: 'contain', marginBottom: 20 }}
-                        />
-                        <Text style={styles.title}>Create your account</Text>
-                        <Text style={styles.subtitle}>Join the future of messaging</Text>
-                    </Animated.View>
+                    {/* ─── Logo ─── */}
+                    <View style={styles.logoArea}>
+                        <Image source={require('../../assets/images/ndeip-logo.png')} resizeMode="contain" style={styles.logo} />
+                        <Text style={styles.tagline}>Create your account</Text>
+                    </View>
 
-                    <Animated.View style={[styles.formCard, { opacity: fadeIn, transform: [{ translateY: slideUp }] }]}>
-                        {error ? (
-                            <View style={styles.errorBar}>
-                                <FontAwesome name="exclamation-circle" size={14} color={NDEIP_COLORS.rose} />
-                                <Text style={styles.errorText}>{error}</Text>
-                            </View>
-                        ) : null}
-
-                        {[
-                            { label: 'Full Name', icon: 'user-o', value: name, onChangeText: setName, placeholder: 'John Doe' },
-                            { label: 'Email', icon: 'envelope-o', value: email, onChangeText: setEmail, placeholder: 'you@example.com', keyboardType: 'email-address' },
-                        ].map((field, i) => (
-                            <View key={i} style={styles.inputWrapper}>
-                                <Text style={styles.inputLabel}>{field.label}</Text>
-                                <View style={styles.inputContainer}>
-                                    <FontAwesome name={field.icon as any} size={15} color={NDEIP_COLORS.gray[400]} style={styles.inputIcon} />
-                                    <TextInput
-                                        style={styles.input}
-                                        placeholder={field.placeholder}
-                                        placeholderTextColor={NDEIP_COLORS.gray[500]}
-                                        value={field.value}
-                                        onChangeText={field.onChangeText}
-                                        keyboardType={(field.keyboardType as any) || 'default'}
-                                        autoCapitalize={field.keyboardType ? 'none' : 'words'}
-                                    />
-                                </View>
-                            </View>
-                        ))}
-
-                        <View style={styles.inputWrapper}>
-                            <Text style={styles.inputLabel}>Password</Text>
-                            <View style={styles.inputContainer}>
-                                <FontAwesome name="lock" size={16} color={NDEIP_COLORS.gray[400]} style={styles.inputIcon} />
+                    {/* ─── Form Card ─── */}
+                    <View style={styles.formCard}>
+                        {/* Display Name */}
+                        <View style={styles.inputGroup}>
+                            <Text style={styles.inputLabel}>Display Name</Text>
+                            <View style={[styles.inputWrap, focused === 'name' && styles.inputFocused]}>
+                                <FontAwesome name="user-o" size={15} color={NDEIP_COLORS.gray[500]} />
                                 <TextInput
+                                    value={name}
+                                    onChangeText={setName}
+                                    placeholder="How should we call you?"
+                                    placeholderTextColor={NDEIP_COLORS.gray[600]}
                                     style={styles.input}
-                                    placeholder="Min 6 characters"
-                                    placeholderTextColor={NDEIP_COLORS.gray[500]}
+                                    onFocus={() => setFocused('name')}
+                                    onBlur={() => setFocused(null)}
+                                />
+                            </View>
+                        </View>
+
+                        {/* Email */}
+                        <View style={styles.inputGroup}>
+                            <Text style={styles.inputLabel}>Email</Text>
+                            <View style={[styles.inputWrap, focused === 'email' && styles.inputFocused]}>
+                                <FontAwesome name="envelope-o" size={15} color={NDEIP_COLORS.gray[500]} />
+                                <TextInput
+                                    value={email}
+                                    onChangeText={setEmail}
+                                    placeholder="you@example.com"
+                                    placeholderTextColor={NDEIP_COLORS.gray[600]}
+                                    keyboardType="email-address"
+                                    autoCapitalize="none"
+                                    style={styles.input}
+                                    onFocus={() => setFocused('email')}
+                                    onBlur={() => setFocused(null)}
+                                />
+                            </View>
+                        </View>
+
+                        {/* Password */}
+                        <View style={styles.inputGroup}>
+                            <Text style={styles.inputLabel}>Password</Text>
+                            <View style={[styles.inputWrap, focused === 'password' && styles.inputFocused]}>
+                                <FontAwesome name="lock" size={16} color={NDEIP_COLORS.gray[500]} />
+                                <TextInput
                                     value={password}
                                     onChangeText={setPassword}
-                                    secureTextEntry={!showPw}
+                                    placeholder="Create a strong password"
+                                    placeholderTextColor={NDEIP_COLORS.gray[600]}
+                                    secureTextEntry={!showPassword}
+                                    style={styles.input}
+                                    onFocus={() => setFocused('password')}
+                                    onBlur={() => setFocused(null)}
                                 />
-                                <TouchableOpacity onPress={() => setShowPw(!showPw)} style={styles.eyeBtn}>
-                                    <FontAwesome name={showPw ? 'eye-slash' : 'eye'} size={15} color={NDEIP_COLORS.gray[400]} />
+                                <TouchableOpacity onPress={() => setShowPassword(!showPassword)}>
+                                    <FontAwesome name={showPassword ? 'eye' : 'eye-slash'} size={16} color={NDEIP_COLORS.gray[500]} />
                                 </TouchableOpacity>
                             </View>
+                            {/* Strength Bar */}
+                            {password.length > 0 && (
+                                <View style={styles.strengthRow}>
+                                    <View style={styles.strengthTrack}>
+                                        <View style={[styles.strengthBar, { width: `${(strength / 3) * 100}%`, backgroundColor: strengthColor[strength] }]} />
+                                    </View>
+                                    <Text style={[styles.strengthText, { color: strengthColor[strength] }]}>{strengthLabel[strength]}</Text>
+                                </View>
+                            )}
                         </View>
 
-                        <View style={styles.inputWrapper}>
-                            <Text style={styles.inputLabel}>Confirm Password</Text>
-                            <View style={styles.inputContainer}>
-                                <FontAwesome name="lock" size={16} color={NDEIP_COLORS.gray[400]} style={styles.inputIcon} />
-                                <TextInput
-                                    style={styles.input}
-                                    placeholder="Re-enter password"
-                                    placeholderTextColor={NDEIP_COLORS.gray[500]}
-                                    value={confirm}
-                                    onChangeText={setConfirm}
-                                    secureTextEntry={!showPw}
-                                />
-                            </View>
-                        </View>
-
-                        <TouchableOpacity style={styles.primaryButton} onPress={handleSignup} disabled={isLoading} activeOpacity={0.85}>
-                            {isLoading ? <ActivityIndicator color="#fff" /> : <Text style={styles.primaryButtonText}>Create Account</Text>}
+                        {/* Sign Up Button */}
+                        <TouchableOpacity activeOpacity={0.85} style={styles.signUpBtn}>
+                            <LinearGradient
+                                colors={NDEIP_COLORS.gradients.brand as any}
+                                start={{ x: 0, y: 0 }}
+                                end={{ x: 1, y: 0 }}
+                                style={styles.signUpGradient}
+                            >
+                                <Text style={styles.signUpText}>Create Account</Text>
+                            </LinearGradient>
                         </TouchableOpacity>
 
+                        {/* Divider */}
                         <View style={styles.divider}>
                             <View style={styles.dividerLine} />
                             <Text style={styles.dividerText}>or</Text>
                             <View style={styles.dividerLine} />
                         </View>
 
-                        <TouchableOpacity style={styles.googleButton} onPress={signInWithGoogle} activeOpacity={0.85}>
-                            <FontAwesome name="google" size={16} color="#fff" />
-                            <Text style={styles.googleButtonText}>Sign up with Google</Text>
+                        {/* Google */}
+                        <TouchableOpacity style={styles.googleBtn} activeOpacity={0.7}>
+                            <FontAwesome name="google" size={18} color={NDEIP_COLORS.gray[400]} />
+                            <Text style={styles.googleText}>Continue with Google</Text>
                         </TouchableOpacity>
-                    </Animated.View>
 
-                    <View style={styles.loginRow}>
-                        <Text style={styles.loginText}>Already have an account? </Text>
-                        <Link href="/auth/login" asChild>
-                            <TouchableOpacity><Text style={styles.loginLink}>Sign In</Text></TouchableOpacity>
-                        </Link>
+                        {/* Terms */}
+                        <Text style={styles.terms}>
+                            By signing up, you agree to our{' '}
+                            <Text style={styles.termsLink}>Terms of Service</Text>
+                            {' '}and{' '}
+                            <Text style={styles.termsLink}>Privacy Policy</Text>
+                        </Text>
+                    </View>
+
+                    {/* Footer */}
+                    <View style={styles.footer}>
+                        <Text style={styles.footerText}>Already have an account? </Text>
+                        <TouchableOpacity onPress={() => router.push('/auth/login' as any)}>
+                            <Text style={styles.footerLink}>Sign in</Text>
+                        </TouchableOpacity>
                     </View>
                 </ScrollView>
             </KeyboardAvoidingView>
-        </View>
+        </LinearGradient>
     );
 }
 
 const styles = StyleSheet.create({
-    container: { flex: 1, backgroundColor: NDEIP_COLORS.gray[950] },
-    scrollContent: { flexGrow: 1, justifyContent: 'center', paddingHorizontal: 24, paddingVertical: 50 },
-    headerSection: { alignItems: 'center', marginBottom: 28 },
-    title: { fontSize: 26, fontWeight: '800', color: NDEIP_COLORS.gray[100], letterSpacing: -0.5 },
-    subtitle: { fontSize: 14, color: NDEIP_COLORS.gray[400], marginTop: 4 },
-
+    gradient: { flex: 1 },
+    scroll: { flexGrow: 1, justifyContent: 'center', paddingHorizontal: Spacing.screenHorizontal, paddingVertical: 40 },
+    logoArea: { alignItems: 'center', marginBottom: 36 },
+    logo: { width: 120, height: 48 },
+    tagline: { color: NDEIP_COLORS.gray[400], fontSize: 15, fontWeight: '500', marginTop: 12 },
     formCard: {
-        backgroundColor: 'rgba(13,22,19,0.85)', borderRadius: 24, padding: 28,
-        borderWidth: 1, borderColor: 'rgba(42,122,94,0.12)', maxWidth: 420, alignSelf: 'center', width: '100%',
-        shadowColor: NDEIP_COLORS.primaryTeal, shadowOffset: { width: 0, height: 8 }, shadowOpacity: 0.1, shadowRadius: 24, elevation: 8,
+        backgroundColor: Glass.dark.background,
+        borderRadius: Radii.cardLarge,
+        borderWidth: StyleSheet.hairlineWidth,
+        borderColor: Glass.dark.borderSubtle,
+        padding: 24,
+        gap: 16,
+        maxWidth: 400,
+        alignSelf: 'center',
+        width: '100%',
     },
-    errorBar: { flexDirection: 'row', alignItems: 'center', backgroundColor: 'rgba(244,63,94,0.08)', padding: 12, borderRadius: 12, marginBottom: 16, gap: 8, borderWidth: 1, borderColor: 'rgba(244,63,94,0.15)' },
-    errorText: { color: NDEIP_COLORS.rose, fontSize: 13, flex: 1, fontWeight: '500' },
-
-    inputWrapper: { marginBottom: 14 },
-    inputLabel: { fontSize: 12, fontWeight: '700', color: NDEIP_COLORS.gray[400], textTransform: 'uppercase', letterSpacing: 0.8, marginBottom: 8 },
-    inputContainer: { flexDirection: 'row', alignItems: 'center', backgroundColor: 'rgba(255,255,255,0.04)', borderRadius: 14, borderWidth: 1, borderColor: 'rgba(255,255,255,0.06)', paddingHorizontal: 16, height: 52 },
-    inputIcon: { marginRight: 12, width: 20, textAlign: 'center' as any },
-    input: { flex: 1, fontSize: 15, color: NDEIP_COLORS.gray[100], fontWeight: '500' },
-    eyeBtn: { padding: 8, marginLeft: 4 },
-
-    primaryButton: {
-        height: 52, borderRadius: 14, justifyContent: 'center' as any, alignItems: 'center' as any,
-        marginBottom: 18, marginTop: 6, backgroundColor: NDEIP_COLORS.primaryTeal,
-        shadowColor: NDEIP_COLORS.primaryTeal, shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.3, shadowRadius: 12, elevation: 6,
+    inputGroup: { gap: 6 },
+    inputLabel: { color: NDEIP_COLORS.gray[400], fontSize: 12, fontWeight: '500', letterSpacing: 0.3, marginLeft: 2 },
+    inputWrap: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        backgroundColor: 'rgba(255,255,255,0.04)',
+        borderRadius: Radii.input,
+        borderWidth: 1.5,
+        borderColor: 'transparent',
+        height: 48,
+        paddingHorizontal: 14,
+        gap: 10,
     },
-    primaryButtonText: { color: '#fff', fontSize: 16, fontWeight: '700', letterSpacing: 0.5 },
-
-    divider: { flexDirection: 'row', alignItems: 'center', marginBottom: 18 },
-    dividerLine: { flex: 1, height: 1, backgroundColor: 'rgba(255,255,255,0.06)' },
-    dividerText: { color: NDEIP_COLORS.gray[500], fontSize: 11, fontWeight: '600', marginHorizontal: 16, textTransform: 'uppercase', letterSpacing: 1 },
-
-    googleButton: {
-        flexDirection: 'row', alignItems: 'center', justifyContent: 'center', backgroundColor: NDEIP_COLORS.electricBlue,
-        height: 52, borderRadius: 14, gap: 10, shadowColor: NDEIP_COLORS.electricBlue, shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.2, shadowRadius: 12, elevation: 4,
+    inputFocused: { borderColor: 'rgba(27,77,62,0.35)' },
+    input: { flex: 1, color: '#F0F4F3', fontSize: 15 },
+    // Strength
+    strengthRow: { flexDirection: 'row', alignItems: 'center', gap: 8, marginTop: 4 },
+    strengthTrack: { flex: 1, height: 3, backgroundColor: 'rgba(255,255,255,0.06)', borderRadius: 2 },
+    strengthBar: { height: 3, borderRadius: 2 },
+    strengthText: { fontSize: 11, fontWeight: '600' },
+    // Button
+    signUpBtn: { marginTop: 4 },
+    signUpGradient: { height: 48, borderRadius: Radii.button, alignItems: 'center', justifyContent: 'center' },
+    signUpText: { color: '#fff', fontSize: 16, fontWeight: '600', letterSpacing: 0.3 },
+    // Divider
+    divider: { flexDirection: 'row', alignItems: 'center', marginVertical: 4, gap: 12 },
+    dividerLine: { flex: 1, height: StyleSheet.hairlineWidth, backgroundColor: NDEIP_COLORS.glass.border },
+    dividerText: { color: NDEIP_COLORS.gray[600], fontSize: 12 },
+    // Google
+    googleBtn: {
+        flexDirection: 'row', alignItems: 'center', justifyContent: 'center',
+        height: 48, borderRadius: Radii.button, borderWidth: 1, borderColor: Glass.dark.border, gap: 10,
     },
-    googleButtonText: { color: '#fff', fontSize: 15, fontWeight: '600' },
-
-    loginRow: { flexDirection: 'row', justifyContent: 'center', alignItems: 'center', marginTop: 28 },
-    loginText: { color: NDEIP_COLORS.gray[400], fontSize: 14 },
-    loginLink: { color: NDEIP_COLORS.electricBlue, fontSize: 14, fontWeight: '700' },
+    googleText: { color: NDEIP_COLORS.gray[300], fontSize: 15, fontWeight: '500' },
+    // Terms
+    terms: { color: NDEIP_COLORS.gray[600], fontSize: 12, textAlign: 'center', lineHeight: 18 },
+    termsLink: { color: NDEIP_COLORS.primaryTeal },
+    // Footer
+    footer: { flexDirection: 'row', justifyContent: 'center', marginTop: 32 },
+    footerText: { color: NDEIP_COLORS.gray[500], fontSize: 14 },
+    footerLink: { color: NDEIP_COLORS.electricBlue, fontSize: 14, fontWeight: '600' },
 });

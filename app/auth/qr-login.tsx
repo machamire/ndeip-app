@@ -1,90 +1,84 @@
-import React, { useState } from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, ScrollView, Image } from 'react-native';
+import React from 'react';
+import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
+import { LinearGradient } from 'expo-linear-gradient';
+import FontAwesome from '@expo/vector-icons/FontAwesome';
 import { useRouter } from 'expo-router';
 import { NDEIP_COLORS } from '@/constants/Colors';
-import FontAwesome from '@expo/vector-icons/FontAwesome';
+import { Spacing, Radii, Glass } from '@/constants/ndeipBrandSystem';
 
 export default function QRLoginScreen() {
     const router = useRouter();
 
     return (
-        <ScrollView style={styles.container} contentContainerStyle={styles.scrollContent}>
-            <View style={styles.headerSection}>
-                <Image
-                    source={require('../../assets/images/ndeip-logo.png')}
-                    style={{ width: 100, height: 40, resizeMode: 'contain', marginBottom: 20 }}
-                />
-                <Text style={styles.title}>Log In with QR Code</Text>
-                <Text style={styles.subtitle}>Use your phone to scan a QR code and log in to ndeip on another device</Text>
-            </View>
+        <LinearGradient colors={['#0A0F0E', '#111918', '#0A0F0E'] as any} style={styles.container}>
+            {/* Back */}
+            <TouchableOpacity style={styles.backBtn} onPress={() => router.back()} activeOpacity={0.7}>
+                <FontAwesome name="arrow-left" size={18} color={NDEIP_COLORS.gray[400]} />
+            </TouchableOpacity>
 
-            {/* QR Placeholder */}
-            <View style={styles.qrCard}>
+            <View style={styles.content}>
+                <Text style={styles.title}>Scan QR Code</Text>
+                <Text style={styles.subtitle}>Open ndeip on your phone and scan this code to sign in</Text>
+
+                {/* QR Frame */}
                 <View style={styles.qrFrame}>
                     <View style={styles.qrPlaceholder}>
-                        <FontAwesome name="qrcode" size={120} color={NDEIP_COLORS.gray[600]} />
+                        <FontAwesome name="qrcode" size={120} color={NDEIP_COLORS.gray[700]} />
                     </View>
-                    {/* Corner markers */}
-                    <View style={[styles.corner, styles.topLeft]} />
-                    <View style={[styles.corner, styles.topRight]} />
-                    <View style={[styles.corner, styles.bottomLeft]} />
-                    <View style={[styles.corner, styles.bottomRight]} />
+                    {/* Corner accents */}
+                    <View style={[styles.corner, styles.cornerTL]} />
+                    <View style={[styles.corner, styles.cornerTR]} />
+                    <View style={[styles.corner, styles.cornerBL]} />
+                    <View style={[styles.corner, styles.cornerBR]} />
                 </View>
-                <Text style={styles.qrHint}>Point your camera at a QR code</Text>
-            </View>
 
-            {/* Steps */}
-            <View style={styles.stepsSection}>
-                <Text style={styles.stepsTitle}>How to use:</Text>
-                {[
-                    'Open ndeip on your phone',
-                    'Go to Settings → Linked Devices',
-                    'Tap "Link a Device" and scan this code',
-                ].map((step, i) => (
-                    <View key={i} style={styles.stepRow}>
-                        <View style={styles.stepNumber}>
-                            <Text style={styles.stepNumberText}>{i + 1}</Text>
-                        </View>
-                        <Text style={styles.stepText}>{step}</Text>
-                    </View>
-                ))}
-            </View>
-
-            {/* Security Note */}
-            <View style={styles.securityNote}>
-                <FontAwesome name="lock" size={13} color={NDEIP_COLORS.emerald} />
-                <Text style={styles.securityText}>
-                    Your login is end-to-end encrypted. ndeip cannot read your messages.
+                <Text style={styles.hint}>
+                    <FontAwesome name="mobile-phone" size={16} color={NDEIP_COLORS.gray[500]} />
+                    {'  '}Point your phone camera at this QR code
                 </Text>
+
+                <TouchableOpacity style={styles.helpLink} activeOpacity={0.7}>
+                    <Text style={styles.helpText}>Need help? Learn how to scan</Text>
+                </TouchableOpacity>
             </View>
-        </ScrollView>
+        </LinearGradient>
     );
 }
 
 const styles = StyleSheet.create({
-    container: { flex: 1, backgroundColor: NDEIP_COLORS.gray[950] },
-    scrollContent: { flexGrow: 1, justifyContent: 'center', paddingHorizontal: 24, paddingVertical: 40, alignItems: 'center' },
-    headerSection: { alignItems: 'center', marginBottom: 28 },
-    title: { fontSize: 24, fontWeight: '800', color: NDEIP_COLORS.gray[100], letterSpacing: -0.3 },
-    subtitle: { fontSize: 14, color: NDEIP_COLORS.gray[400], textAlign: 'center', marginTop: 8, lineHeight: 20, maxWidth: 300 },
-
-    qrCard: { alignItems: 'center', marginBottom: 32 },
-    qrFrame: { width: 240, height: 240, justifyContent: 'center', alignItems: 'center', position: 'relative' },
-    qrPlaceholder: { width: 200, height: 200, justifyContent: 'center', alignItems: 'center', backgroundColor: 'rgba(255,255,255,0.03)', borderRadius: 16 },
-    corner: { position: 'absolute', width: 28, height: 28, borderColor: NDEIP_COLORS.electricBlue, borderWidth: 3 },
-    topLeft: { top: 0, left: 0, borderRightWidth: 0, borderBottomWidth: 0, borderTopLeftRadius: 8 },
-    topRight: { top: 0, right: 0, borderLeftWidth: 0, borderBottomWidth: 0, borderTopRightRadius: 8 },
-    bottomLeft: { bottom: 0, left: 0, borderRightWidth: 0, borderTopWidth: 0, borderBottomLeftRadius: 8 },
-    bottomRight: { bottom: 0, right: 0, borderLeftWidth: 0, borderTopWidth: 0, borderBottomRightRadius: 8 },
-    qrHint: { fontSize: 13, color: NDEIP_COLORS.gray[500], marginTop: 16 },
-
-    stepsSection: { width: '100%', maxWidth: 340, marginBottom: 28 },
-    stepsTitle: { fontSize: 14, fontWeight: '700', color: NDEIP_COLORS.gray[300], marginBottom: 14 },
-    stepRow: { flexDirection: 'row', alignItems: 'center', gap: 12, marginBottom: 12 },
-    stepNumber: { width: 28, height: 28, borderRadius: 8, backgroundColor: NDEIP_COLORS.electricBlue + '15', justifyContent: 'center', alignItems: 'center' },
-    stepNumberText: { fontSize: 13, fontWeight: '800', color: NDEIP_COLORS.electricBlue },
-    stepText: { flex: 1, fontSize: 14, color: NDEIP_COLORS.gray[300], lineHeight: 20 },
-
-    securityNote: { flexDirection: 'row', alignItems: 'center', gap: 8, paddingHorizontal: 16, paddingVertical: 12, backgroundColor: NDEIP_COLORS.emerald + '08', borderRadius: 12, borderWidth: 1, borderColor: NDEIP_COLORS.emerald + '15', maxWidth: 340 },
-    securityText: { flex: 1, fontSize: 12, color: NDEIP_COLORS.gray[400], lineHeight: 18 },
+    container: { flex: 1 },
+    backBtn: {
+        width: 44, height: 44, borderRadius: 22,
+        alignItems: 'center', justifyContent: 'center',
+        marginTop: 50, marginLeft: 16,
+    },
+    content: {
+        flex: 1, alignItems: 'center', justifyContent: 'center',
+        paddingHorizontal: 32, paddingBottom: 80,
+    },
+    title: { color: '#F0F4F3', fontSize: 24, fontWeight: '700', marginBottom: 8 },
+    subtitle: { color: NDEIP_COLORS.gray[500], fontSize: 15, textAlign: 'center', lineHeight: 22, marginBottom: 40 },
+    qrFrame: {
+        width: 240, height: 240,
+        backgroundColor: Glass.dark.background,
+        borderRadius: Radii.cardLarge,
+        borderWidth: StyleSheet.hairlineWidth,
+        borderColor: Glass.dark.borderSubtle,
+        alignItems: 'center', justifyContent: 'center',
+        marginBottom: 32,
+        position: 'relative',
+    },
+    qrPlaceholder: { alignItems: 'center', justifyContent: 'center' },
+    corner: {
+        position: 'absolute',
+        width: 28, height: 28,
+        borderColor: NDEIP_COLORS.primaryTeal,
+    },
+    cornerTL: { top: -1, left: -1, borderTopWidth: 3, borderLeftWidth: 3, borderTopLeftRadius: Radii.cardLarge },
+    cornerTR: { top: -1, right: -1, borderTopWidth: 3, borderRightWidth: 3, borderTopRightRadius: Radii.cardLarge },
+    cornerBL: { bottom: -1, left: -1, borderBottomWidth: 3, borderLeftWidth: 3, borderBottomLeftRadius: Radii.cardLarge },
+    cornerBR: { bottom: -1, right: -1, borderBottomWidth: 3, borderRightWidth: 3, borderBottomRightRadius: Radii.cardLarge },
+    hint: { color: NDEIP_COLORS.gray[500], fontSize: 13, textAlign: 'center' },
+    helpLink: { marginTop: 24 },
+    helpText: { color: NDEIP_COLORS.primaryTeal, fontSize: 14, fontWeight: '500' },
 });

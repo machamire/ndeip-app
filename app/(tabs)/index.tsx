@@ -1,236 +1,415 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React from 'react';
 import {
-  View, Text, TextInput, TouchableOpacity, StyleSheet,
-  FlatList, ScrollView, Animated, Image,
+  View,
+  Text,
+  StyleSheet,
+  ScrollView,
+  TouchableOpacity,
+  Image,
+  TextInput,
+  FlatList,
 } from 'react-native';
-import { useRouter } from 'expo-router';
-import { useAuth } from '@/contexts/AuthContext';
-import { NDEIP_COLORS } from '@/constants/Colors';
+import { LinearGradient } from 'expo-linear-gradient';
 import FontAwesome from '@expo/vector-icons/FontAwesome';
+import Colors, { NDEIP_COLORS } from '@/constants/Colors';
+import { useColorScheme } from '@/components/useColorScheme';
+import { Typography, Spacing, Radii, Shadows, Glass } from '@/constants/ndeipBrandSystem';
 
+// ─── Mock Data ────────────────────────────────────────────
 const TOP_3 = [
-  { id: '1', name: 'Sarah J.', initials: 'SJ', online: true, unread: 3, color: NDEIP_COLORS.primaryTeal },
-  { id: '2', name: 'Marcus', initials: 'MW', online: true, unread: 0, color: NDEIP_COLORS.electricBlue },
-  { id: '3', name: 'Lisa', initials: 'LC', online: false, unread: 1, color: NDEIP_COLORS.meshCyan },
+  { id: '1', name: 'Sarah', online: true, avatar: null },
+  { id: '2', name: 'Marcus', online: true, avatar: null },
+  { id: '3', name: 'Thandi', online: false, avatar: null },
 ];
+
+const FILTERS = ['All', 'Unread', 'Groups', 'Channels'];
 
 const CONVERSATIONS = [
-  { id: '4', name: 'Amara Okafor', initials: 'AO', lastMessage: 'Sure, let me check that for you 👍', time: '2:30 PM', unread: 2, online: true, pinned: false },
-  { id: '5', name: 'Team ndeip', initials: 'TN', lastMessage: 'Robert: Meeting at 3pm tomorrow', time: '1:15 PM', unread: 5, online: false, isGroup: true, pinned: false },
-  { id: '6', name: 'David Kim', initials: 'DK', lastMessage: 'Got the files, thank you!', time: '12:00 PM', unread: 0, online: false, pinned: false },
-  { id: '7', name: 'Emma Wilson', initials: 'EW', lastMessage: 'Happy birthday! 🎂🎉', time: '11:30 AM', unread: 0, online: true, pinned: false },
-  { id: '8', name: 'Dev Village', initials: 'DV', lastMessage: 'The sprint review is scheduled...', time: 'Yesterday', unread: 0, online: false, isGroup: true, pinned: false },
-  { id: '9', name: 'Robert Taylor', initials: 'RT', lastMessage: 'Voice message (0:34)', time: 'Yesterday', unread: 0, online: false, pinned: false },
+  { id: '1', name: 'Sarah Chen', message: 'See you at the village meeting! 🎉', time: '2m', unread: 3, online: true, pinned: true },
+  { id: '2', name: 'Marcus Johnson', message: 'The presentation looks amazing', time: '15m', unread: 0, online: true, pinned: true },
+  { id: '3', name: 'Thandi Nkosi', message: 'Voice note 🎤 0:42', time: '1h', unread: 1, online: false, pinned: true },
+  { id: '4', name: 'Dev Village', message: 'Alex: Just pushed the new build', time: '2h', unread: 12, online: false, isGroup: true },
+  { id: '5', name: 'Mom ❤️', message: "Don't forget to eat!", time: '3h', unread: 0, online: false },
+  { id: '6', name: 'Design Team', message: 'Kai: Check the new mockups', time: '5h', unread: 5, isGroup: true },
+  { id: '7', name: 'Jordan Lee', message: 'Thanks for the recommendation!', time: 'Yesterday', unread: 0 },
+  { id: '8', name: 'Priya Sharma', message: 'The flight is booked ✈️', time: 'Yesterday', unread: 0 },
 ];
 
-const FILTERS = ['All', 'Unread', 'Favorites', 'Groups', 'Villages'];
-
-export default function ChatsScreen() {
-  const router = useRouter();
-  const { user } = useAuth();
-  const [activeFilter, setActiveFilter] = useState('All');
-  const [searchQuery, setSearchQuery] = useState('');
-  const [showSearch, setShowSearch] = useState(false);
-
-  const dndMode = user?.dnd_mode || 'available';
-  const dndConfig: any = {
-    available: { label: 'Available', icon: 'circle', color: NDEIP_COLORS.emerald },
-    be_quiet: { label: 'Be Quiet', icon: 'moon-o', color: NDEIP_COLORS.gold },
-    get_busy: { label: 'Get Busy', icon: 'briefcase', color: '#FF8C00' },
-    do_not_disturb: { label: 'DND', icon: 'minus-circle', color: NDEIP_COLORS.rose },
-  };
-  const currentDnd = dndConfig[dndMode];
+// ─── Avatar Component ─────────────────────────────────────
+function Avatar({ name, size = 52, online, showRing }: { name: string; size?: number; online?: boolean; showRing?: boolean }) {
+  const initials = name.split(' ').map(n => n[0]).join('').slice(0, 2);
+  const colors = [
+    ['#1B4D3E', '#2A7A5E'], ['#2563EB', '#3B82F6'], ['#8B5CF6', '#A78BFA'],
+    ['#F59E0B', '#FBBF24'], ['#10B981', '#34D399'], ['#EF4444', '#FB7185'],
+  ];
+  const colorIndex = name.charCodeAt(0) % colors.length;
 
   return (
-    <View style={styles.container}>
-      {/* DND Status Strip */}
-      {dndMode !== 'available' && (
-        <TouchableOpacity
-          style={[styles.dndStrip, { backgroundColor: currentDnd.color + '12', borderColor: currentDnd.color + '25' }]}
-          onPress={() => router.push('/features/dnd-settings' as any)}
+    <View style={{ position: 'relative' }}>
+      {showRing && (
+        <LinearGradient
+          colors={[NDEIP_COLORS.primaryTeal, NDEIP_COLORS.electricBlue] as any}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 1 }}
+          style={{
+            width: size + 6,
+            height: size + 6,
+            borderRadius: (size + 6) / 2,
+            alignItems: 'center',
+            justifyContent: 'center',
+          }}
         >
-          <FontAwesome name={currentDnd.icon} size={12} color={currentDnd.color} />
-          <Text style={[styles.dndText, { color: currentDnd.color }]}>{currentDnd.label}</Text>
-          <Text style={styles.dndHint}>Top 3 can still reach you</Text>
-        </TouchableOpacity>
+          <View style={{ width: size + 2, height: size + 2, borderRadius: (size + 2) / 2, backgroundColor: NDEIP_COLORS.gray[950], alignItems: 'center', justifyContent: 'center' }}>
+            <LinearGradient
+              colors={colors[colorIndex] as any}
+              style={{ width: size, height: size, borderRadius: size / 2, alignItems: 'center', justifyContent: 'center' }}
+            >
+              <Text style={{ color: '#fff', fontSize: size * 0.38, fontWeight: '600', letterSpacing: 0.5 }}>{initials}</Text>
+            </LinearGradient>
+          </View>
+        </LinearGradient>
       )}
+      {!showRing && (
+        <LinearGradient
+          colors={colors[colorIndex] as any}
+          style={{ width: size, height: size, borderRadius: size / 2, alignItems: 'center', justifyContent: 'center' }}
+        >
+          <Text style={{ color: '#fff', fontSize: size * 0.38, fontWeight: '600', letterSpacing: 0.5 }}>{initials}</Text>
+        </LinearGradient>
+      )}
+      {online && (
+        <View style={{
+          position: 'absolute',
+          bottom: showRing ? 2 : 0,
+          right: showRing ? 4 : 0,
+          width: 14,
+          height: 14,
+          borderRadius: 7,
+          backgroundColor: NDEIP_COLORS.emerald,
+          borderWidth: 2.5,
+          borderColor: NDEIP_COLORS.gray[950],
+        }} />
+      )}
+    </View>
+  );
+}
 
-      {/* Search */}
-      <View style={styles.searchRow}>
-        <View style={styles.searchBar}>
+export default function ChatsScreen() {
+  const colorScheme = useColorScheme() ?? 'dark';
+  const colors = Colors[colorScheme];
+  const isDark = colorScheme === 'dark';
+  const [activeFilter, setActiveFilter] = React.useState('All');
+  const [searchFocused, setSearchFocused] = React.useState(false);
+
+  const bg = isDark ? NDEIP_COLORS.gray[950] : NDEIP_COLORS.gray[50];
+  const cardBg = isDark ? Glass.dark.background : Glass.light.background;
+  const borderColor = isDark ? Glass.dark.borderSubtle : Glass.light.borderSubtle;
+
+  return (
+    <View style={[styles.container, { backgroundColor: bg }]}>
+      <ScrollView
+        showsVerticalScrollIndicator={false}
+        contentContainerStyle={{ paddingBottom: 100 }}
+      >
+        {/* ─── Top 3 Contacts ─── */}
+        <View style={styles.top3Section}>
+          <Text style={[styles.sectionLabel, { color: isDark ? NDEIP_COLORS.gray[500] : NDEIP_COLORS.gray[400] }]}>
+            FAVORITES
+          </Text>
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.top3Scroll}>
+            {TOP_3.map((contact) => (
+              <TouchableOpacity key={contact.id} style={styles.top3Item} activeOpacity={0.7}>
+                <Avatar name={contact.name} size={Spacing.components.top3AvatarSize} online={contact.online} showRing />
+                <Text style={[styles.top3Name, { color: isDark ? NDEIP_COLORS.gray[300] : NDEIP_COLORS.gray[600] }]} numberOfLines={1}>
+                  {contact.name}
+                </Text>
+              </TouchableOpacity>
+            ))}
+            <TouchableOpacity style={styles.top3AddButton} activeOpacity={0.7}>
+              <View style={[styles.top3AddCircle, { borderColor: isDark ? NDEIP_COLORS.glass.border : NDEIP_COLORS.glass.borderLight }]}>
+                <FontAwesome name="plus" size={18} color={NDEIP_COLORS.gray[500]} />
+              </View>
+              <Text style={[styles.top3Name, { color: NDEIP_COLORS.gray[500] }]}>Add</Text>
+            </TouchableOpacity>
+          </ScrollView>
+        </View>
+
+        {/* ─── DND Status Strip ─── */}
+        <TouchableOpacity
+          style={[styles.dndStrip, { backgroundColor: cardBg, borderColor }]}
+          activeOpacity={0.7}
+        >
+          <View style={[styles.dndDot, { backgroundColor: NDEIP_COLORS.emerald }]} />
+          <Text style={[styles.dndText, { color: isDark ? NDEIP_COLORS.gray[400] : NDEIP_COLORS.gray[500] }]}>
+            Available — Everyone can reach you
+          </Text>
+          <FontAwesome name="chevron-right" size={10} color={NDEIP_COLORS.gray[600]} />
+        </TouchableOpacity>
+
+        {/* ─── Search Bar ─── */}
+        <View style={[styles.searchContainer, {
+          backgroundColor: isDark ? Glass.dark.background : Glass.light.background,
+          borderColor: searchFocused
+            ? (isDark ? 'rgba(27,77,62,0.25)' : 'rgba(27,77,62,0.15)')
+            : 'transparent',
+        }]}>
           <FontAwesome name="search" size={14} color={NDEIP_COLORS.gray[500]} />
           <TextInput
-            style={styles.searchInput}
-            placeholder="Search chats..."
+            placeholder="Search conversations..."
             placeholderTextColor={NDEIP_COLORS.gray[500]}
-            value={searchQuery}
-            onChangeText={setSearchQuery}
+            style={[styles.searchInput, { color: colors.text }]}
+            onFocus={() => setSearchFocused(true)}
+            onBlur={() => setSearchFocused(false)}
           />
         </View>
-      </View>
 
-      {/* Filters */}
-      <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.filtersRow} contentContainerStyle={{ paddingHorizontal: 16, gap: 8 }}>
-        {FILTERS.map(f => (
-          <TouchableOpacity
-            key={f}
-            style={[styles.filterChip, activeFilter === f && styles.filterChipActive]}
-            onPress={() => setActiveFilter(f)}
-          >
-            <Text style={[styles.filterText, activeFilter === f && styles.filterTextActive]}>{f}</Text>
-          </TouchableOpacity>
-        ))}
+        {/* ─── Filter Pills ─── */}
+        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.filterContainer}>
+          {FILTERS.map((filter) => {
+            const isActive = filter === activeFilter;
+            return (
+              <TouchableOpacity
+                key={filter}
+                onPress={() => setActiveFilter(filter)}
+                style={[
+                  styles.filterPill,
+                  isActive && {
+                    backgroundColor: isDark ? 'rgba(27,77,62,0.2)' : 'rgba(27,77,62,0.1)',
+                  },
+                ]}
+                activeOpacity={0.7}
+              >
+                <Text style={[
+                  styles.filterText,
+                  { color: isActive ? NDEIP_COLORS.primaryTeal : (isDark ? NDEIP_COLORS.gray[500] : NDEIP_COLORS.gray[400]) },
+                  isActive && { fontWeight: '600' as any },
+                ]}>
+                  {filter}
+                </Text>
+              </TouchableOpacity>
+            );
+          })}
+        </ScrollView>
+
+        {/* ─── Conversation List ─── */}
+        <View style={styles.conversationList}>
+          {CONVERSATIONS.map((chat, index) => (
+            <TouchableOpacity
+              key={chat.id}
+              style={[styles.conversationRow]}
+              activeOpacity={0.6}
+            >
+              <Avatar
+                name={chat.name}
+                size={Spacing.components.avatarSizeMedium}
+                online={chat.online}
+              />
+              <View style={styles.conversationContent}>
+                <View style={styles.conversationTop}>
+                  <Text style={[styles.conversationName, { color: colors.text }]} numberOfLines={1}>
+                    {chat.pinned && <Text style={{ color: NDEIP_COLORS.amber }}>★ </Text>}
+                    {chat.name}
+                  </Text>
+                  <Text style={[styles.conversationTime, { color: chat.unread > 0 ? NDEIP_COLORS.primaryTeal : NDEIP_COLORS.gray[500] }]}>
+                    {chat.time}
+                  </Text>
+                </View>
+                <View style={styles.conversationBottom}>
+                  <Text style={[styles.conversationMessage, { color: isDark ? NDEIP_COLORS.gray[500] : NDEIP_COLORS.gray[400] }]} numberOfLines={1}>
+                    {chat.message}
+                  </Text>
+                  {chat.unread > 0 && (
+                    <LinearGradient
+                      colors={NDEIP_COLORS.gradients.brand as any}
+                      start={{ x: 0, y: 0 }}
+                      end={{ x: 1, y: 1 }}
+                      style={styles.unreadBadge}
+                    >
+                      <Text style={styles.unreadText}>
+                        {chat.unread > 99 ? '99+' : chat.unread}
+                      </Text>
+                    </LinearGradient>
+                  )}
+                </View>
+              </View>
+            </TouchableOpacity>
+          ))}
+        </View>
       </ScrollView>
 
-      <FlatList
-        data={CONVERSATIONS}
-        keyExtractor={item => item.id}
-        showsVerticalScrollIndicator={false}
-        contentContainerStyle={{ paddingBottom: 80 }}
-        ListHeaderComponent={() => (
-          <View>
-            {/* Top 3 Contacts */}
-            <View style={styles.top3Section}>
-              <View style={styles.top3Header}>
-                <FontAwesome name="star" size={12} color={NDEIP_COLORS.gold} />
-                <Text style={styles.top3Title}>Top 3</Text>
-              </View>
-              <View style={styles.top3Row}>
-                {TOP_3.map((c, i) => (
-                  <TouchableOpacity
-                    key={c.id}
-                    style={styles.top3Card}
-                    onPress={() => router.push({ pathname: '/chat', params: { contactId: c.id, contactName: c.name } } as any)}
-                    activeOpacity={0.7}
-                  >
-                    <View style={[styles.top3Avatar, { backgroundColor: c.color }]}>
-                      <Text style={styles.top3AvatarText}>{c.initials}</Text>
-                      {c.online && <View style={styles.onlineDot} />}
-                    </View>
-                    <Text style={styles.top3Name} numberOfLines={1}>{c.name}</Text>
-                    {c.unread > 0 && (
-                      <View style={styles.unreadBadge}>
-                        <Text style={styles.unreadText}>{c.unread}</Text>
-                      </View>
-                    )}
-                  </TouchableOpacity>
-                ))}
-              </View>
-            </View>
-
-            <Text style={styles.recentLabel}>Recent</Text>
-          </View>
-        )}
-        renderItem={({ item }) => (
-          <TouchableOpacity
-            style={styles.chatRow}
-            onPress={() => router.push({ pathname: '/chat', params: { contactId: item.id, contactName: item.name } } as any)}
-            activeOpacity={0.65}
-          >
-            <View style={[styles.chatAvatar, { backgroundColor: item.isGroup ? NDEIP_COLORS.electricBlue : NDEIP_COLORS.primaryTeal }]}>
-              <Text style={styles.chatAvatarText}>{item.initials}</Text>
-              {item.online && <View style={styles.chatOnlineDot} />}
-            </View>
-            <View style={styles.chatContent}>
-              <View style={styles.chatTopRow}>
-                <Text style={styles.chatName} numberOfLines={1}>{item.name}</Text>
-                <Text style={[styles.chatTime, item.unread > 0 && { color: NDEIP_COLORS.emerald }]}>{item.time}</Text>
-              </View>
-              <View style={styles.chatBottomRow}>
-                <Text style={styles.chatMsg} numberOfLines={1}>{item.lastMessage}</Text>
-                {item.unread > 0 && (
-                  <View style={styles.chatUnread}>
-                    <Text style={styles.chatUnreadText}>{item.unread}</Text>
-                  </View>
-                )}
-              </View>
-            </View>
-          </TouchableOpacity>
-        )}
-      />
-
-      {/* FAB */}
+      {/* ─── FAB ─── */}
       <TouchableOpacity style={styles.fab} activeOpacity={0.85}>
-        <FontAwesome name="pencil" size={20} color="#fff" />
+        <LinearGradient
+          colors={NDEIP_COLORS.gradients.brand as any}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 1 }}
+          style={styles.fabGradient}
+        >
+          <FontAwesome name="pencil" size={22} color="#fff" />
+        </LinearGradient>
       </TouchableOpacity>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: NDEIP_COLORS.gray[950] },
-
-  dndStrip: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 16, paddingVertical: 10, gap: 8, borderBottomWidth: 1 },
-  dndText: { fontSize: 13, fontWeight: '700' },
-  dndHint: { fontSize: 11, color: NDEIP_COLORS.gray[500], marginLeft: 'auto' },
-
-  searchRow: { paddingHorizontal: 16, paddingTop: 12, paddingBottom: 6 },
-  searchBar: {
-    flexDirection: 'row', alignItems: 'center', backgroundColor: 'rgba(255,255,255,0.04)',
-    borderRadius: 14, paddingHorizontal: 14, height: 44, gap: 10,
-    borderWidth: 1, borderColor: 'rgba(255,255,255,0.05)',
+  container: {
+    flex: 1,
   },
-  searchInput: { flex: 1, fontSize: 14, color: NDEIP_COLORS.gray[100] },
-
-  filtersRow: { maxHeight: 44, marginBottom: 8 },
-  filterChip: {
-    paddingHorizontal: 16, paddingVertical: 8, borderRadius: 20,
-    backgroundColor: 'rgba(255,255,255,0.04)', borderWidth: 1, borderColor: 'rgba(255,255,255,0.06)',
+  // Top 3
+  top3Section: {
+    paddingTop: 8,
+    paddingBottom: 4,
   },
-  filterChipActive: {
-    backgroundColor: NDEIP_COLORS.primaryTeal + '18', borderColor: NDEIP_COLORS.primaryTeal + '40',
+  sectionLabel: {
+    ...Typography.presets.sectionLabel as any,
+    paddingHorizontal: Spacing.screenHorizontal,
+    marginBottom: 12,
   },
-  filterText: { fontSize: 12, fontWeight: '600', color: NDEIP_COLORS.gray[400] },
-  filterTextActive: { color: NDEIP_COLORS.emerald },
-
-  top3Section: { paddingHorizontal: 16, paddingTop: 8, paddingBottom: 14 },
-  top3Header: { flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 12 },
-  top3Title: { fontSize: 11, fontWeight: '700', color: NDEIP_COLORS.gold, textTransform: 'uppercase', letterSpacing: 1 },
-  top3Row: { flexDirection: 'row', gap: 14 },
-  top3Card: { alignItems: 'center', width: 70 },
-  top3Avatar: { width: 56, height: 56, borderRadius: 20, justifyContent: 'center', alignItems: 'center', marginBottom: 6 },
-  top3AvatarText: { color: '#fff', fontSize: 18, fontWeight: '700' },
-  top3Name: { fontSize: 11, fontWeight: '600', color: NDEIP_COLORS.gray[300], textAlign: 'center' },
-  onlineDot: {
-    position: 'absolute', bottom: 2, right: 2, width: 12, height: 12, borderRadius: 6,
-    backgroundColor: NDEIP_COLORS.emerald, borderWidth: 2, borderColor: NDEIP_COLORS.gray[950],
+  top3Scroll: {
+    paddingHorizontal: Spacing.screenHorizontal,
+    gap: 16,
+  },
+  top3Item: {
+    alignItems: 'center',
+    width: 72,
+  },
+  top3Name: {
+    fontSize: Typography.sizes.micro,
+    fontWeight: '500' as any,
+    marginTop: 6,
+  },
+  top3AddButton: {
+    alignItems: 'center',
+    width: 72,
+  },
+  top3AddCircle: {
+    width: 60,
+    height: 60,
+    borderRadius: 30,
+    borderWidth: 2,
+    borderStyle: 'dashed',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  // DND Strip
+  dndStrip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginHorizontal: Spacing.screenHorizontal,
+    marginVertical: 12,
+    paddingHorizontal: 14,
+    height: Spacing.components.dndStripHeight,
+    borderRadius: Spacing.components.dndStripHeight / 2,
+    borderWidth: StyleSheet.hairlineWidth,
+    gap: 8,
+  },
+  dndDot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+  },
+  dndText: {
+    flex: 1,
+    fontSize: Typography.sizes.footnote,
+    fontWeight: '500' as any,
+  },
+  // Search
+  searchContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginHorizontal: Spacing.screenHorizontal,
+    marginBottom: 12,
+    paddingHorizontal: 14,
+    height: Spacing.components.searchBarHeight,
+    borderRadius: Radii.input,
+    borderWidth: 1.5,
+    gap: 10,
+  },
+  searchInput: {
+    flex: 1,
+    fontSize: Typography.sizes.bodySmall,
+    fontWeight: '400' as any,
+  },
+  // Filters
+  filterContainer: {
+    paddingHorizontal: Spacing.screenHorizontal,
+    gap: 8,
+    marginBottom: 8,
+  },
+  filterPill: {
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 20,
+  },
+  filterText: {
+    fontSize: Typography.sizes.caption,
+    fontWeight: '500' as any,
+  },
+  // Conversations
+  conversationList: {
+    paddingTop: 4,
+  },
+  conversationRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: Spacing.screenHorizontal,
+    paddingVertical: 14,
+    gap: 14,
+  },
+  conversationContent: {
+    flex: 1,
+  },
+  conversationTop: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'baseline',
+    marginBottom: 4,
+  },
+  conversationName: {
+    fontSize: Typography.sizes.bodySmall,
+    fontWeight: '600' as any,
+    flex: 1,
+    marginRight: 8,
+  },
+  conversationTime: {
+    fontSize: Typography.sizes.micro,
+  },
+  conversationBottom: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  conversationMessage: {
+    fontSize: Typography.sizes.caption,
+    flex: 1,
+    marginRight: 8,
   },
   unreadBadge: {
-    position: 'absolute', top: -2, right: 2, minWidth: 18, height: 18, borderRadius: 9,
-    backgroundColor: NDEIP_COLORS.emerald, justifyContent: 'center', alignItems: 'center', paddingHorizontal: 4,
+    minWidth: Spacing.components.badgeSize,
+    height: Spacing.components.badgeSize,
+    borderRadius: Spacing.components.badgeSize / 2,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 6,
   },
-  unreadText: { color: '#fff', fontSize: 10, fontWeight: '800' },
-
-  recentLabel: {
-    fontSize: 11, fontWeight: '700', color: NDEIP_COLORS.gray[500], textTransform: 'uppercase',
-    letterSpacing: 1, paddingHorizontal: 16, paddingBottom: 8,
+  unreadText: {
+    fontSize: 11,
+    fontWeight: '700' as any,
+    color: '#fff',
   },
-
-  chatRow: {
-    flexDirection: 'row', alignItems: 'center', paddingHorizontal: 16, paddingVertical: 12, gap: 14,
-    borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: 'rgba(255,255,255,0.03)',
-  },
-  chatAvatar: { width: 50, height: 50, borderRadius: 18, justifyContent: 'center', alignItems: 'center' },
-  chatAvatarText: { color: '#fff', fontSize: 17, fontWeight: '700' },
-  chatOnlineDot: {
-    position: 'absolute', bottom: 1, right: 1, width: 12, height: 12, borderRadius: 6,
-    backgroundColor: NDEIP_COLORS.emerald, borderWidth: 2, borderColor: NDEIP_COLORS.gray[950],
-  },
-  chatContent: { flex: 1 },
-  chatTopRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 3 },
-  chatName: { fontSize: 15, fontWeight: '700', color: NDEIP_COLORS.gray[100], flex: 1, marginRight: 8 },
-  chatTime: { fontSize: 11, color: NDEIP_COLORS.gray[500], fontWeight: '500' },
-  chatBottomRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
-  chatMsg: { fontSize: 13, color: NDEIP_COLORS.gray[400], flex: 1, marginRight: 8 },
-  chatUnread: {
-    minWidth: 20, height: 20, borderRadius: 10, backgroundColor: NDEIP_COLORS.emerald,
-    justifyContent: 'center', alignItems: 'center', paddingHorizontal: 5,
-  },
-  chatUnreadText: { color: '#fff', fontSize: 10, fontWeight: '800' },
-
+  // FAB
   fab: {
-    position: 'absolute', bottom: 20, right: 20, width: 56, height: 56, borderRadius: 16,
-    backgroundColor: NDEIP_COLORS.primaryTeal, justifyContent: 'center', alignItems: 'center',
-    shadowColor: NDEIP_COLORS.primaryTeal, shadowOffset: { width: 0, height: 6 }, shadowOpacity: 0.4, shadowRadius: 14, elevation: 8,
+    position: 'absolute',
+    bottom: 88,
+    right: 20,
+    ...Shadows.fab,
+  },
+  fabGradient: {
+    width: Spacing.components.fabSize,
+    height: Spacing.components.fabSize,
+    borderRadius: Spacing.components.fabSize / 2,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
 });
