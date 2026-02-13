@@ -13,6 +13,7 @@ import {
 import { LinearGradient } from "expo-linear-gradient";
 import FontAwesome from "@expo/vector-icons/FontAwesome";
 import { useRouter } from "expo-router";
+import { useAuth } from "@/contexts/AuthContext";
 import { NDEIP_COLORS } from "@/constants/Colors";
 import {
   Typography,
@@ -24,12 +25,13 @@ import {
 
 export default function LoginScreen() {
   const router = useRouter();
+  const { signIn, signInWithGoogle } = useAuth();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [focused, setFocused] = useState<string | null>(null);
 
-  const handleLogin = () => {
+  const handleLogin = async () => {
     // Validate fields
     if (!email.trim() || !password.trim()) {
       alert("Please enter both email and password");
@@ -43,13 +45,13 @@ export default function LoginScreen() {
       return;
     }
 
-    // Proceed to app
-    router.push("/(tabs)" as any);
+    // Authenticate — AuthGate will redirect to /(tabs) automatically
+    await signIn(email, password);
   };
 
   return (
     <LinearGradient
-      colors={["#0A0F0E", "#111918", "#0A0F0E"] as any}
+      colors={["#141E1B", "#1A2522", "#141E1B"] as any}
       style={styles.gradient}
     >
       <KeyboardAvoidingView
@@ -172,7 +174,7 @@ export default function LoginScreen() {
             <TouchableOpacity
               style={styles.googleBtn}
               activeOpacity={0.7}
-              onPress={handleLogin}
+              onPress={() => signInWithGoogle()}
             >
               <FontAwesome
                 name="google"

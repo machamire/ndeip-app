@@ -36,10 +36,12 @@ function isStoryLive(story: { expires_at: number }) {
 // ─── Mock Data ────────────────────────────────────────
 const MY_STORY = { hasStory: false, lastUpdate: null };
 
-const TOP_3_STORIES = [
+const TOP_5_STORIES = [
     { id: '1', name: 'Sarah', seen: false, count: 3, ...createStoryTimestamp(2) },
     { id: '2', name: 'Marcus', seen: false, count: 1, ...createStoryTimestamp(6) },
     { id: '3', name: 'Thandi', seen: true, count: 2, ...createStoryTimestamp(18) },
+    { id: '4', name: 'Kai Chen', seen: false, count: 2, ...createStoryTimestamp(4) },
+    { id: '5', name: 'Priya Sharma', seen: true, count: 1, ...createStoryTimestamp(10) },
 ];
 
 const RECENT_STORIES = [
@@ -109,7 +111,7 @@ export default function StoriesScreen() {
     const bg = isDark ? NDEIP_COLORS.gray[950] : NDEIP_COLORS.gray[50];
 
     // Filter expired stories (TTL enforcement)
-    const liveTop3 = React.useMemo(() => TOP_3_STORIES.filter(isStoryLive), []);
+    const liveTop5 = React.useMemo(() => TOP_5_STORIES.filter(isStoryLive), []);
     const liveRecent = React.useMemo(() => RECENT_STORIES.filter(isStoryLive), []);
 
     return (
@@ -146,11 +148,11 @@ export default function StoriesScreen() {
                 </View>
             </TouchableOpacity>
 
-            {/* ─── Top 3 Stories ─── */}
+            {/* ─── Top 5 Stories ─── */}
             <View style={styles.section}>
                 <View style={styles.sectionHeader}>
                     <Text style={[styles.sectionLabel, { color: isDark ? NDEIP_COLORS.gray[500] : NDEIP_COLORS.gray[400] }]}>
-                        TOP 3
+                        TOP 5
                     </Text>
                     <View style={styles.adFreeBadge}>
                         <FontAwesome name="star" size={8} color={NDEIP_COLORS.amber} />
@@ -158,7 +160,7 @@ export default function StoriesScreen() {
                     </View>
                 </View>
                 <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.storiesScroll}>
-                    {liveTop3.length > 0 ? liveTop3.map(story => (
+                    {liveTop5.length > 0 ? liveTop5.map(story => (
                         <StoryAvatar key={story.id} {...story} />
                     )) : (
                         <Text style={{ color: NDEIP_COLORS.gray[500], fontSize: 13, paddingHorizontal: Spacing.screenHorizontal }}>No stories right now</Text>

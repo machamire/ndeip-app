@@ -34,9 +34,9 @@ const gray = {
   600: "#3D544D", // Dark mode secondary
   700: "#2A3B36", // Dark mode surfaces elevated
   800: "#1C2A26", // Dark mode surfaces
-  850: "#151F1C", // Dark mode cards
-  900: "#111918", // Dark mode background (warm charcoal)
-  950: "#0A0F0E", // Deepest dark (app background)
+  850: "#1E2B27", // Dark mode cards
+  900: "#1A2522", // Dark mode background (warm charcoal)
+  950: "#141E1B", // Deepest dark (app background)
 };
 
 // ─── Glass Surfaces ───────────────────────────────────────
@@ -89,7 +89,7 @@ export const NDEIP_COLORS = {
     tealEmerald: [teal, emerald],
     surface: [gray[900], gray[950]],
     cardGlow: ["rgba(27,77,62,0.12)", "rgba(37,99,235,0.06)"],
-    warmDark: ["#111918", "#0A0F0E"],
+    warmDark: ["#1A2522", "#141E1B"],
     sentBubble: ["#1B5A47", "#1B4D3E"],
     gold: ["#F59E0B", "#D97706"],
     danger: ["#EF4444", "#DC2626"],

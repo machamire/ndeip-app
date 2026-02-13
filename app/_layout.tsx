@@ -69,7 +69,7 @@ function RootLayoutNav() {
   return (
     <AuthProvider>
       <MeshThemeProvider>
-        <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
+        <ThemeProvider value={DarkTheme}>
           <AuthGate />
           <Stack>
             <Stack.Screen name="(tabs)" options={{ headerShown: false }} />

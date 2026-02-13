@@ -8,15 +8,17 @@ import { Typography, Spacing, Radii, Glass } from '@/constants/ndeipBrandSystem'
 
 const DND_MODES = [
     { key: 'available', icon: 'check-circle', label: 'Available', desc: 'Everyone can reach you', color: NDEIP_COLORS.emerald },
-    { key: 'busy', icon: 'clock-o', label: 'Busy', desc: 'Only Top 3 can call', color: NDEIP_COLORS.amber },
+    { key: 'busy', icon: 'clock-o', label: 'Busy', desc: 'Only Top 5 can call', color: NDEIP_COLORS.amber },
     { key: 'dnd', icon: 'moon-o', label: 'Do Not Disturb', desc: 'Silence all except emergencies', color: NDEIP_COLORS.rose },
     { key: 'invisible', icon: 'eye-slash', label: 'Invisible', desc: 'Appear offline to everyone', color: NDEIP_COLORS.gray[500] },
 ];
 
-const TOP_3_EXCEPTIONS = [
+const TOP_5_EXCEPTIONS = [
     { name: 'Sarah', id: '1' },
     { name: 'Marcus', id: '2' },
     { name: 'Thandi', id: '3' },
+    { name: 'Kai', id: '4' },
+    { name: 'Priya', id: '5' },
 ];
 
 export default function DNDSettingsScreen() {
@@ -56,12 +58,12 @@ export default function DNDSettingsScreen() {
                 })}
             </View>
 
-            {/* Top 3 Exceptions */}
+            {/* Top 5 Exceptions */}
             <Text style={[styles.sectionLabel, { color: isDark ? NDEIP_COLORS.gray[500] : NDEIP_COLORS.gray[400], marginTop: 24 }]}>
-                EXCEPTIONS — TOP 3
+                EXCEPTIONS — TOP 5
             </Text>
             <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.exceptionsRow}>
-                {TOP_3_EXCEPTIONS.map(contact => (
+                {TOP_5_EXCEPTIONS.map(contact => (
                     <View key={contact.id} style={styles.exceptionItem}>
                         <LinearGradient colors={NDEIP_COLORS.gradients.brand as any} style={styles.exceptionAvatar}>
                             <Text style={styles.exceptionInitial}>{contact.name[0]}</Text>

@@ -16,23 +16,33 @@ import { useColorScheme } from '@/components/useColorScheme';
 import { Typography, Spacing, Radii, Shadows, Glass } from '@/constants/ndeipBrandSystem';
 
 // ─── Mock Data ────────────────────────────────────────────
-const TOP_3 = [
+const TOP_5 = [
   { id: '1', name: 'Sarah', online: true, avatar: null },
   { id: '2', name: 'Marcus', online: true, avatar: null },
   { id: '3', name: 'Thandi', online: false, avatar: null },
+  { id: '4', name: 'Kai', online: true, avatar: null },
+  { id: '5', name: 'Priya', online: false, avatar: null },
 ];
 
 const FILTERS = ['All', 'Unread', 'Groups', 'Channels'];
 
+// ─── Chat Folders ─────────────────────────────────────────
+const CHAT_FOLDERS = [
+  { key: 'all', label: 'All', icon: 'comments' },
+  { key: 'personal', label: 'Personal', icon: 'user' },
+  { key: 'work', label: 'Work', icon: 'briefcase' },
+  { key: 'groups', label: 'Groups', icon: 'users' },
+];
+
 const CONVERSATIONS = [
-  { id: '1', name: 'Sarah Chen', message: 'See you at the village meeting! 🎉', time: '2m', unread: 3, online: true, pinned: true },
-  { id: '2', name: 'Marcus Johnson', message: 'The presentation looks amazing', time: '15m', unread: 0, online: true, pinned: true },
-  { id: '3', name: 'Thandi Nkosi', message: 'Voice note 🎤 0:42', time: '1h', unread: 1, online: false, pinned: true },
-  { id: '4', name: 'Dev Village', message: 'Alex: Just pushed the new build', time: '2h', unread: 12, online: false, isGroup: true },
-  { id: '5', name: 'Mom ❤️', message: "Don't forget to eat!", time: '3h', unread: 0, online: false },
-  { id: '6', name: 'Design Team', message: 'Kai: Check the new mockups', time: '5h', unread: 5, isGroup: true },
-  { id: '7', name: 'Jordan Lee', message: 'Thanks for the recommendation!', time: 'Yesterday', unread: 0 },
-  { id: '8', name: 'Priya Sharma', message: 'The flight is booked ✈️', time: 'Yesterday', unread: 0 },
+  { id: '1', name: 'Sarah Chen', message: 'See you at the village meeting! 🎉', time: '2m', unread: 3, online: true, pinned: true, folder: 'personal', muted: false },
+  { id: '2', name: 'Marcus Johnson', message: 'The presentation looks amazing', time: '15m', unread: 0, online: true, pinned: true, folder: 'work', muted: false },
+  { id: '3', name: 'Thandi Nkosi', message: 'Voice note 🎤 0:42', time: '1h', unread: 1, online: false, pinned: true, folder: 'personal', muted: false },
+  { id: '4', name: 'Dev Village', message: 'Alex: Just pushed the new build', time: '2h', unread: 12, online: false, isGroup: true, folder: 'groups', muted: true },
+  { id: '5', name: 'Mom ❤️', message: "Don't forget to eat!", time: '3h', unread: 0, online: false, folder: 'personal', muted: false },
+  { id: '6', name: 'Design Team', message: 'Kai: Check the new mockups', time: '5h', unread: 5, isGroup: true, folder: 'work', muted: false },
+  { id: '7', name: 'Jordan Lee', message: 'Thanks for the recommendation!', time: 'Yesterday', unread: 0, folder: 'personal', muted: false },
+  { id: '8', name: 'Priya Sharma', message: 'The flight is booked ✈️', time: 'Yesterday', unread: 0, folder: 'work', muted: true },
 ];
 
 // ─── Avatar Component ─────────────────────────────────────
@@ -99,17 +109,30 @@ export default function ChatsScreen() {
   const colors = Colors[colorScheme];
   const isDark = colorScheme === 'dark';
   const [activeFilter, setActiveFilter] = React.useState('All');
+  const [activeFolder, setActiveFolder] = React.useState('all');
   const [searchFocused, setSearchFocused] = React.useState(false);
   const [searchQuery, setSearchQuery] = React.useState('');
+  const [mutedContacts, setMutedContacts] = React.useState<Record<string, boolean>>(
+    Object.fromEntries(CONVERSATIONS.filter(c => c.muted).map(c => [c.id, true]))
+  );
+
+  const toggleMute = React.useCallback((id: string) => {
+    setMutedContacts(prev => ({ ...prev, [id]: !prev[id] }));
+  }, []);
 
   // ─── Filtered Conversations ─────────────────────────────
   const filteredConversations = React.useMemo(() => {
     let list = CONVERSATIONS;
 
+    // Apply folder filter
+    if (activeFolder !== 'all') {
+      list = list.filter(c => c.folder === activeFolder || (activeFolder === 'groups' && c.isGroup));
+    }
+
     // Apply filter pills
     if (activeFilter === 'Unread') list = list.filter(c => c.unread > 0);
     else if (activeFilter === 'Groups') list = list.filter(c => c.isGroup);
-    else if (activeFilter === 'Channels') list = list.filter(c => c.isGroup); // placeholder for channels
+    else if (activeFilter === 'Channels') list = list.filter(c => c.isGroup);
 
     // Apply search query
     if (searchQuery.trim()) {
@@ -121,7 +144,7 @@ export default function ChatsScreen() {
     }
 
     return list;
-  }, [activeFilter, searchQuery]);
+  }, [activeFilter, activeFolder, searchQuery]);
 
   const bg = isDark ? NDEIP_COLORS.gray[950] : NDEIP_COLORS.gray[50];
   const cardBg = isDark ? Glass.dark.background : Glass.light.background;
@@ -133,13 +156,13 @@ export default function ChatsScreen() {
         showsVerticalScrollIndicator={false}
         contentContainerStyle={{ paddingBottom: 100 }}
       >
-        {/* ─── Top 3 Contacts ─── */}
+        {/* ─── Top 5 Contacts ─── */}
         <View style={styles.top3Section}>
           <Text style={[styles.sectionLabel, { color: isDark ? NDEIP_COLORS.gray[500] : NDEIP_COLORS.gray[400] }]}>
             FAVORITES
           </Text>
           <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.top3Scroll}>
-            {TOP_3.map((contact) => (
+            {TOP_5.map((contact) => (
               <TouchableOpacity key={contact.id} style={styles.top3Item} activeOpacity={0.7}>
                 <Avatar name={contact.name} size={Spacing.components.top3AvatarSize} online={contact.online} showRing />
                 <Text style={[styles.top3Name, { color: isDark ? NDEIP_COLORS.gray[300] : NDEIP_COLORS.gray[600] }]} numberOfLines={1}>
@@ -155,6 +178,29 @@ export default function ChatsScreen() {
             </TouchableOpacity>
           </ScrollView>
         </View>
+
+        {/* ─── Chat Folders ─── */}
+        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.foldersContainer}>
+          {CHAT_FOLDERS.map((folder) => {
+            const isActive = folder.key === activeFolder;
+            return (
+              <TouchableOpacity
+                key={folder.key}
+                onPress={() => setActiveFolder(folder.key)}
+                style={[styles.folderTab, isActive && {
+                  backgroundColor: isDark ? 'rgba(27,77,62,0.18)' : 'rgba(27,77,62,0.08)',
+                  borderColor: NDEIP_COLORS.primaryTeal,
+                }]}
+                activeOpacity={0.7}
+              >
+                <FontAwesome name={folder.icon as any} size={13} color={isActive ? NDEIP_COLORS.primaryTeal : NDEIP_COLORS.gray[500]} />
+                <Text style={[styles.folderTabText, { color: isActive ? NDEIP_COLORS.primaryTeal : (isDark ? NDEIP_COLORS.gray[500] : NDEIP_COLORS.gray[400]) }]}>
+                  {folder.label}
+                </Text>
+              </TouchableOpacity>
+            );
+          })}
+        </ScrollView>
 
         {/* ─── DND Status Strip ─── */}
         <TouchableOpacity
@@ -231,6 +277,7 @@ export default function ChatsScreen() {
                 key={chat.id}
                 style={[styles.conversationRow]}
                 activeOpacity={0.6}
+                onLongPress={() => toggleMute(chat.id)}
               >
                 <Avatar
                   name={chat.name}
@@ -246,6 +293,9 @@ export default function ChatsScreen() {
                     <Text style={[styles.conversationTime, { color: chat.unread > 0 ? NDEIP_COLORS.primaryTeal : NDEIP_COLORS.gray[500] }]}>
                       {chat.time}
                     </Text>
+                    {mutedContacts[chat.id] && (
+                      <FontAwesome name="bell-slash" size={10} color={NDEIP_COLORS.gray[600]} style={{ marginLeft: 4 }} />
+                    )}
                   </View>
                   <View style={styles.conversationBottom}>
                     <Text style={[styles.conversationMessage, { color: isDark ? NDEIP_COLORS.gray[500] : NDEIP_COLORS.gray[400] }]} numberOfLines={1}>
@@ -253,7 +303,7 @@ export default function ChatsScreen() {
                     </Text>
                     {chat.unread > 0 && (
                       <LinearGradient
-                        colors={NDEIP_COLORS.gradients.brand as any}
+                        colors={mutedContacts[chat.id] ? [NDEIP_COLORS.gray[600], NDEIP_COLORS.gray[500]] as any : NDEIP_COLORS.gradients.brand as any}
                         start={{ x: 0, y: 0 }}
                         end={{ x: 1, y: 1 }}
                         style={styles.unreadBadge}
@@ -269,10 +319,10 @@ export default function ChatsScreen() {
             ))
           )}
         </View>
-      </ScrollView>
+      </ScrollView >
 
       {/* ─── FAB ─── */}
-      <TouchableOpacity style={styles.fab} activeOpacity={0.85}>
+      < TouchableOpacity style={styles.fab} activeOpacity={0.85} >
         <LinearGradient
           colors={NDEIP_COLORS.gradients.brand as any}
           start={{ x: 0, y: 0 }}
@@ -281,8 +331,8 @@ export default function ChatsScreen() {
         >
           <FontAwesome name="pencil" size={22} color="#fff" />
         </LinearGradient>
-      </TouchableOpacity>
-    </View>
+      </TouchableOpacity >
+    </View >
   );
 }
 
@@ -455,5 +505,25 @@ const styles = StyleSheet.create({
   emptySearchText: {
     fontSize: Typography.sizes.bodySmall,
     marginTop: 12,
+  },
+  // Chat Folders
+  foldersContainer: {
+    paddingHorizontal: Spacing.screenHorizontal,
+    gap: 8,
+    marginBottom: 6,
+  },
+  folderTab: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+    borderRadius: 18,
+    borderWidth: 1,
+    borderColor: 'transparent',
+  },
+  folderTabText: {
+    fontSize: 12,
+    fontWeight: '600' as any,
   },
 });

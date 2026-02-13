@@ -13,6 +13,7 @@ import {
 import { LinearGradient } from "expo-linear-gradient";
 import FontAwesome from "@expo/vector-icons/FontAwesome";
 import { useRouter } from "expo-router";
+import { useAuth } from "@/contexts/AuthContext";
 import { NDEIP_COLORS } from "@/constants/Colors";
 import {
   Typography,
@@ -23,6 +24,7 @@ import {
 
 export default function SignupScreen() {
   const router = useRouter();
+  const { signUp, signInWithGoogle } = useAuth();
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -46,7 +48,7 @@ export default function SignupScreen() {
   ];
   const strengthLabel = ["", "Weak", "Good", "Strong"];
 
-  const handleSignup = () => {
+  const handleSignup = async () => {
     // Validate fields
     if (!name.trim() || !email.trim() || !password.trim()) {
       alert("Please fill in all fields");
@@ -66,13 +68,13 @@ export default function SignupScreen() {
       return;
     }
 
-    // Proceed to next step (can be onboarding or verification)
-    router.push("/(tabs)" as any);
+    // Authenticate — AuthGate will redirect to /(tabs) automatically
+    await signUp(email, password, name);
   };
 
   return (
     <LinearGradient
-      colors={["#0A0F0E", "#111918", "#0A0F0E"] as any}
+      colors={["#141E1B", "#1A2522", "#141E1B"] as any}
       style={styles.gradient}
     >
       <KeyboardAvoidingView
@@ -237,7 +239,7 @@ export default function SignupScreen() {
             <TouchableOpacity
               style={styles.googleBtn}
               activeOpacity={0.7}
-              onPress={() => router.push("/(tabs)" as any)}
+              onPress={() => signInWithGoogle()}
             >
               <FontAwesome
                 name="google"

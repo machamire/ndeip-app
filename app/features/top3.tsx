@@ -6,13 +6,15 @@ import Colors, { NDEIP_COLORS } from '@/constants/Colors';
 import { useColorScheme } from '@/components/useColorScheme';
 import { Typography, Spacing, Radii, Glass } from '@/constants/ndeipBrandSystem';
 
-const TOP_3_SLOTS = [
+const TOP_5_SLOTS = [
     { rank: 1, name: 'Sarah Chen', filled: true },
     { rank: 2, name: 'Marcus Johnson', filled: true },
     { rank: 3, name: 'Thandi Nkosi', filled: true },
+    { rank: 4, name: 'Kai Chen', filled: true },
+    { rank: 5, name: null, filled: false },
 ];
 
-const rankColors = ['#F59E0B', '#A8B8B3', '#CD7F32']; // Gold, Silver, Bronze
+const rankColors = ['#F59E0B', '#A8B8B3', '#CD7F32', '#10B981', '#2563EB']; // Gold, Silver, Bronze, Emerald, Sapphire
 
 export default function Top3Screen() {
     const colorScheme = useColorScheme() ?? 'dark';
@@ -24,15 +26,17 @@ export default function Top3Screen() {
     return (
         <ScrollView style={[styles.container, { backgroundColor: bg }]} contentContainerStyle={{ paddingBottom: 60 }}>
             <Text style={[styles.headerDesc, { color: isDark ? NDEIP_COLORS.gray[400] : NDEIP_COLORS.gray[500] }]}>
-                Your Top 3 contacts get priority access — they can reach you even in DND mode and appear first in your chats.
+                Your Top 5 contacts get priority access — they can reach you even in DND mode and appear first in your chats.
             </Text>
 
             <View style={styles.slots}>
-                {TOP_3_SLOTS.map((slot, i) => {
+                {TOP_5_SLOTS.map((slot, i) => {
                     const avatarGrads = [
                         [NDEIP_COLORS.primaryTeal, NDEIP_COLORS.electricBlue],
                         [NDEIP_COLORS.electricBlue, NDEIP_COLORS.amethyst],
                         [NDEIP_COLORS.emerald, NDEIP_COLORS.cyan],
+                        [NDEIP_COLORS.amber, NDEIP_COLORS.rose],
+                        [NDEIP_COLORS.cyan, NDEIP_COLORS.electricBlue],
                     ];
                     const initials = slot.filled ? slot.name!.split(' ').map(n => n[0]).join('') : '';
 

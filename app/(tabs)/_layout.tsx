@@ -7,15 +7,8 @@ import Colors, { NDEIP_COLORS } from '@/constants/Colors';
 import { useColorScheme } from '@/components/useColorScheme';
 import { Spacing, Radii, Shadows, Typography } from '@/constants/ndeipBrandSystem';
 
-function TabIcon({ name, color, size = 22 }: { name: string; color: string; size?: number }) {
-  const iconMap: Record<string, React.ComponentProps<typeof FontAwesome>['name']> = {
-    villages: 'home',
-    stories: 'circle-o',
-    chats: 'comments',
-    calls: 'phone',
-    settings: 'cog',
-  };
-  return <FontAwesome name={iconMap[name] || 'circle'} size={size} color={color} />;
+function TabIcon({ iconName, color, size = 22 }: { iconName: React.ComponentProps<typeof FontAwesome>['name']; color: string; size?: number }) {
+  return <FontAwesome name={iconName} size={size} color={color} />;
 }
 
 export default function TabLayout() {
@@ -26,39 +19,42 @@ export default function TabLayout() {
   return (
     <Tabs
       screenOptions={{
-        tabBarActiveTintColor: colors.primary,
-        tabBarInactiveTintColor: isDark ? NDEIP_COLORS.gray[600] : NDEIP_COLORS.gray[300],
+        tabBarActiveTintColor: NDEIP_COLORS.emerald,
+        tabBarInactiveTintColor: NDEIP_COLORS.gray[600],
+        tabBarLabelPosition: 'below-icon',
         tabBarStyle: {
           position: 'absolute',
-          bottom: Platform.OS === 'ios' ? 20 : 16,
-          left: 16,
-          right: 16,
-          height: Spacing.components.tabBarHeight,
-          borderRadius: Radii.tabBar,
+          bottom: 0,
+          left: 0,
+          right: 0,
+          height: 90,
           borderTopWidth: 0,
-          backgroundColor: isDark ? 'rgba(17, 25, 24, 0.85)' : 'rgba(255, 255, 255, 0.85)',
-          borderWidth: StyleSheet.hairlineWidth,
-          borderColor: isDark ? NDEIP_COLORS.glass.border : NDEIP_COLORS.glass.borderLight,
-          paddingBottom: 8,
-          paddingTop: 8,
+          backgroundColor: 'rgba(20, 30, 27, 0.95)',
+          borderWidth: 0,
+          borderTopColor: NDEIP_COLORS.glass.border,
+          paddingBottom: 18,
+          paddingTop: 10,
           ...Shadows.lg,
         },
         tabBarBackground: () => (
           <BlurView
-            intensity={isDark ? 80 : 60}
-            tint={isDark ? 'dark' : 'light'}
-            style={[StyleSheet.absoluteFill, { borderRadius: Radii.tabBar, overflow: 'hidden' }]}
+            intensity={80}
+            tint="dark"
+            style={[StyleSheet.absoluteFill, { overflow: 'hidden' }]}
           />
         ),
+        tabBarIconStyle: {
+          marginBottom: 1,
+        },
         tabBarLabelStyle: {
-          fontSize: Typography.sizes.nano,
-          fontWeight: Typography.weights.semibold as any,
-          letterSpacing: Typography.tracking.wider,
-          textTransform: 'uppercase',
-          marginTop: 2,
+          fontSize: 11,
+          fontWeight: '500' as any,
+          letterSpacing: 0.2,
+          marginTop: 1,
+          paddingBottom: 2,
         },
         headerStyle: {
-          backgroundColor: isDark ? NDEIP_COLORS.gray[950] : NDEIP_COLORS.gray[50],
+          backgroundColor: NDEIP_COLORS.gray[950],
           elevation: 0,
           shadowOpacity: 0,
           borderBottomWidth: 0,
@@ -66,33 +62,17 @@ export default function TabLayout() {
         headerTitleStyle: {
           fontWeight: '700' as const,
           fontSize: Typography.sizes.title2,
-          color: colors.text,
+          color: '#F0F4F3',
         },
-        headerTintColor: colors.text,
+        headerTintColor: '#F0F4F3',
       }}
     >
-      {/* Tab 1: Villages */}
-      <Tabs.Screen
-        name="villages"
-        options={{
-          title: 'Villages',
-          tabBarIcon: ({ color }) => <TabIcon name="villages" color={color} />,
-        }}
-      />
-      {/* Tab 2: Stories */}
-      <Tabs.Screen
-        name="status"
-        options={{
-          title: 'Stories',
-          tabBarIcon: ({ color }) => <TabIcon name="stories" color={color} />,
-        }}
-      />
-      {/* Tab 3: Chats (center — home base) */}
+      {/* Tab 1: Chats (home base) */}
       <Tabs.Screen
         name="index"
         options={{
           title: 'Chats',
-          tabBarIcon: ({ color }) => <TabIcon name="chats" color={color} size={24} />,
+          tabBarIcon: ({ color }) => <TabIcon iconName="commenting" color={color} size={22} />,
           headerTitle: () => (
             <Image
               source={require('../../assets/images/ndeip-logo.png')}
@@ -102,12 +82,28 @@ export default function TabLayout() {
           ),
         }}
       />
-      {/* Tab 4: Calls */}
+      {/* Tab 2: Calls */}
       <Tabs.Screen
         name="calls"
         options={{
           title: 'Calls',
-          tabBarIcon: ({ color }) => <TabIcon name="calls" color={color} />,
+          tabBarIcon: ({ color }) => <TabIcon iconName="phone" color={color} size={20} />,
+        }}
+      />
+      {/* Tab 3: Stories */}
+      <Tabs.Screen
+        name="status"
+        options={{
+          title: 'Stories',
+          tabBarIcon: ({ color }) => <TabIcon iconName="sun-o" color={color} size={21} />,
+        }}
+      />
+      {/* Tab 4: Villages */}
+      <Tabs.Screen
+        name="villages"
+        options={{
+          title: 'Villages',
+          tabBarIcon: ({ color }) => <TabIcon iconName="globe" color={color} size={22} />,
         }}
       />
       {/* Tab 5: Settings */}
@@ -115,7 +111,7 @@ export default function TabLayout() {
         name="settings"
         options={{
           title: 'Settings',
-          tabBarIcon: ({ color }) => <TabIcon name="settings" color={color} />,
+          tabBarIcon: ({ color }) => <TabIcon iconName="sliders" color={color} size={22} />,
         }}
       />
       {/* Hide legacy screen */}

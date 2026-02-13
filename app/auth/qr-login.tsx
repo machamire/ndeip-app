@@ -10,7 +10,7 @@ export default function QRLoginScreen() {
     const router = useRouter();
 
     return (
-        <LinearGradient colors={['#0A0F0E', '#111918', '#0A0F0E'] as any} style={styles.container}>
+        <LinearGradient colors={['#141E1B', '#1A2522', '#141E1B'] as any} style={styles.container}>
             {/* Back */}
             <TouchableOpacity style={styles.backBtn} onPress={() => router.back()} activeOpacity={0.7}>
                 <FontAwesome name="arrow-left" size={18} color={NDEIP_COLORS.gray[400]} />

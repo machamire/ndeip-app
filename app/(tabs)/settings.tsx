@@ -75,7 +75,7 @@ export default function SettingsScreen() {
                 <FontAwesome name="chevron-right" size={14} color={NDEIP_COLORS.gray[600]} />
             </TouchableOpacity>
 
-            {/* ─── Quick Access — DND & Top 3 ─── */}
+            {/* ─── Quick Access — DND & Top 5 ─── */}
             <View style={styles.quickAccessRow}>
                 <TouchableOpacity
                     style={[styles.quickCard, {
@@ -103,8 +103,8 @@ export default function SettingsScreen() {
                     <View style={[styles.quickIcon, { backgroundColor: 'rgba(245,158,11,0.12)' }]}>
                         <FontAwesome name="star" size={16} color={NDEIP_COLORS.amber} />
                     </View>
-                    <Text style={[styles.quickLabel, { color: colors.text }]}>Top 3</Text>
-                    <Text style={[styles.quickValue, { color: NDEIP_COLORS.amber }]}>3 contacts</Text>
+                    <Text style={[styles.quickLabel, { color: colors.text }]}>Top 5</Text>
+                    <Text style={[styles.quickValue, { color: NDEIP_COLORS.amber }]}>5 contacts</Text>
                 </TouchableOpacity>
             </View>
 
@@ -141,7 +141,8 @@ export default function SettingsScreen() {
                     resizeMode="contain"
                     style={styles.footerLogo}
                 />
-                <Text style={[styles.footerVersion, { color: NDEIP_COLORS.gray[600] }]}>ndeip v1.0.0</Text>
+                <Text style={[styles.footerVersion, { color: NDEIP_COLORS.gray[400] }]}>ndeip v1.0.0</Text>
+                <Text style={[styles.footerCredit, { color: NDEIP_COLORS.emerald }]}>Developed by Vana VekuLocation LLC</Text>
             </View>
         </ScrollView>
     );
@@ -225,6 +226,7 @@ const styles = StyleSheet.create({
         paddingVertical: 32,
         gap: 8,
     },
-    footerLogo: { width: 60, height: 24, opacity: 0.4 },
+    footerLogo: { width: 60, height: 24, opacity: 0.7 },
     footerVersion: { fontSize: 11 },
+    footerCredit: { fontSize: 10, fontWeight: '400' as any },
 });

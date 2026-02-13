@@ -10,7 +10,7 @@ export default function FeaturesLayout() {
             headerShadowVisible: false,
         }}>
             <Stack.Screen name="dnd-settings" options={{ title: 'Availability & DND' }} />
-            <Stack.Screen name="top3" options={{ title: 'Top 3 Favorites' }} />
+            <Stack.Screen name="top3" options={{ title: 'Top 5 Favorites' }} />
         </Stack>
     );
 }
