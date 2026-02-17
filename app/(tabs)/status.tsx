@@ -1,26 +1,26 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import {
     View,
     Text,
     StyleSheet,
     ScrollView,
     TouchableOpacity,
+    RefreshControl,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import FontAwesome from '@expo/vector-icons/FontAwesome';
+import { useRouter } from 'expo-router';
 import Colors, { NDEIP_COLORS } from '@/constants/Colors';
 import { useColorScheme } from '@/components/useColorScheme';
 import { Typography, Spacing, Radii, Glass } from '@/constants/ndeipBrandSystem';
+import { StoryService, UserStory } from '@/services/StoryService';
+import EmptyState from '@/components/ui/EmptyState';
 
 // ─── TTL Utilities ───────────────────────────────────────
 const STORY_TTL_MS = 24 * 60 * 60 * 1000; // 24 hours
 
-function createStoryTimestamp(hoursAgo: number) {
-    const created = Date.now() - hoursAgo * 60 * 60 * 1000;
-    return { created_at: created, expires_at: created + STORY_TTL_MS };
-}
-
-function getTimeRemaining(expiresAt: number): string {
+function getTimeRemaining(timestamp: number): string {
+    const expiresAt = timestamp + STORY_TTL_MS;
     const remaining = expiresAt - Date.now();
     if (remaining <= 0) return 'Expired';
     const hours = Math.floor(remaining / (60 * 60 * 1000));
@@ -29,31 +29,10 @@ function getTimeRemaining(expiresAt: number): string {
     return `${minutes}m left`;
 }
 
-function isStoryLive(story: { expires_at: number }) {
-    return story.expires_at > Date.now();
-}
-
-// ─── Mock Data ────────────────────────────────────────
-const MY_STORY = { hasStory: false, lastUpdate: null };
-
-const TOP_5_STORIES = [
-    { id: '1', name: 'Sarah', seen: false, count: 3, ...createStoryTimestamp(2) },
-    { id: '2', name: 'Marcus', seen: false, count: 1, ...createStoryTimestamp(6) },
-    { id: '3', name: 'Thandi', seen: true, count: 2, ...createStoryTimestamp(18) },
-    { id: '4', name: 'Kai Chen', seen: false, count: 2, ...createStoryTimestamp(4) },
-    { id: '5', name: 'Priya Sharma', seen: true, count: 1, ...createStoryTimestamp(10) },
-];
-
-const RECENT_STORIES = [
-    { id: '4', name: 'Jordan Lee', seen: false, count: 2, ...createStoryTimestamp(1) },
-    { id: '5', name: 'Priya Sharma', seen: false, count: 4, ...createStoryTimestamp(4) },
-    { id: '6', name: 'Alex Kim', seen: true, count: 1, ...createStoryTimestamp(20) },
-    { id: '7', name: 'Naledi M.', seen: true, count: 1, ...createStoryTimestamp(12) },
-    { id: '8', name: 'Kai Chen', seen: true, count: 3, ...createStoryTimestamp(22) },
-];
-
 // ─── Story Avatar ─────────────────────────────────────────
-function StoryAvatar({ name, seen, count, expires_at }: { name: string; seen: boolean; count: number; expires_at: number }) {
+function StoryAvatar({ userId, name, seen, count, timestamp, onPress }: {
+    userId: string; name: string; seen: boolean; count: number; timestamp: number; onPress: () => void;
+}) {
     const initials = name.split(' ').map(n => n[0]).join('').slice(0, 2);
     const gradColors = [
         ['#1B4D3E', '#2563EB'], ['#2563EB', '#8B5CF6'], ['#10B981', '#06B6D4'],
@@ -62,7 +41,7 @@ function StoryAvatar({ name, seen, count, expires_at }: { name: string; seen: bo
     const ci = name.charCodeAt(0) % gradColors.length;
 
     return (
-        <TouchableOpacity style={styles.storyItem} activeOpacity={0.7}>
+        <TouchableOpacity style={styles.storyItem} activeOpacity={0.7} onPress={onPress}>
             {!seen ? (
                 <LinearGradient
                     colors={gradColors[ci] as any}
@@ -99,7 +78,7 @@ function StoryAvatar({ name, seen, count, expires_at }: { name: string; seen: bo
                     {count > 2 && <View style={[styles.storyCountDot, !seen && styles.storyCountDotActive]} />}
                 </View>
             )}
-            <Text style={styles.storyTimeLeft}>{getTimeRemaining(expires_at)}</Text>
+            <Text style={styles.storyTimeLeft}>{getTimeRemaining(timestamp)}</Text>
         </TouchableOpacity>
     );
 }
@@ -108,16 +87,43 @@ export default function StoriesScreen() {
     const colorScheme = useColorScheme() ?? 'dark';
     const isDark = colorScheme === 'dark';
     const colors = Colors[colorScheme];
+    const router = useRouter();
     const bg = isDark ? NDEIP_COLORS.gray[950] : NDEIP_COLORS.gray[50];
+    const [contactStories, setContactStories] = useState<UserStory[]>([]);
+    const [myStory, setMyStory] = useState<UserStory | null>(null);
+    const [refreshing, setRefreshing] = useState(false);
 
-    // Filter expired stories (TTL enforcement)
-    const liveTop5 = React.useMemo(() => TOP_5_STORIES.filter(isStoryLive), []);
-    const liveRecent = React.useMemo(() => RECENT_STORIES.filter(isStoryLive), []);
+    const onRefresh = async () => {
+        setRefreshing(true);
+        const stories = await StoryService.getContactStories();
+        setContactStories(stories);
+        const mine = await StoryService.getMyStory();
+        setMyStory(mine);
+        setRefreshing(false);
+    };
+
+    useEffect(() => {
+        const load = async () => {
+            const stories = await StoryService.getContactStories();
+            setContactStories(stories);
+            const mine = await StoryService.getMyStory();
+            setMyStory(mine);
+        };
+        load();
+    }, []);
+
+    const openStory = (userId: string) => {
+        router.push({ pathname: '/story', params: { userId } } as any);
+    };
 
     return (
-        <ScrollView style={[styles.container, { backgroundColor: bg }]} contentContainerStyle={{ paddingBottom: 100 }}>
+        <ScrollView style={[styles.container, { backgroundColor: bg }]} contentContainerStyle={{ paddingBottom: 100 }}
+            refreshControl={
+                <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={NDEIP_COLORS.primaryTeal} colors={[NDEIP_COLORS.primaryTeal]} />
+            }
+        >
             {/* ─── My Story Card ─── */}
-            <TouchableOpacity activeOpacity={0.8} style={styles.myStoryCard}>
+            <TouchableOpacity activeOpacity={0.8} style={styles.myStoryCard} onPress={() => router.push('/gallery' as any)}>
                 <View style={[styles.myStoryCardInner, {
                     backgroundColor: isDark ? Glass.dark.background : Glass.light.background,
                     borderColor: isDark ? Glass.dark.borderSubtle : Glass.light.borderSubtle,
@@ -160,10 +166,18 @@ export default function StoriesScreen() {
                     </View>
                 </View>
                 <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.storiesScroll}>
-                    {liveTop5.length > 0 ? liveTop5.map(story => (
-                        <StoryAvatar key={story.id} {...story} />
+                    {contactStories.filter(s => contactStories.indexOf(s) < 5).length > 0 ? contactStories.slice(0, 5).map(story => (
+                        <StoryAvatar
+                            key={story.userId}
+                            userId={story.userId}
+                            name={story.userName}
+                            seen={!StoryService.hasUnseenStories(story)}
+                            count={story.segments.length}
+                            timestamp={story.lastUpdated}
+                            onPress={() => openStory(story.userId)}
+                        />
                     )) : (
-                        <Text style={{ color: NDEIP_COLORS.gray[500], fontSize: 13, paddingHorizontal: Spacing.screenHorizontal }}>No stories right now</Text>
+                        <EmptyState variant="stories" isDark={isDark} />
                     )}
                 </ScrollView>
             </View>
@@ -174,8 +188,16 @@ export default function StoriesScreen() {
                     RECENT
                 </Text>
                 <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.storiesScroll}>
-                    {liveRecent.length > 0 ? liveRecent.map(story => (
-                        <StoryAvatar key={story.id} {...story} />
+                    {contactStories.slice(5).length > 0 ? contactStories.slice(5).map(story => (
+                        <StoryAvatar
+                            key={story.userId}
+                            userId={story.userId}
+                            name={story.userName}
+                            seen={!StoryService.hasUnseenStories(story)}
+                            count={story.segments.length}
+                            timestamp={story.lastUpdated}
+                            onPress={() => openStory(story.userId)}
+                        />
                     )) : (
                         <Text style={{ color: NDEIP_COLORS.gray[500], fontSize: 13, paddingHorizontal: Spacing.screenHorizontal }}>No stories right now</Text>
                     )}

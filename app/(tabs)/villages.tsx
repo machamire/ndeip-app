@@ -1,16 +1,18 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import {
     View,
     Text,
     StyleSheet,
     ScrollView,
     TouchableOpacity,
+    RefreshControl,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import FontAwesome from '@expo/vector-icons/FontAwesome';
 import Colors, { NDEIP_COLORS } from '@/constants/Colors';
 import { useColorScheme } from '@/components/useColorScheme';
 import { Typography, Spacing, Radii, Glass, Shadows } from '@/constants/ndeipBrandSystem';
+import { VillageService } from '@/services/VillageService';
 
 // ─── Live Rooms Data ──────────────────────────────────────
 const LIVE_ROOMS = [
@@ -133,7 +135,8 @@ function MiniAvatars({ count }: { count: number }) {
 }
 
 // ─── Announcement Card ────────────────────────────────────
-function AnnouncementCard({ item, isDark, colors }: { item: NoticeItem; isDark: boolean; colors: any }) {
+function AnnouncementCard({ item, isDark, colors, onLike }: { item: NoticeItem; isDark: boolean; colors: any; onLike?: (id: string) => void }) {
+    const [liked, setLiked] = useState(false);
     return (
         <View style={[styles.noticeCard, {
             backgroundColor: isDark ? Glass.dark.background : Glass.light.background,
@@ -165,9 +168,9 @@ function AnnouncementCard({ item, isDark, colors }: { item: NoticeItem; isDark: 
                 </Text>
             )}
             <View style={styles.noticeActions}>
-                <TouchableOpacity style={styles.noticeActionBtn} activeOpacity={0.7}>
-                    <FontAwesome name="heart-o" size={14} color={NDEIP_COLORS.gray[500]} />
-                    <Text style={[styles.noticeActionText, { color: NDEIP_COLORS.gray[500] }]}>Like</Text>
+                <TouchableOpacity style={styles.noticeActionBtn} activeOpacity={0.7} onPress={() => { setLiked(!liked); onLike?.(item.id); }}>
+                    <FontAwesome name={liked ? 'heart' : 'heart-o'} size={14} color={liked ? NDEIP_COLORS.rose : NDEIP_COLORS.gray[500]} />
+                    <Text style={[styles.noticeActionText, { color: liked ? NDEIP_COLORS.rose : NDEIP_COLORS.gray[500] }]}>{liked ? 'Liked' : 'Like'}</Text>
                 </TouchableOpacity>
                 <TouchableOpacity style={styles.noticeActionBtn} activeOpacity={0.7}>
                     <FontAwesome name="comment-o" size={14} color={NDEIP_COLORS.gray[500]} />
@@ -183,7 +186,7 @@ function AnnouncementCard({ item, isDark, colors }: { item: NoticeItem; isDark: 
 }
 
 // ─── Poll Card ────────────────────────────────────────────
-function PollCard({ item, isDark, colors }: { item: NoticeItem; isDark: boolean; colors: any }) {
+function PollCard({ item, isDark, colors, onVote }: { item: NoticeItem; isDark: boolean; colors: any; onVote?: (id: string, idx: number) => void }) {
     const [votedIndex, setVotedIndex] = useState<number | null>(null);
     const total = item.totalVotes || 0;
 
@@ -215,7 +218,7 @@ function PollCard({ item, isDark, colors }: { item: NoticeItem; isDark: boolean;
                     return (
                         <TouchableOpacity
                             key={i}
-                            onPress={() => setVotedIndex(i)}
+                            onPress={() => { setVotedIndex(i); onVote?.(item.id, i); }}
                             style={[styles.pollOption, {
                                 borderColor: isVoted ? NDEIP_COLORS.primaryTeal : (isDark ? Glass.dark.borderSubtle : Glass.light.borderSubtle),
                             }]}
@@ -241,7 +244,7 @@ function PollCard({ item, isDark, colors }: { item: NoticeItem; isDark: boolean;
 }
 
 // ─── Event Card ───────────────────────────────────────────
-function EventCard({ item, isDark, colors }: { item: NoticeItem; isDark: boolean; colors: any }) {
+function EventCard({ item, isDark, colors, onRsvp }: { item: NoticeItem; isDark: boolean; colors: any; onRsvp?: (id: string, going: boolean) => void }) {
     const [going, setGoing] = useState(false);
     return (
         <View style={[styles.noticeCard, {
@@ -280,7 +283,7 @@ function EventCard({ item, isDark, colors }: { item: NoticeItem; isDark: boolean
                     </Text>
                 </View>
                 <TouchableOpacity
-                    onPress={() => setGoing(!going)}
+                    onPress={() => { setGoing(!going); onRsvp?.(item.id, !going); }}
                     activeOpacity={0.7}
                 >
                     <LinearGradient
@@ -302,6 +305,25 @@ export default function VillagesScreen() {
     const colors = Colors[colorScheme];
     const bg = isDark ? NDEIP_COLORS.gray[950] : NDEIP_COLORS.gray[50];
     const [activeTab, setActiveTab] = useState<'rooms' | 'noticeboard'>('noticeboard');
+    const [refreshing, setRefreshing] = useState(false);
+
+    const handleLike = useCallback(async (id: string) => {
+        await VillageService.likeNotice(id);
+    }, []);
+
+    const handleVote = useCallback(async (id: string, idx: number) => {
+        await VillageService.voteOnPoll(id, idx);
+    }, []);
+
+    const handleRsvp = useCallback(async (id: string, going: boolean) => {
+        await VillageService.rsvpEvent(id, going);
+    }, []);
+
+    const handleRefresh = useCallback(async () => {
+        setRefreshing(true);
+        await VillageService.initialize();
+        setRefreshing(false);
+    }, []);
 
     return (
         <View style={[styles.container, { backgroundColor: bg }]}>
@@ -329,7 +351,18 @@ export default function VillagesScreen() {
                 </TouchableOpacity>
             </View>
 
-            <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 100 }}>
+            <ScrollView
+                showsVerticalScrollIndicator={false}
+                contentContainerStyle={{ paddingBottom: 100 }}
+                refreshControl={
+                    <RefreshControl
+                        refreshing={refreshing}
+                        onRefresh={handleRefresh}
+                        tintColor={NDEIP_COLORS.primaryTeal}
+                        colors={[NDEIP_COLORS.primaryTeal]}
+                    />
+                }
+            >
 
                 {activeTab === 'noticeboard' ? (
                     <>
@@ -339,9 +372,9 @@ export default function VillagesScreen() {
                                 VILLAGE NOTICEBOARD
                             </Text>
                             {NOTICEBOARD_FEED.map(item => {
-                                if (item.type === 'announcement') return <AnnouncementCard key={item.id} item={item} isDark={isDark} colors={colors} />;
-                                if (item.type === 'poll') return <PollCard key={item.id} item={item} isDark={isDark} colors={colors} />;
-                                if (item.type === 'event') return <EventCard key={item.id} item={item} isDark={isDark} colors={colors} />;
+                                if (item.type === 'announcement') return <AnnouncementCard key={item.id} item={item} isDark={isDark} colors={colors} onLike={handleLike} />;
+                                if (item.type === 'poll') return <PollCard key={item.id} item={item} isDark={isDark} colors={colors} onVote={handleVote} />;
+                                if (item.type === 'event') return <EventCard key={item.id} item={item} isDark={isDark} colors={colors} onRsvp={handleRsvp} />;
                                 return null;
                             })}
                         </View>

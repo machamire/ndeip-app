@@ -6,6 +6,7 @@ import {
     ScrollView,
     TouchableOpacity,
     Image,
+    Alert,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import FontAwesome from '@expo/vector-icons/FontAwesome';
@@ -13,6 +14,7 @@ import { useRouter } from 'expo-router';
 import Colors, { NDEIP_COLORS } from '@/constants/Colors';
 import { useColorScheme } from '@/components/useColorScheme';
 import { Typography, Spacing, Radii, Glass, Shadows } from '@/constants/ndeipBrandSystem';
+import { useAuth } from '@/contexts/AuthContext';
 
 const SETTINGS_GROUPS = [
     {
@@ -46,7 +48,19 @@ export default function SettingsScreen() {
     const isDark = colorScheme === 'dark';
     const colors = Colors[colorScheme];
     const router = useRouter();
+    const { user, signOut } = useAuth();
     const bg = isDark ? NDEIP_COLORS.gray[950] : NDEIP_COLORS.gray[50];
+
+    const displayName = user?.display_name || 'Your Name';
+    const initials = displayName.split(' ').map((n: string) => n[0]).join('').slice(0, 2).toUpperCase();
+    const aboutText = user?.about || "Hey there! I'm using ndeip";
+
+    const handleLogout = () => {
+        Alert.alert('Log Out', 'Are you sure you want to log out?', [
+            { text: 'Cancel', style: 'cancel' },
+            { text: 'Log Out', style: 'destructive', onPress: () => signOut() },
+        ]);
+    };
 
     return (
         <ScrollView style={[styles.container, { backgroundColor: bg }]} contentContainerStyle={{ paddingBottom: 100 }}>
@@ -64,12 +78,12 @@ export default function SettingsScreen() {
                     colors={NDEIP_COLORS.gradients.brand as any}
                     style={styles.profileAvatar}
                 >
-                    <Text style={styles.profileInitials}>Y</Text>
+                    <Text style={styles.profileInitials}>{initials}</Text>
                 </LinearGradient>
                 <View style={styles.profileInfo}>
-                    <Text style={[styles.profileName, { color: colors.text }]}>Your Name</Text>
+                    <Text style={[styles.profileName, { color: colors.text }]}>{displayName}</Text>
                     <Text style={[styles.profileAbout, { color: isDark ? NDEIP_COLORS.gray[500] : NDEIP_COLORS.gray[400] }]}>
-                        Hey there! I'm using ndeip
+                        {aboutText}
                     </Text>
                 </View>
                 <FontAwesome name="chevron-right" size={14} color={NDEIP_COLORS.gray[600]} />
@@ -133,6 +147,16 @@ export default function SettingsScreen() {
                     ))}
                 </View>
             ))}
+
+            {/* ─── Logout Button ─── */}
+            <TouchableOpacity
+                style={[styles.logoutBtn, { borderColor: NDEIP_COLORS.rose + '30' }]}
+                activeOpacity={0.7}
+                onPress={handleLogout}
+            >
+                <FontAwesome name="sign-out" size={16} color={NDEIP_COLORS.rose} />
+                <Text style={[styles.logoutText, { color: NDEIP_COLORS.rose }]}>Log Out</Text>
+            </TouchableOpacity>
 
             {/* ─── Footer ─── */}
             <View style={styles.footer}>
@@ -229,4 +253,17 @@ const styles = StyleSheet.create({
     footerLogo: { width: 60, height: 24, opacity: 0.7 },
     footerVersion: { fontSize: 11 },
     footerCredit: { fontSize: 10, fontWeight: '400' as any },
+    // Logout
+    logoutBtn: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'center',
+        gap: 8,
+        marginHorizontal: Spacing.screenHorizontal,
+        marginTop: 24,
+        paddingVertical: 14,
+        borderRadius: Radii.card,
+        borderWidth: 1,
+    },
+    logoutText: { fontSize: 15, fontWeight: '600' },
 });

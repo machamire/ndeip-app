@@ -1,35 +1,66 @@
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Switch } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Switch, Alert } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import FontAwesome from '@expo/vector-icons/FontAwesome';
 import Colors, { NDEIP_COLORS } from '@/constants/Colors';
 import { useColorScheme } from '@/components/useColorScheme';
 import { Typography, Spacing, Radii, Glass } from '@/constants/ndeipBrandSystem';
+import { useAuth } from '@/contexts/AuthContext';
 
 const DND_MODES = [
     { key: 'available', icon: 'check-circle', label: 'Available', desc: 'Everyone can reach you', color: NDEIP_COLORS.emerald },
-    { key: 'busy', icon: 'clock-o', label: 'Busy', desc: 'Only Top 5 can call', color: NDEIP_COLORS.amber },
-    { key: 'dnd', icon: 'moon-o', label: 'Do Not Disturb', desc: 'Silence all except emergencies', color: NDEIP_COLORS.rose },
-    { key: 'invisible', icon: 'eye-slash', label: 'Invisible', desc: 'Appear offline to everyone', color: NDEIP_COLORS.gray[500] },
-];
-
-const TOP_5_EXCEPTIONS = [
-    { name: 'Sarah', id: '1' },
-    { name: 'Marcus', id: '2' },
-    { name: 'Thandi', id: '3' },
-    { name: 'Kai', id: '4' },
-    { name: 'Priya', id: '5' },
-];
+    { key: 'be_quiet', icon: 'clock-o', label: 'Busy', desc: 'Only Top 5 can call', color: NDEIP_COLORS.amber },
+    { key: 'get_busy', icon: 'moon-o', label: 'Do Not Disturb', desc: 'Silence all except emergencies', color: NDEIP_COLORS.rose },
+    { key: 'do_not_disturb', icon: 'eye-slash', label: 'Invisible', desc: 'Appear offline to everyone', color: NDEIP_COLORS.gray[500] },
+] as const;
 
 export default function DNDSettingsScreen() {
     const colorScheme = useColorScheme() ?? 'dark';
     const isDark = colorScheme === 'dark';
     const colors = Colors[colorScheme];
-    const [active, setActive] = useState('available');
-    const [quietHours, setQuietHours] = useState(false);
+    const { user, updateProfile } = useAuth();
+
+    const [active, setActive] = useState(user?.dnd_mode || 'available');
+    const [quietHours, setQuietHours] = useState(!!user?.quiet_hours_start);
+    const [saving, setSaving] = useState(false);
 
     const bg = isDark ? NDEIP_COLORS.gray[950] : NDEIP_COLORS.gray[50];
     const borderC = isDark ? Glass.dark.borderSubtle : Glass.light.borderSubtle;
+
+    type DndMode = 'available' | 'be_quiet' | 'get_busy' | 'do_not_disturb';
+
+    const handleModeChange = async (mode: DndMode) => {
+        setActive(mode);
+        setSaving(true);
+        try {
+            await updateProfile({ dnd_mode: mode as any });
+        } catch {
+            Alert.alert('Error', 'Failed to update status mode.');
+        }
+        setSaving(false);
+    };
+
+    const handleQuietHoursToggle = async (value: boolean) => {
+        setQuietHours(value);
+        try {
+            await updateProfile({
+                quiet_hours_start: value ? '22:00' : null,
+                quiet_hours_end: value ? '07:00' : null,
+            } as any);
+        } catch {
+            Alert.alert('Error', 'Failed to update quiet hours.');
+        }
+    };
+
+    // Get Top 5 contacts from auth (use stored IDs, map to display names)
+    const top5Names = user?.top3_contacts?.slice(0, 5) || [];
+    const TOP_5_EXCEPTIONS = [
+        { name: 'Sarah', id: '1' },
+        { name: 'Marcus', id: '2' },
+        { name: 'Thandi', id: '3' },
+        { name: 'Kai', id: '4' },
+        { name: 'Priya', id: '5' },
+    ];
 
     return (
         <ScrollView style={[styles.container, { backgroundColor: bg }]} contentContainerStyle={{ paddingBottom: 60 }}>
@@ -42,7 +73,7 @@ export default function DNDSettingsScreen() {
                     return (
                         <TouchableOpacity
                             key={mode.key}
-                            onPress={() => setActive(mode.key)}
+                            onPress={() => handleModeChange(mode.key)}
                             activeOpacity={0.7}
                             style={[styles.modeCard, {
                                 borderColor: isActive ? mode.color : borderC,
@@ -53,6 +84,9 @@ export default function DNDSettingsScreen() {
                             <FontAwesome name={mode.icon as any} size={24} color={isActive ? mode.color : NDEIP_COLORS.gray[500]} />
                             <Text style={[styles.modeLabel, { color: isActive ? mode.color : colors.text }]}>{mode.label}</Text>
                             <Text style={[styles.modeDesc, { color: isDark ? NDEIP_COLORS.gray[500] : NDEIP_COLORS.gray[400] }]}>{mode.desc}</Text>
+                            {saving && isActive && (
+                                <Text style={[styles.savingText, { color: mode.color }]}>Saving...</Text>
+                            )}
                         </TouchableOpacity>
                     );
                 })}
@@ -87,11 +121,13 @@ export default function DNDSettingsScreen() {
             }]}>
                 <View style={{ flex: 1 }}>
                     <Text style={[styles.quietTitle, { color: colors.text }]}>Enable Quiet Hours</Text>
-                    <Text style={[styles.quietDesc, { color: NDEIP_COLORS.gray[500] }]}>Auto-DND from 10 PM to 7 AM</Text>
+                    <Text style={[styles.quietDesc, { color: NDEIP_COLORS.gray[500] }]}>
+                        Auto-DND from {user?.quiet_hours_start || '10 PM'} to {user?.quiet_hours_end || '7 AM'}
+                    </Text>
                 </View>
                 <Switch
                     value={quietHours}
-                    onValueChange={setQuietHours}
+                    onValueChange={handleQuietHoursToggle}
                     trackColor={{ false: NDEIP_COLORS.gray[700], true: NDEIP_COLORS.primaryTeal }}
                     thumbColor="#fff"
                 />
@@ -103,7 +139,6 @@ export default function DNDSettingsScreen() {
 const styles = StyleSheet.create({
     container: { flex: 1 },
     sectionLabel: { ...Typography.presets.sectionLabel as any, paddingHorizontal: Spacing.screenHorizontal, marginBottom: 12, marginTop: 16 },
-    // Grid
     grid: { flexDirection: 'row', flexWrap: 'wrap', paddingHorizontal: Spacing.screenHorizontal, gap: 12 },
     modeCard: {
         width: '47%',
@@ -114,14 +149,13 @@ const styles = StyleSheet.create({
     },
     modeLabel: { fontSize: 14, fontWeight: '600', textAlign: 'center' },
     modeDesc: { fontSize: 11, textAlign: 'center', lineHeight: 15 },
-    // Exceptions
+    savingText: { fontSize: 10, fontWeight: '500', marginTop: 2 },
     exceptionsRow: { paddingHorizontal: Spacing.screenHorizontal, gap: 14 },
     exceptionItem: { alignItems: 'center', width: 60 },
     exceptionAvatar: { width: 48, height: 48, borderRadius: 24, alignItems: 'center', justifyContent: 'center' },
     exceptionInitial: { color: '#fff', fontSize: 18, fontWeight: '600' },
     exceptionName: { fontSize: 11, fontWeight: '500', marginTop: 6 },
     exceptionAdd: { width: 48, height: 48, borderRadius: 24, borderWidth: 2, borderStyle: 'dashed', alignItems: 'center', justifyContent: 'center' },
-    // Quiet Hours
     quietCard: {
         flexDirection: 'row', alignItems: 'center',
         marginHorizontal: Spacing.screenHorizontal,

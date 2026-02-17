@@ -1,26 +1,22 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import {
     View,
     Text,
     StyleSheet,
     ScrollView,
     TouchableOpacity,
+    RefreshControl,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import FontAwesome from '@expo/vector-icons/FontAwesome';
+import { useRouter } from 'expo-router';
 import Colors, { NDEIP_COLORS } from '@/constants/Colors';
 import { useColorScheme } from '@/components/useColorScheme';
 import { Typography, Spacing, Radii, Glass } from '@/constants/ndeipBrandSystem';
+import { CallService, CallEntry } from '@/services/CallService';
+import EmptyState from '@/components/ui/EmptyState';
 
-const CALL_HISTORY = [
-    { id: '1', name: 'Sarah Chen', type: 'video', direction: 'outgoing', time: 'Today, 2:30 PM', missed: false },
-    { id: '2', name: 'Marcus Johnson', type: 'voice', direction: 'incoming', time: 'Today, 11:15 AM', missed: false },
-    { id: '3', name: 'Dev Village', type: 'voice', direction: 'incoming', time: 'Yesterday, 8:00 PM', missed: true, isGroup: true },
-    { id: '4', name: 'Thandi Nkosi', type: 'video', direction: 'outgoing', time: 'Yesterday, 3:45 PM', missed: false },
-    { id: '5', name: 'Priya Sharma', type: 'voice', direction: 'incoming', time: 'Monday, 9:20 AM', missed: true },
-    { id: '6', name: 'Jordan Lee', type: 'video', direction: 'outgoing', time: 'Sunday, 6:10 PM', missed: false },
-    { id: '7', name: 'Mom ❤️', type: 'voice', direction: 'incoming', time: 'Saturday, 12:00 PM', missed: false },
-];
+
 
 function CallAvatar({ name, size = 48 }: { name: string; size?: number }) {
     const initials = name.split(' ').map(n => n[0]).join('').slice(0, 2);
@@ -37,10 +33,30 @@ export default function CallsScreen() {
     const colorScheme = useColorScheme() ?? 'dark';
     const isDark = colorScheme === 'dark';
     const colors = Colors[colorScheme];
-    const [filter, setFilter] = React.useState<'all' | 'missed'>('all');
+    const router = useRouter();
+    const [filter, setFilter] = useState<'all' | 'missed'>('all');
+    const [callHistory, setCallHistory] = useState<CallEntry[]>([]);
+    const [refreshing, setRefreshing] = useState(false);
+
+    const onRefresh = async () => {
+        setRefreshing(true);
+        const history = await CallService.getCallHistory();
+        setCallHistory(history);
+        setRefreshing(false);
+    };
+
+    useEffect(() => {
+        const load = async () => {
+            const history = await CallService.getCallHistory();
+            setCallHistory(history);
+        };
+        load();
+        const unsubscribe = CallService.onHistoryChange((history) => setCallHistory(history));
+        return () => unsubscribe();
+    }, []);
 
     const bg = isDark ? NDEIP_COLORS.gray[950] : NDEIP_COLORS.gray[50];
-    const filtered = filter === 'missed' ? CALL_HISTORY.filter(c => c.missed) : CALL_HISTORY;
+    const filtered = filter === 'missed' ? callHistory.filter(c => c.direction === 'missed') : callHistory;
 
     return (
         <View style={[styles.container, { backgroundColor: bg }]}>
@@ -75,26 +91,29 @@ export default function CallsScreen() {
             </View>
 
             {/* ─── Call History ─── */}
-            <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 100 }}>
+            <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 100 }}
+                refreshControl={
+                    <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={NDEIP_COLORS.primaryTeal} colors={[NDEIP_COLORS.primaryTeal]} />
+                }
+            >
                 {filtered.length === 0 ? (
-                    <View style={styles.emptyState}>
-                        <FontAwesome name="phone" size={48} color={NDEIP_COLORS.gray[700]} />
-                        <Text style={[styles.emptyText, { color: NDEIP_COLORS.gray[500] }]}>No missed calls</Text>
-                    </View>
+                    <EmptyState variant="calls" isDark={isDark} />
                 ) : (
                     filtered.map(call => (
-                        <TouchableOpacity key={call.id} style={styles.callRow} activeOpacity={0.6}>
-                            <CallAvatar name={call.name} />
+                        <TouchableOpacity key={call.id} style={styles.callRow} activeOpacity={0.6}
+                            onPress={() => router.push({ pathname: '/call', params: { id: call.contactId, name: call.contactName, type: call.type } } as any)}
+                        >
+                            <CallAvatar name={call.contactName} />
                             <View style={styles.callContent}>
-                                <Text style={[styles.callName, { color: call.missed ? NDEIP_COLORS.rose : colors.text }]}>
-                                    {call.name}
+                                <Text style={[styles.callName, { color: call.direction === 'missed' ? NDEIP_COLORS.rose : colors.text }]}>
+                                    {call.contactName}
                                 </Text>
                                 <View style={styles.callMeta}>
                                     <FontAwesome
-                                        name={call.direction === 'outgoing' ? 'arrow-up' : 'arrow-down'}
+                                        name={call.direction === 'outgoing' ? 'arrow-up' : call.direction === 'missed' ? 'arrow-down' : 'arrow-down'}
                                         size={10}
-                                        color={call.missed ? NDEIP_COLORS.rose : NDEIP_COLORS.emerald}
-                                        style={{ transform: [{ rotate: call.direction === 'outgoing' ? '45deg' : '45deg' }] }}
+                                        color={call.direction === 'missed' ? NDEIP_COLORS.rose : NDEIP_COLORS.emerald}
+                                        style={{ transform: [{ rotate: '45deg' }] }}
                                     />
                                     <FontAwesome
                                         name={call.type === 'video' ? 'video-camera' : 'phone'}
@@ -102,11 +121,13 @@ export default function CallsScreen() {
                                         color={isDark ? NDEIP_COLORS.gray[500] : NDEIP_COLORS.gray[400]}
                                     />
                                     <Text style={[styles.callTime, { color: isDark ? NDEIP_COLORS.gray[500] : NDEIP_COLORS.gray[400] }]}>
-                                        {call.time}
+                                        {call.time}{call.duration > 0 ? ` · ${CallService.formatDuration(call.duration)}` : ''}
                                     </Text>
                                 </View>
                             </View>
-                            <TouchableOpacity style={styles.callAction} activeOpacity={0.6}>
+                            <TouchableOpacity style={styles.callAction} activeOpacity={0.6}
+                                onPress={() => router.push({ pathname: '/call', params: { id: call.contactId, name: call.contactName, type: call.type } } as any)}
+                            >
                                 <FontAwesome
                                     name={call.type === 'video' ? 'video-camera' : 'phone'}
                                     size={16}

@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import {
   View,
   Text,
@@ -8,21 +8,16 @@ import {
   Image,
   TextInput,
   FlatList,
+  RefreshControl,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import FontAwesome from '@expo/vector-icons/FontAwesome';
+import { useRouter } from 'expo-router';
 import Colors, { NDEIP_COLORS } from '@/constants/Colors';
 import { useColorScheme } from '@/components/useColorScheme';
 import { Typography, Spacing, Radii, Shadows, Glass } from '@/constants/ndeipBrandSystem';
-
-// ─── Mock Data ────────────────────────────────────────────
-const TOP_5 = [
-  { id: '1', name: 'Sarah', online: true, avatar: null },
-  { id: '2', name: 'Marcus', online: true, avatar: null },
-  { id: '3', name: 'Thandi', online: false, avatar: null },
-  { id: '4', name: 'Kai', online: true, avatar: null },
-  { id: '5', name: 'Priya', online: false, avatar: null },
-];
+import { ChatService, Conversation } from '@/services/ChatService';
+import EmptyState from '@/components/ui/EmptyState';
 
 const FILTERS = ['All', 'Unread', 'Groups', 'Channels'];
 
@@ -32,17 +27,6 @@ const CHAT_FOLDERS = [
   { key: 'personal', label: 'Personal', icon: 'user' },
   { key: 'work', label: 'Work', icon: 'briefcase' },
   { key: 'groups', label: 'Groups', icon: 'users' },
-];
-
-const CONVERSATIONS = [
-  { id: '1', name: 'Sarah Chen', message: 'See you at the village meeting! 🎉', time: '2m', unread: 3, online: true, pinned: true, folder: 'personal', muted: false },
-  { id: '2', name: 'Marcus Johnson', message: 'The presentation looks amazing', time: '15m', unread: 0, online: true, pinned: true, folder: 'work', muted: false },
-  { id: '3', name: 'Thandi Nkosi', message: 'Voice note 🎤 0:42', time: '1h', unread: 1, online: false, pinned: true, folder: 'personal', muted: false },
-  { id: '4', name: 'Dev Village', message: 'Alex: Just pushed the new build', time: '2h', unread: 12, online: false, isGroup: true, folder: 'groups', muted: true },
-  { id: '5', name: 'Mom ❤️', message: "Don't forget to eat!", time: '3h', unread: 0, online: false, folder: 'personal', muted: false },
-  { id: '6', name: 'Design Team', message: 'Kai: Check the new mockups', time: '5h', unread: 5, isGroup: true, folder: 'work', muted: false },
-  { id: '7', name: 'Jordan Lee', message: 'Thanks for the recommendation!', time: 'Yesterday', unread: 0, folder: 'personal', muted: false },
-  { id: '8', name: 'Priya Sharma', message: 'The flight is booked ✈️', time: 'Yesterday', unread: 0, folder: 'work', muted: true },
 ];
 
 // ─── Avatar Component ─────────────────────────────────────
@@ -108,21 +92,62 @@ export default function ChatsScreen() {
   const colorScheme = useColorScheme() ?? 'dark';
   const colors = Colors[colorScheme];
   const isDark = colorScheme === 'dark';
-  const [activeFilter, setActiveFilter] = React.useState('All');
-  const [activeFolder, setActiveFolder] = React.useState('all');
-  const [searchFocused, setSearchFocused] = React.useState(false);
-  const [searchQuery, setSearchQuery] = React.useState('');
-  const [mutedContacts, setMutedContacts] = React.useState<Record<string, boolean>>(
-    Object.fromEntries(CONVERSATIONS.filter(c => c.muted).map(c => [c.id, true]))
-  );
+  const router = useRouter();
+  const [conversations, setConversations] = useState<Conversation[]>([]);
+  const [activeFilter, setActiveFilter] = useState('All');
+  const [activeFolder, setActiveFolder] = useState('all');
+  const [searchFocused, setSearchFocused] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [mutedContacts, setMutedContacts] = useState<Record<string, boolean>>({});
+  const [refreshing, setRefreshing] = useState(false);
 
-  const toggleMute = React.useCallback((id: string) => {
+  const onRefresh = useCallback(async () => {
+    setRefreshing(true);
+    const convos = await ChatService.getConversations();
+    setConversations(convos);
+    setRefreshing(false);
+  }, []);
+
+  // ─── Load Conversations from ChatService ────────────────
+  useEffect(() => {
+    const load = async () => {
+      const convos = await ChatService.getConversations();
+      setConversations(convos);
+      setMutedContacts(
+        Object.fromEntries(convos.filter(c => c.muted).map(c => [c.id, true]))
+      );
+    };
+    load();
+
+    // Subscribe to real-time updates
+    const unsubscribe = ChatService.onConversationsChange((convos) => {
+      setConversations(convos);
+    });
+
+    return () => unsubscribe();
+  }, []);
+
+  const toggleMute = useCallback((id: string) => {
     setMutedContacts(prev => ({ ...prev, [id]: !prev[id] }));
   }, []);
 
+  const openChat = useCallback((chat: Conversation) => {
+    router.push({ pathname: '/chat', params: { id: chat.id, name: chat.name } } as any);
+  }, [router]);
+
+  // ─── Top 5 (pinned/starred) ─────────────────────────────
+  const top5 = React.useMemo(() => {
+    return conversations
+      .filter(c => c.starred || c.pinned)
+      .slice(0, 5)
+      .map(c => ({
+        id: c.id, name: c.name.split(' ')[0], online: c.online ?? false, avatar: c.avatar ?? null,
+      }));
+  }, [conversations]);
+
   // ─── Filtered Conversations ─────────────────────────────
   const filteredConversations = React.useMemo(() => {
-    let list = CONVERSATIONS;
+    let list = conversations;
 
     // Apply folder filter
     if (activeFolder !== 'all') {
@@ -144,7 +169,7 @@ export default function ChatsScreen() {
     }
 
     return list;
-  }, [activeFilter, activeFolder, searchQuery]);
+  }, [conversations, activeFilter, activeFolder, searchQuery]);
 
   const bg = isDark ? NDEIP_COLORS.gray[950] : NDEIP_COLORS.gray[50];
   const cardBg = isDark ? Glass.dark.background : Glass.light.background;
@@ -155,6 +180,9 @@ export default function ChatsScreen() {
       <ScrollView
         showsVerticalScrollIndicator={false}
         contentContainerStyle={{ paddingBottom: 100 }}
+        refreshControl={
+          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={NDEIP_COLORS.primaryTeal} colors={[NDEIP_COLORS.primaryTeal]} />
+        }
       >
         {/* ─── Top 5 Contacts ─── */}
         <View style={styles.top3Section}>
@@ -162,8 +190,10 @@ export default function ChatsScreen() {
             FAVORITES
           </Text>
           <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.top3Scroll}>
-            {TOP_5.map((contact) => (
-              <TouchableOpacity key={contact.id} style={styles.top3Item} activeOpacity={0.7}>
+            {top5.map((contact) => (
+              <TouchableOpacity key={contact.id} style={styles.top3Item} activeOpacity={0.7}
+                onPress={() => openChat({ id: contact.id, name: contact.name } as Conversation)}
+              >
                 <Avatar name={contact.name} size={Spacing.components.top3AvatarSize} online={contact.online} showRing />
                 <Text style={[styles.top3Name, { color: isDark ? NDEIP_COLORS.gray[300] : NDEIP_COLORS.gray[600] }]} numberOfLines={1}>
                   {contact.name}
@@ -265,18 +295,18 @@ export default function ChatsScreen() {
 
         <View style={styles.conversationList}>
           {filteredConversations.length === 0 ? (
-            <View style={styles.emptySearch}>
-              <FontAwesome name="search" size={32} color={NDEIP_COLORS.gray[600]} />
-              <Text style={[styles.emptySearchText, { color: NDEIP_COLORS.gray[500] }]}>
-                No conversations found
-              </Text>
-            </View>
+            searchQuery ? (
+              <EmptyState variant="search" isDark={isDark} />
+            ) : (
+              <EmptyState variant="chats" isDark={isDark} />
+            )
           ) : (
             filteredConversations.map((chat, index) => (
               <TouchableOpacity
                 key={chat.id}
                 style={[styles.conversationRow]}
                 activeOpacity={0.6}
+                onPress={() => openChat(chat)}
                 onLongPress={() => toggleMute(chat.id)}
               >
                 <Avatar

@@ -1,4 +1,4 @@
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useEffect, useRef } from 'react';
 import {
     View,
     Text,
@@ -9,6 +9,7 @@ import {
     KeyboardAvoidingView,
     Platform,
     Modal,
+    Animated,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import FontAwesome from '@expo/vector-icons/FontAwesome';
@@ -16,6 +17,13 @@ import { useRouter, useLocalSearchParams } from 'expo-router';
 import Colors, { NDEIP_COLORS } from '@/constants/Colors';
 import { useColorScheme } from '@/components/useColorScheme';
 import { Typography, Spacing, Radii, Glass } from '@/constants/ndeipBrandSystem';
+import { ChatService, Message as ServiceMessage } from '@/services/ChatService';
+import { useVoiceRecording } from '@/hooks/useVoiceRecording';
+import QuantumTyping from '@/components/chat/QuantumTyping';
+import VoiceWaveform from '@/components/chat/VoiceWaveform';
+import MessageReactions from '@/components/chat/MessageReactions';
+import HolographicBubble from '@/components/chat/HolographicBubbles';
+import EmptyState from '@/components/ui/EmptyState';
 
 // ─── Types ────────────────────────────────────────────────
 type MessageType = 'text' | 'voice' | 'video' | 'viewonce';
@@ -139,19 +147,7 @@ const QUICK_PHRASES: Record<string, { category: string; phrases: { original: str
     ],
 };
 
-// ─── Mock Messages ────────────────────────────────────────
-const INITIAL_MESSAGES: ChatMessage[] = [
-    { id: '1', text: 'Hey! Are you coming to the village meeting tonight?', sent: false, time: '2:30 PM', status: 'read', type: 'text' },
-    { id: '2', text: "Yes! Wouldn't miss it \ud83c\udf89", sent: true, time: '2:31 PM', status: 'read', type: 'text' },
-    { id: '3', text: "Great! I'll save you a seat", sent: false, time: '2:31 PM', status: 'read', type: 'text' },
-    { id: '4', sent: false, time: '2:32 PM', status: 'read', type: 'voice', ephemeral: true, duration: 12, caption: 'Directions to the venue' },
-    { id: '5', text: 'Should I bring anything?', sent: true, time: '2:32 PM', status: 'read', type: 'text' },
-    { id: '6', text: "Just your amazing self \ud83d\ude0a\nOh and maybe some snacks if you can", sent: false, time: '2:33 PM', status: 'read', type: 'text' },
-    { id: '7', sent: true, time: '2:34 PM', status: 'delivered', type: 'voice', ephemeral: true, duration: 8 },
-    { id: '8', text: "Haha deal! I'll grab some from the store", sent: true, time: '2:34 PM', status: 'delivered', type: 'text' },
-    { id: '9', sent: false, time: '2:35 PM', status: 'read', type: 'viewonce', duration: 15 },
-    { id: '10', text: 'See you there! \ud83e\udd17', sent: true, time: '2:36 PM', status: 'sent', type: 'text' },
-];
+// (INITIAL_MESSAGES removed — now loaded from ChatService)
 
 // ─── View-Once Bubble ─────────────────────────────────────
 function ViewOnceBubble({ message, isDark, sent, bubbleRadius }: {
@@ -238,6 +234,21 @@ function MessageBubble({ message, isDark, isFirst, isLast, onConsume, onKeep }: 
     const statusColor = message.status === 'read' ? NDEIP_COLORS.electricBlue : 'rgba(255,255,255,0.4)';
     const [playing, setPlaying] = useState(false);
     const [progress, setProgress] = useState(0);
+    const [showReactionPicker, setShowReactionPicker] = useState(false);
+    const [reactions, setReactions] = useState<any[]>([]);
+
+    const handleLongPress = useCallback(() => {
+        setShowReactionPicker(prev => !prev);
+    }, []);
+
+    const handleReaction = useCallback((messageId: string, emoji: string) => {
+        setReactions(prev => {
+            const existing = prev.find(r => r.emoji === emoji);
+            if (existing) return prev.filter(r => r.emoji !== emoji);
+            return [...prev, { emoji, user: { id: 'me', name: 'You' }, timestamp: Date.now() }];
+        });
+        setShowReactionPicker(false);
+    }, []);
 
     const handlePlay = useCallback(() => {
         if (message.consumed || message.kept) return;
@@ -389,37 +400,54 @@ function MessageBubble({ message, isDark, isFirst, isLast, onConsume, onKeep }: 
     return (
         <View style={[styles.bubbleRow, sent && styles.bubbleRowSent]}>
             <View style={{ maxWidth: '75%' }}>
-                {sent ? (
-                    <LinearGradient
-                        colors={NDEIP_COLORS.gradients.sentBubble as any}
-                        start={{ x: 0, y: 0 }}
-                        end={{ x: 1, y: 1 }}
-                        style={[styles.bubble, styles.bubbleSent, bubbleRadius]}
-                    >
-                        <Text style={styles.bubbleTextSent}>{message.text}</Text>
-                        <View style={styles.bubbleMeta}>
-                            <Text style={styles.bubbleTimeSent}>{message.time}</Text>
-                            <View style={styles.statusIcons}>
-                                <FontAwesome name="check" size={9} color={statusColor} />
-                                {(message.status === 'read' || message.status === 'delivered') && (
-                                    <FontAwesome name="check" size={9} color={statusColor} style={{ marginLeft: -4 }} />
-                                )}
+                <TouchableOpacity
+                    activeOpacity={0.9}
+                    onLongPress={handleLongPress}
+                    delayLongPress={400}
+                >
+                    {sent ? (
+                        <LinearGradient
+                            colors={NDEIP_COLORS.gradients.sentBubble as any}
+                            start={{ x: 0, y: 0 }}
+                            end={{ x: 1, y: 1 }}
+                            style={[styles.bubble, styles.bubbleSent, bubbleRadius]}
+                        >
+                            <Text style={styles.bubbleTextSent}>{message.text}</Text>
+                            <View style={styles.bubbleMeta}>
+                                <Text style={styles.bubbleTimeSent}>{message.time}</Text>
+                                <View style={styles.statusIcons}>
+                                    <FontAwesome name="check" size={9} color={statusColor} />
+                                    {(message.status === 'read' || message.status === 'delivered') && (
+                                        <FontAwesome name="check" size={9} color={statusColor} style={{ marginLeft: -4 }} />
+                                    )}
+                                </View>
                             </View>
+                        </LinearGradient>
+                    ) : (
+                        <View style={[
+                            styles.bubble, styles.bubbleReceived, bubbleRadius,
+                            { backgroundColor: isDark ? NDEIP_COLORS.gray[800] : NDEIP_COLORS.gray[100] },
+                        ]}>
+                            <Text style={[styles.bubbleTextReceived, { color: isDark ? '#F0F4F3' : NDEIP_COLORS.gray[900] }]}>
+                                {message.text}
+                            </Text>
+                            <Text style={[styles.bubbleTimeReceived, { color: isDark ? NDEIP_COLORS.gray[500] : NDEIP_COLORS.gray[400] }]}>
+                                {message.time}
+                            </Text>
                         </View>
-                    </LinearGradient>
-                ) : (
-                    <View style={[
-                        styles.bubble, styles.bubbleReceived, bubbleRadius,
-                        { backgroundColor: isDark ? NDEIP_COLORS.gray[800] : NDEIP_COLORS.gray[100] },
-                    ]}>
-                        <Text style={[styles.bubbleTextReceived, { color: isDark ? '#F0F4F3' : NDEIP_COLORS.gray[900] }]}>
-                            {message.text}
-                        </Text>
-                        <Text style={[styles.bubbleTimeReceived, { color: isDark ? NDEIP_COLORS.gray[500] : NDEIP_COLORS.gray[400] }]}>
-                            {message.time}
-                        </Text>
-                    </View>
-                )}
+                    )}
+                </TouchableOpacity>
+                {/* Message Reactions */}
+                <MessageReactions
+                    message={{ id: message.id, text: message.text } as any}
+                    reactions={reactions as any}
+                    onReaction={handleReaction}
+                    onReactionLongPress={() => { }}
+                    showReactionPicker={showReactionPicker}
+                    onReactionPickerToggle={(show: boolean) => setShowReactionPicker(show)}
+                    currentUser={{ id: 'me', name: 'You' } as any}
+                    variant="compact"
+                />
             </View>
         </View>
     );
@@ -563,11 +591,88 @@ export default function ChatDetailScreen() {
     const colors = Colors[colorScheme];
     const router = useRouter();
     const params = useLocalSearchParams();
+    const scrollRef = useRef<ScrollView>(null);
     const [inputText, setInputText] = useState('');
-    const [messages, setMessages] = useState<ChatMessage[]>(INITIAL_MESSAGES.filter(m => !m.consumed));
+    const [messages, setMessages] = useState<ChatMessage[]>([]);
     const [showPhrases, setShowPhrases] = useState(false);
     const [showSchedule, setShowSchedule] = useState(false);
+    const chatId = (params.id as string) || '1';
     const contactName = (params.name as string) || 'Sarah Chen';
+    const [isTyping, setIsTyping] = useState(false);
+    const [contactTyping, setContactTyping] = useState(false);
+    const contactTypingTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+    const voiceRecording = useVoiceRecording();
+    const recordingPulse = useRef(new Animated.Value(1)).current;
+
+    // ─── Load messages from ChatService ───────────────────
+    useEffect(() => {
+        const load = async () => {
+            const msgs = await ChatService.getMessages(chatId);
+            const mapped: ChatMessage[] = msgs.map(m => ({
+                id: m.id,
+                text: m.text,
+                sent: m.sent,
+                time: m.time,
+                status: m.status,
+                type: m.type as MessageType,
+                ephemeral: m.ephemeral,
+                duration: m.duration,
+                consumed: m.consumed,
+                kept: m.kept,
+                scheduled: m.scheduled,
+                scheduledTime: m.scheduledTime,
+            }));
+            setMessages(mapped);
+            // Clear unread
+            ChatService.clearUnread(chatId);
+        };
+        load();
+
+        // Subscribe to new messages (incoming + status updates)
+        const unsubscribe = ChatService.onMessage(chatId, (msg: ServiceMessage) => {
+            setMessages(prev => {
+                const exists = prev.findIndex(m => m.id === msg.id);
+                const mapped: ChatMessage = {
+                    id: msg.id,
+                    text: msg.text,
+                    sent: msg.sent,
+                    time: msg.time,
+                    status: msg.status,
+                    type: msg.type as MessageType,
+                    ephemeral: msg.ephemeral,
+                    duration: msg.duration,
+                    consumed: msg.consumed,
+                    kept: msg.kept,
+                    scheduled: msg.scheduled,
+                    scheduledTime: msg.scheduledTime,
+                };
+                if (exists >= 0) {
+                    // Update existing message (status change)
+                    const next = [...prev];
+                    next[exists] = mapped;
+                    return next;
+                }
+                // New incoming message — clear typing indicator
+                if (!mapped.sent) {
+                    setContactTyping(false);
+                    if (contactTypingTimer.current) {
+                        clearTimeout(contactTypingTimer.current);
+                        contactTypingTimer.current = null;
+                    }
+                }
+                return [...prev, mapped];
+            });
+            // Auto-scroll
+            setTimeout(() => scrollRef.current?.scrollToEnd({ animated: true }), 100);
+        });
+
+        return () => unsubscribe();
+    }, [chatId]);
+
+    // Auto-scroll when messages update
+    useEffect(() => {
+        setTimeout(() => scrollRef.current?.scrollToEnd({ animated: false }), 200);
+    }, [messages.length]);
 
     const handleConsume = useCallback((id: string) => {
         setTimeout(() => {
@@ -581,19 +686,15 @@ export default function ChatDetailScreen() {
         ));
     }, []);
 
-    const handleSend = useCallback(() => {
+    const handleSend = useCallback(async () => {
         if (!inputText.trim()) return;
-        const newMsg: ChatMessage = {
-            id: String(Date.now()),
-            text: inputText.trim(),
-            sent: true,
-            time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-            status: 'sent',
-            type: 'text',
-        };
-        setMessages(prev => [...prev, newMsg]);
+        const text = inputText.trim();
         setInputText('');
-    }, [inputText]);
+        await ChatService.sendMessage(chatId, text);
+        // Show "contact is typing" indicator after 1s (before auto-reply arrives)
+        if (contactTypingTimer.current) clearTimeout(contactTypingTimer.current);
+        contactTypingTimer.current = setTimeout(() => setContactTyping(true), 1000);
+    }, [inputText, chatId]);
 
     const handlePhraseSelect = useCallback((original: string, translated: string) => {
         setInputText(`${original}\n${translated}`);
@@ -618,6 +719,60 @@ export default function ChatDetailScreen() {
         setMessages(prev => [...prev, scheduledMsg]);
         setInputText('');
         setShowSchedule(false);
+    }, [inputText]);
+
+    // ─── Voice Recording Handlers ────────────────────────
+    const handleMicPress = useCallback(async () => {
+        if (inputText.trim()) {
+            handleSend();
+            return;
+        }
+        const started = await voiceRecording.startRecording();
+        if (started) {
+            // Start pulse animation
+            const pulse = Animated.loop(
+                Animated.sequence([
+                    Animated.timing(recordingPulse, { toValue: 1.3, duration: 600, useNativeDriver: true }),
+                    Animated.timing(recordingPulse, { toValue: 1, duration: 600, useNativeDriver: true }),
+                ])
+            );
+            pulse.start();
+        }
+    }, [inputText, handleSend, voiceRecording]);
+
+    const handleVoiceSend = useCallback(async () => {
+        const result = await voiceRecording.stopRecording();
+        recordingPulse.stopAnimation();
+        recordingPulse.setValue(1);
+        if (result) {
+            const voiceMsg: ChatMessage = {
+                id: String(Date.now()),
+                text: `🎤 Voice note (${Math.ceil(result.duration / 1000)}s)`,
+                sent: true,
+                time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+                status: 'sent',
+                type: 'voice',
+                duration: Math.ceil(result.duration / 1000),
+            };
+            setMessages(prev => [...prev, voiceMsg]);
+            await ChatService.sendMessage(chatId, voiceMsg.text || '');
+        }
+    }, [voiceRecording, chatId]);
+
+    const handleVoiceCancel = useCallback(() => {
+        voiceRecording.cancelRecording();
+        recordingPulse.stopAnimation();
+        recordingPulse.setValue(1);
+    }, [voiceRecording]);
+
+    // Simulate typing indicator
+    useEffect(() => {
+        if (inputText.length > 0 && !isTyping) {
+            setIsTyping(true);
+        } else if (inputText.length === 0 && isTyping) {
+            const t = setTimeout(() => setIsTyping(false), 1500);
+            return () => clearTimeout(t);
+        }
     }, [inputText]);
 
     const bg = isDark ? NDEIP_COLORS.gray[950] : NDEIP_COLORS.gray[50];
@@ -655,21 +810,24 @@ export default function ChatDetailScreen() {
                 <View style={styles.e2eBadge}>
                     <FontAwesome name="lock" size={10} color={NDEIP_COLORS.emerald} />
                 </View>
-                <TouchableOpacity style={styles.headerAction}>
+                <TouchableOpacity style={styles.headerAction} onPress={() => router.push({ pathname: '/call', params: { id: chatId, name: contactName, type: 'voice' } } as any)}>
                     <FontAwesome name="phone" size={18} color={colors.text} />
                 </TouchableOpacity>
-                <TouchableOpacity style={styles.headerAction}>
+                <TouchableOpacity style={styles.headerAction} onPress={() => router.push({ pathname: '/call', params: { id: chatId, name: contactName, type: 'video' } } as any)}>
                     <FontAwesome name="video-camera" size={16} color={colors.text} />
                 </TouchableOpacity>
             </View>
 
             {/* ─── Messages ─── */}
             <ScrollView
+                ref={scrollRef}
                 style={styles.messagesArea}
                 contentContainerStyle={styles.messagesContent}
                 showsVerticalScrollIndicator={false}
             >
-                {messages.map((msg, i) => {
+                {messages.length === 0 ? (
+                    <EmptyState variant="messages" isDark={isDark} />
+                ) : messages.map((msg, i) => {
                     const { isFirst, isLast } = getGroupInfo(i);
                     return (
                         <MessageBubble
@@ -683,6 +841,18 @@ export default function ChatDetailScreen() {
                         />
                     );
                 })}
+                {/* ─── Typing Indicator ─── */}
+                {contactTyping && (
+                    <View style={{ paddingVertical: 4, paddingHorizontal: 4 }}>
+                        <QuantumTyping
+                            users={[{ id: chatId, name: contactName, avatar: null }] as any}
+                            variant="compact"
+                            showAvatars={false}
+                            showUserNames={false}
+                            onUserPress={() => { }}
+                        />
+                    </View>
+                )}
             </ScrollView>
 
             {/* ─── Input Area ─── */}
@@ -694,43 +864,76 @@ export default function ChatDetailScreen() {
                     backgroundColor: isDark ? 'rgba(20,30,27,0.92)' : 'rgba(248,250,250,0.92)',
                     borderTopColor: isDark ? Glass.dark.borderSubtle : Glass.light.borderSubtle,
                 }]}>
-                    <TouchableOpacity style={styles.inputAction}>
-                        <FontAwesome name="plus" size={20} color={NDEIP_COLORS.gray[500]} />
-                    </TouchableOpacity>
-                    <TouchableOpacity style={styles.inputAction} onPress={() => setShowPhrases(true)}>
-                        <FontAwesome name="language" size={18} color={NDEIP_COLORS.electricBlue} />
-                    </TouchableOpacity>
-                    <View style={[styles.inputWrap, {
-                        backgroundColor: isDark ? Glass.dark.background : Glass.light.background,
-                    }]}>
-                        <TextInput
-                            value={inputText}
-                            onChangeText={setInputText}
-                            placeholder="Type a message..."
-                            placeholderTextColor={NDEIP_COLORS.gray[500]}
-                            style={[styles.textInput, { color: colors.text }]}
-                            multiline
-                        />
-                        <TouchableOpacity>
-                            <FontAwesome name="smile-o" size={20} color={NDEIP_COLORS.gray[500]} />
-                        </TouchableOpacity>
+                    {/* ─── Input / Recording Bar ─── */}
+                    <View style={styles.inputRow}>
+                        {voiceRecording.isRecording ? (
+                            /* Recording Mode */
+                            <View style={styles.recordingBar}>
+                                <TouchableOpacity onPress={handleVoiceCancel} style={styles.recordCancelBtn}>
+                                    <FontAwesome name="trash" size={18} color={NDEIP_COLORS.rose} />
+                                </TouchableOpacity>
+                                <View style={styles.recordingInfo}>
+                                    <Animated.View style={[
+                                        styles.recordDot,
+                                        { transform: [{ scale: recordingPulse }] }
+                                    ]} />
+                                    <Text style={styles.recordTimer}>
+                                        {Math.floor(voiceRecording.recordingDuration / 60)}:{String(voiceRecording.recordingDuration % 60).padStart(2, '0')}
+                                    </Text>
+                                    <Text style={styles.recordHint}>Recording...</Text>
+                                </View>
+                                <TouchableOpacity onPress={handleVoiceSend}>
+                                    <LinearGradient
+                                        colors={NDEIP_COLORS.gradients.brand as any}
+                                        style={styles.sendBtn}
+                                    >
+                                        <FontAwesome name="send" size={16} color="#fff" />
+                                    </LinearGradient>
+                                </TouchableOpacity>
+                            </View>
+                        ) : (
+                            /* Normal Input Mode */
+                            <>
+                                <TouchableOpacity style={styles.inputAction}>
+                                    <FontAwesome name="plus" size={20} color={NDEIP_COLORS.gray[500]} />
+                                </TouchableOpacity>
+                                <TouchableOpacity style={styles.inputAction} onPress={() => setShowPhrases(true)}>
+                                    <FontAwesome name="language" size={18} color={NDEIP_COLORS.electricBlue} />
+                                </TouchableOpacity>
+                                <View style={[styles.inputWrap, {
+                                    backgroundColor: isDark ? Glass.dark.background : Glass.light.background,
+                                }]}>
+                                    <TextInput
+                                        value={inputText}
+                                        onChangeText={setInputText}
+                                        placeholder="Type a message..."
+                                        placeholderTextColor={NDEIP_COLORS.gray[500]}
+                                        style={[styles.textInput, { color: colors.text }]}
+                                        multiline
+                                    />
+                                    <TouchableOpacity>
+                                        <FontAwesome name="smile-o" size={20} color={NDEIP_COLORS.gray[500]} />
+                                    </TouchableOpacity>
+                                </View>
+                                <TouchableOpacity
+                                    onPress={inputText.trim() ? handleSend : handleMicPress}
+                                    onLongPress={() => { if (inputText.trim()) setShowSchedule(true); }}
+                                    activeOpacity={0.85}
+                                >
+                                    <LinearGradient
+                                        colors={NDEIP_COLORS.gradients.brand as any}
+                                        style={styles.sendBtn}
+                                    >
+                                        <FontAwesome
+                                            name={inputText.length > 0 ? 'send' : 'microphone'}
+                                            size={inputText.length > 0 ? 16 : 20}
+                                            color="#fff"
+                                        />
+                                    </LinearGradient>
+                                </TouchableOpacity>
+                            </>
+                        )}
                     </View>
-                    <TouchableOpacity
-                        onPress={handleSend}
-                        onLongPress={() => { if (inputText.trim()) setShowSchedule(true); }}
-                        activeOpacity={0.85}
-                    >
-                        <LinearGradient
-                            colors={NDEIP_COLORS.gradients.brand as any}
-                            style={styles.sendBtn}
-                        >
-                            <FontAwesome
-                                name={inputText.length > 0 ? 'send' : 'microphone'}
-                                size={inputText.length > 0 ? 16 : 20}
-                                color="#fff"
-                            />
-                        </LinearGradient>
-                    </TouchableOpacity>
                 </View>
             </KeyboardAvoidingView>
 
@@ -884,5 +1087,42 @@ const styles = StyleSheet.create({
         borderRadius: 12,
         borderWidth: StyleSheet.hairlineWidth,
         marginBottom: 8,
+    },
+    // Recording styles
+    inputRow: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 8,
+    },
+    recordingBar: {
+        flex: 1,
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 12,
+    },
+    recordCancelBtn: {
+        padding: 8,
+    },
+    recordingInfo: {
+        flex: 1,
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 8,
+    },
+    recordDot: {
+        width: 10,
+        height: 10,
+        borderRadius: 5,
+        backgroundColor: NDEIP_COLORS.rose,
+    },
+    recordTimer: {
+        fontSize: 16,
+        fontWeight: '700' as any,
+        color: '#fff',
+        fontVariant: ['tabular-nums'],
+    },
+    recordHint: {
+        fontSize: 12,
+        color: NDEIP_COLORS.gray[400],
     },
 });
