@@ -43,11 +43,11 @@ const CrystallineMesh = ({
   const pulseAnim = useRef(new Animated.Value(1)).current;
   const rotateAnim = useRef(new Animated.Value(0)).current;
   const interactionAnim = useRef(new Animated.Value(0)).current;
-  
+
   // State for interactive features
   const [touchPosition, setTouchPosition] = useState({ x: 0, y: 0 });
   const [isInteracting, setIsInteracting] = useState(false);
-  
+
   // Generate unique mesh pattern for user
   const meshConfig = useMemo(() => {
     if (userId) {
@@ -79,7 +79,7 @@ const CrystallineMesh = ({
           }),
         ])
       );
-      
+
       const rotateAnimation = Animated.loop(
         Animated.timing(rotateAnim, {
           toValue: 1,
@@ -87,10 +87,10 @@ const CrystallineMesh = ({
           useNativeDriver: false,
         })
       );
-      
+
       breatheAnimation.start();
       rotateAnimation.start();
-      
+
       return () => {
         breatheAnimation.stop();
         rotateAnimation.stop();
@@ -101,11 +101,11 @@ const CrystallineMesh = ({
   // Handle touch interactions
   const handleInteractionStart = (event) => {
     if (!interactive) return;
-    
+
     const { locationX, locationY } = event.nativeEvent;
     setTouchPosition({ x: locationX, y: locationY });
     setIsInteracting(true);
-    
+
     // Trigger interaction animation
     Animated.sequence([
       Animated.timing(interactionAnim, {
@@ -124,7 +124,7 @@ const CrystallineMesh = ({
         useNativeDriver: false,
       }),
     ]).start();
-    
+
     if (onInteraction) {
       onInteraction({ x: locationX, y: locationY });
     }
@@ -132,7 +132,7 @@ const CrystallineMesh = ({
 
   const handleInteractionEnd = () => {
     setIsInteracting(false);
-    
+
     Animated.timing(interactionAnim, {
       toValue: 0,
       duration: 600,
@@ -144,13 +144,13 @@ const CrystallineMesh = ({
   const generateMeshNodes = () => {
     const nodes = [];
     const { complexity, primaryNodes, density } = meshConfig;
-    
+
     for (let i = 0; i < primaryNodes; i++) {
       const angle = (i / primaryNodes) * 2 * Math.PI;
       const radius = (screenWidth * 0.3) * density;
       const x = screenWidth / 2 + Math.cos(angle) * radius;
       const y = screenHeight / 2 + Math.sin(angle) * radius;
-      
+
       nodes.push({
         id: i,
         x,
@@ -159,7 +159,7 @@ const CrystallineMesh = ({
         connections: complexity,
       });
     }
-    
+
     return nodes;
   };
 
@@ -168,14 +168,14 @@ const CrystallineMesh = ({
   // Generate mesh connections
   const generateConnections = () => {
     const connections = [];
-    
+
     meshNodes.forEach((node, index) => {
       const connectionsCount = Math.min(node.connections, meshNodes.length - 1);
-      
+
       for (let i = 1; i <= connectionsCount; i++) {
         const targetIndex = (index + i) % meshNodes.length;
         const target = meshNodes[targetIndex];
-        
+
         connections.push({
           from: node,
           to: target,
@@ -183,7 +183,7 @@ const CrystallineMesh = ({
         });
       }
     });
-    
+
     return connections;
   };
 
@@ -240,7 +240,7 @@ const CrystallineMesh = ({
             </G>
           </Svg>
         );
-        
+
       case 'large':
         return (
           <Svg width={screenWidth} height={screenHeight} style={{ position: 'absolute' }}>
@@ -265,7 +265,7 @@ const CrystallineMesh = ({
             </G>
           </Svg>
         );
-        
+
       case 'quantum':
         return (
           <Svg width={screenWidth} height={screenHeight} style={{ position: 'absolute' }}>
@@ -276,24 +276,22 @@ const CrystallineMesh = ({
                 <Stop offset="100%" stopColor="#320096" stopOpacity="0.15" />
               </LinearGradient>
             </Defs>
-            
+
             {/* Dynamic mesh network */}
             <G>
               {meshConnections.map((connection, index) => (
                 <Path
                   key={`connection-${index}`}
-                  d={`M ${connection.from.x} ${connection.from.y} Q ${
-                    (connection.from.x + connection.to.x) / 2
-                  } ${
-                    (connection.from.y + connection.to.y) / 2
-                  } ${connection.to.x} ${connection.to.y}`}
+                  d={`M ${connection.from.x} ${connection.from.y} Q ${(connection.from.x + connection.to.x) / 2
+                    } ${(connection.from.y + connection.to.y) / 2
+                    } ${connection.to.x} ${connection.to.y}`}
                   stroke={color}
                   strokeWidth="1"
                   fill="none"
                   opacity={connection.opacity}
                 />
               ))}
-              
+
               {meshNodes.map((node, index) => (
                 <Circle
                   key={`node-${index}`}
@@ -305,7 +303,7 @@ const CrystallineMesh = ({
                 />
               ))}
             </G>
-            
+
             {/* Interaction ripple */}
             {isInteracting && (
               <Circle
@@ -318,7 +316,7 @@ const CrystallineMesh = ({
             )}
           </Svg>
         );
-        
+
       default: // medium
         return (
           <Svg width={screenWidth} height={screenHeight} style={{ position: 'absolute' }}>
@@ -373,7 +371,7 @@ const CrystallineMesh = ({
         ]}
       >
         {renderMeshPattern()}
-        
+
         {/* Content overlay */}
         <View
           style={{
@@ -402,7 +400,7 @@ export const MeshPresets = {
     intensity: 0.8,
     color: MeshColors.electricBlue,
   },
-  
+
   // Chat background
   chatBackground: {
     variant: 'small',
@@ -411,8 +409,8 @@ export const MeshPresets = {
     intensity: 0.2,
     color: getDynamicColor(MeshColors.primaryTeal, 0.05),
   },
-  
-// Call screen
+
+  // Call screen
   callScreen: {
     variant: 'large',
     animated: true,
@@ -420,7 +418,7 @@ export const MeshPresets = {
     intensity: 0.6,
     color: MeshColors.electricBlue,
   },
-  
+
   // Status viewer
   statusViewer: {
     variant: 'medium',
@@ -429,16 +427,16 @@ export const MeshPresets = {
     intensity: 0.4,
     color: getDynamicColor(MeshColors.electricBlue, 0.3),
   },
-  
+
   // Settings background
   settingsBackground: {
     variant: 'small',
     animated: false,
     interactive: false,
     intensity: 0.1,
-    color: getDynamicColor(MeshColors.neutrals.mediumGrey, 0.1),
+    color: getDynamicColor('#6B7280', 0.1),
   },
-  
+
   // Loading states
   loading: {
     variant: 'quantum',
@@ -447,7 +445,7 @@ export const MeshPresets = {
     intensity: 0.7,
     color: MeshColors.electricBlue,
   },
-  
+
   // Message typing indicator
   typing: {
     variant: 'small',
@@ -468,7 +466,7 @@ export const MeshEffects = {
     duration: 600,
     maxRadius: 120,
   }),
-  
+
   // Particle burst for message send
   createBurst: (x, y, particleCount = 12) => ({
     type: 'burst',
@@ -477,7 +475,7 @@ export const MeshEffects = {
     color: MeshColors.electricBlue,
     duration: 800,
   }),
-  
+
   // Connection line for voice calls
   createConnection: (startPoint, endPoint) => ({
     type: 'connection',
@@ -487,7 +485,7 @@ export const MeshEffects = {
     animated: true,
     duration: 2000,
   }),
-  
+
   // Pulse effect for notifications
   createPulse: (intensity = 1) => ({
     type: 'pulse',
@@ -501,17 +499,17 @@ export const MeshEffects = {
 // Mesh animation hooks for common patterns
 export const useMeshAnimation = (type = 'breathe') => {
   const animValue = useRef(new Animated.Value(0)).current;
-  
+
   useEffect(() => {
     let animation;
-    
+
     switch (type) {
       case 'breathe':
         animation = Animated.loop(
           Animated.sequence([
             Animated.timing(animValue, {
               toValue: 1,
-              duration: MeshAnimations.timing.mesh,
+              duration: 3000,
               useNativeDriver: false,
             }),
             Animated.timing(animValue, {
@@ -522,13 +520,13 @@ export const useMeshAnimation = (type = 'breathe') => {
           ])
         );
         break;
-        
+
       case 'pulse':
         animation = Animated.loop(
           Animated.sequence([
             Animated.timing(animValue, {
               toValue: 1,
-              duration: MeshAnimations.timing.normal,
+              duration: 2000,
               useNativeDriver: false,
             }),
             Animated.timing(animValue, {
@@ -539,30 +537,30 @@ export const useMeshAnimation = (type = 'breathe') => {
           ])
         );
         break;
-        
+
       case 'quantum':
         animation = Animated.loop(
           Animated.timing(animValue, {
             toValue: 1,
-            duration: MeshAnimations.timing.quantum,
+            duration: 5000,
             useNativeDriver: false,
           })
         );
         break;
-        
+
       default:
         animation = Animated.timing(animValue, {
           toValue: 1,
-          duration: MeshAnimations.timing.normal,
+          duration: 2000,
           useNativeDriver: false,
         });
     }
-    
+
     animation.start();
-    
+
     return () => animation.stop();
   }, [type]);
-  
+
   return animValue;
 };
 
@@ -581,11 +579,11 @@ export const MeshProvider = ({ children, theme = 'light', userId = null }) => {
     interactive: true,
     userId,
   });
-  
+
   const updateMeshSettings = (newSettings) => {
     setMeshSettings(prev => ({ ...prev, ...newSettings }));
   };
-  
+
   return (
     <MeshContext.Provider value={{ ...meshSettings, updateMeshSettings }}>
       {children}
@@ -603,14 +601,14 @@ export const useMesh = () => {
 };
 
 // Utility component for quick mesh overlays
-export const MeshOverlay = ({ 
-  preset = 'chatBackground', 
+export const MeshOverlay = ({
+  preset = 'chatBackground',
   style = {},
   children,
-  ...props 
+  ...props
 }) => {
   const meshConfig = MeshPresets[preset] || MeshPresets.chatBackground;
-  
+
   return (
     <CrystallineMesh
       {...meshConfig}
@@ -632,11 +630,11 @@ export const MeshOverlay = ({
 };
 
 // Performance optimized mesh for list items
-export const MeshListItem = React.memo(({ 
-  children, 
+export const MeshListItem = React.memo(({
+  children,
   style = {},
   interactive = false,
-  ...props 
+  ...props
 }) => {
   return (
     <View style={[{ position: 'relative' }, style]}>
@@ -652,15 +650,15 @@ export const MeshListItem = React.memo(({
 });
 
 // Mesh transition component for screen changes
-export const MeshTransition = ({ 
-  isVisible, 
-  children, 
+export const MeshTransition = ({
+  isVisible,
+  children,
   duration = 800,
   onComplete,
 }) => {
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const scaleAnim = useRef(new Animated.Value(0.8)).current;
-  
+
   useEffect(() => {
     if (isVisible) {
       Animated.parallel([
@@ -691,11 +689,11 @@ export const MeshTransition = ({
       ]).start(onComplete);
     }
   }, [isVisible, duration]);
-  
+
   if (!isVisible && fadeAnim._value === 0) {
     return null;
   }
-  
+
   return (
     <Animated.View
       style={{
