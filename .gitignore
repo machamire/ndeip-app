@@ -46,5 +46,5 @@ ndeip-app-staging/
 ndeip-app-github.zip
 *.jpeg
 
-# lock files (optional — uncomment if you want to exclude)
-# yarn.lock
+# lock files — prevent Yarn from being used on Vercel
+yarn.lock
