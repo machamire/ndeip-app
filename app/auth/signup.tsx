@@ -24,12 +24,14 @@ import {
 
 export default function SignupScreen() {
   const router = useRouter();
-  const { signUp, signInWithGoogle } = useAuth();
+  const { signUp } = useAuth();
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [focused, setFocused] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const [loading, setLoading] = useState(false);
 
   // Password strength
   const strength =
@@ -49,27 +51,36 @@ export default function SignupScreen() {
   const strengthLabel = ["", "Weak", "Good", "Strong"];
 
   const handleSignup = async () => {
+    setError(null);
+
     // Validate fields
     if (!name.trim() || !email.trim() || !password.trim()) {
-      alert("Please fill in all fields");
+      setError("Please fill in all fields");
       return;
     }
 
     // Basic email validation
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!emailRegex.test(email)) {
-      alert("Please enter a valid email");
+      setError("Please enter a valid email");
       return;
     }
 
     // Basic password validation
     if (password.length < 6) {
-      alert("Password must be at least 6 characters");
+      setError("Password must be at least 6 characters");
       return;
     }
 
-    // Authenticate — AuthGate will redirect to /(tabs) automatically
-    await signUp(email, password, name);
+    setLoading(true);
+    try {
+      // Authenticate — AuthGate will redirect to /(tabs) automatically
+      await signUp(email, password, name);
+    } catch (err: any) {
+      setError(err?.message || "Failed to create account");
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -212,11 +223,20 @@ export default function SignupScreen() {
               )}
             </View>
 
+            {/* Error Message */}
+            {error && (
+              <View style={styles.errorBox}>
+                <FontAwesome name="exclamation-circle" size={14} color="#FF6B6B" />
+                <Text style={styles.errorText}>{error}</Text>
+              </View>
+            )}
+
             {/* Sign Up Button */}
             <TouchableOpacity
               activeOpacity={0.85}
-              style={styles.signUpBtn}
+              style={[styles.signUpBtn, loading && { opacity: 0.7 }]}
               onPress={handleSignup}
+              disabled={loading}
             >
               <LinearGradient
                 colors={NDEIP_COLORS.gradients.brand as any}
@@ -224,29 +244,8 @@ export default function SignupScreen() {
                 end={{ x: 1, y: 0 }}
                 style={styles.signUpGradient}
               >
-                <Text style={styles.signUpText}>Create Account</Text>
+                <Text style={styles.signUpText}>{loading ? 'Creating account...' : 'Create Account'}</Text>
               </LinearGradient>
-            </TouchableOpacity>
-
-            {/* Divider */}
-            <View style={styles.divider}>
-              <View style={styles.dividerLine} />
-              <Text style={styles.dividerText}>or</Text>
-              <View style={styles.dividerLine} />
-            </View>
-
-            {/* Google */}
-            <TouchableOpacity
-              style={styles.googleBtn}
-              activeOpacity={0.7}
-              onPress={() => signInWithGoogle()}
-            >
-              <FontAwesome
-                name="google"
-                size={18}
-                color={NDEIP_COLORS.gray[400]}
-              />
-              <Text style={styles.googleText}>Continue with Google</Text>
             </TouchableOpacity>
 
             {/* Terms */}
@@ -347,34 +346,21 @@ const styles = StyleSheet.create({
     fontWeight: "600",
     letterSpacing: 0.3,
   },
-  // Divider
-  divider: {
+  // Error
+  errorBox: {
     flexDirection: "row",
     alignItems: "center",
-    marginVertical: 4,
-    gap: 12,
+    gap: 8,
+    backgroundColor: "rgba(255,107,107,0.1)",
+    borderRadius: Radii.input,
+    paddingHorizontal: 14,
+    paddingVertical: 10,
   },
-  dividerLine: {
-    flex: 1,
-    height: StyleSheet.hairlineWidth,
-    backgroundColor: NDEIP_COLORS.glass.border,
-  },
-  dividerText: { color: NDEIP_COLORS.gray[600], fontSize: 12 },
-  // Google
-  googleBtn: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-    height: 48,
-    borderRadius: Radii.button,
-    borderWidth: 1,
-    borderColor: Glass.dark.border,
-    gap: 10,
-  },
-  googleText: {
-    color: NDEIP_COLORS.gray[300],
-    fontSize: 15,
+  errorText: {
+    color: "#FF6B6B",
+    fontSize: 13,
     fontWeight: "500",
+    flex: 1,
   },
   // Terms
   terms: {

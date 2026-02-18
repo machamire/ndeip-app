@@ -25,28 +25,39 @@ import {
 
 export default function LoginScreen() {
   const router = useRouter();
-  const { signIn, signInWithGoogle } = useAuth();
+  const { signIn } = useAuth();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [focused, setFocused] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const [loading, setLoading] = useState(false);
 
   const handleLogin = async () => {
+    setError(null);
+
     // Validate fields
     if (!email.trim() || !password.trim()) {
-      alert("Please enter both email and password");
+      setError("Please enter both email and password");
       return;
     }
 
     // Basic email validation
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!emailRegex.test(email)) {
-      alert("Please enter a valid email");
+      setError("Please enter a valid email");
       return;
     }
 
-    // Authenticate — AuthGate will redirect to /(tabs) automatically
-    await signIn(email, password);
+    setLoading(true);
+    try {
+      // Authenticate — AuthGate will redirect to /(tabs) automatically
+      await signIn(email, password);
+    } catch (err: any) {
+      setError(err?.message || "Invalid email or password");
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -147,11 +158,20 @@ export default function LoginScreen() {
               <Text style={styles.forgotText}>Forgot password?</Text>
             </TouchableOpacity>
 
+            {/* Error Message */}
+            {error && (
+              <View style={styles.errorBox}>
+                <FontAwesome name="exclamation-circle" size={14} color="#FF6B6B" />
+                <Text style={styles.errorText}>{error}</Text>
+              </View>
+            )}
+
             {/* Sign In Button */}
             <TouchableOpacity
               activeOpacity={0.85}
-              style={styles.signInBtn}
+              style={[styles.signInBtn, loading && { opacity: 0.7 }]}
               onPress={handleLogin}
+              disabled={loading}
             >
               <LinearGradient
                 colors={NDEIP_COLORS.gradients.brand as any}
@@ -159,43 +179,8 @@ export default function LoginScreen() {
                 end={{ x: 1, y: 0 }}
                 style={styles.signInGradient}
               >
-                <Text style={styles.signInText}>Sign In</Text>
+                <Text style={styles.signInText}>{loading ? 'Signing in...' : 'Sign In'}</Text>
               </LinearGradient>
-            </TouchableOpacity>
-
-            {/* Divider */}
-            <View style={styles.divider}>
-              <View style={styles.dividerLine} />
-              <Text style={styles.dividerText}>or continue with</Text>
-              <View style={styles.dividerLine} />
-            </View>
-
-            {/* Google */}
-            <TouchableOpacity
-              style={styles.googleBtn}
-              activeOpacity={0.7}
-              onPress={() => signInWithGoogle()}
-            >
-              <FontAwesome
-                name="google"
-                size={18}
-                color={NDEIP_COLORS.gray[400]}
-              />
-              <Text style={styles.googleText}>Continue with Google</Text>
-            </TouchableOpacity>
-
-            {/* QR Login */}
-            <TouchableOpacity
-              style={styles.qrBtn}
-              activeOpacity={0.7}
-              onPress={() => router.push("/auth/qr-login" as any)}
-            >
-              <FontAwesome
-                name="qrcode"
-                size={16}
-                color={NDEIP_COLORS.primaryTeal}
-              />
-              <Text style={styles.qrText}>Sign in with QR code</Text>
             </TouchableOpacity>
           </View>
 
@@ -299,50 +284,21 @@ const styles = StyleSheet.create({
     fontWeight: "600",
     letterSpacing: 0.3,
   },
-  // Divider
-  divider: {
+  // Error
+  errorBox: {
     flexDirection: "row",
     alignItems: "center",
-    marginVertical: 4,
-    gap: 12,
-  },
-  dividerLine: {
-    flex: 1,
-    height: StyleSheet.hairlineWidth,
-    backgroundColor: NDEIP_COLORS.glass.border,
-  },
-  dividerText: {
-    color: NDEIP_COLORS.gray[600],
-    fontSize: 12,
-  },
-  // Google
-  googleBtn: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-    height: 48,
-    borderRadius: Radii.button,
-    borderWidth: 1,
-    borderColor: Glass.dark.border,
-    gap: 10,
-  },
-  googleText: {
-    color: NDEIP_COLORS.gray[300],
-    fontSize: 15,
-    fontWeight: "500",
-  },
-  // QR
-  qrBtn: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
     gap: 8,
-    paddingVertical: 8,
+    backgroundColor: "rgba(255,107,107,0.1)",
+    borderRadius: Radii.input,
+    paddingHorizontal: 14,
+    paddingVertical: 10,
   },
-  qrText: {
-    color: NDEIP_COLORS.primaryTeal,
-    fontSize: 14,
+  errorText: {
+    color: "#FF6B6B",
+    fontSize: 13,
     fontWeight: "500",
+    flex: 1,
   },
   // Footer
   footer: {

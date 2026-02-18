@@ -18,6 +18,7 @@ import Colors, { NDEIP_COLORS } from '@/constants/Colors';
 import { useColorScheme } from '@/components/useColorScheme';
 import { Typography, Spacing, Radii, Glass } from '@/constants/ndeipBrandSystem';
 import { ChatService, Message as ServiceMessage } from '@/services/ChatService';
+import { useAuth } from '@/contexts/AuthContext';
 import { useVoiceRecording } from '@/hooks/useVoiceRecording';
 import QuantumTyping from '@/components/chat/QuantumTyping';
 import VoiceWaveform from '@/components/chat/VoiceWaveform';
@@ -605,14 +606,19 @@ export default function ChatDetailScreen() {
     const recordingPulse = useRef(new Animated.Value(1)).current;
 
     // ─── Load messages from ChatService ───────────────────
+    const { user } = useAuth();
+
     useEffect(() => {
+        if (!user) return;
+        ChatService.setCurrentUser(user.id);
+
         const load = async () => {
             const msgs = await ChatService.getMessages(chatId);
             const mapped: ChatMessage[] = msgs.map(m => ({
                 id: m.id,
-                text: m.text,
-                sent: m.sent,
-                time: m.time,
+                text: m.text || '',
+                sent: m.sent ?? false,
+                time: m.time || '',
                 status: m.status,
                 type: m.type as MessageType,
                 ephemeral: m.ephemeral,
@@ -623,51 +629,51 @@ export default function ChatDetailScreen() {
                 scheduledTime: m.scheduledTime,
             }));
             setMessages(mapped);
-            // Clear unread
-            ChatService.clearUnread(chatId);
         };
         load();
 
         // Subscribe to new messages (incoming + status updates)
-        const unsubscribe = ChatService.onMessage(chatId, (msg: ServiceMessage) => {
-            setMessages(prev => {
-                const exists = prev.findIndex(m => m.id === msg.id);
-                const mapped: ChatMessage = {
-                    id: msg.id,
-                    text: msg.text,
-                    sent: msg.sent,
-                    time: msg.time,
-                    status: msg.status,
-                    type: msg.type as MessageType,
-                    ephemeral: msg.ephemeral,
-                    duration: msg.duration,
-                    consumed: msg.consumed,
-                    kept: msg.kept,
-                    scheduled: msg.scheduled,
-                    scheduledTime: msg.scheduledTime,
-                };
-                if (exists >= 0) {
-                    // Update existing message (status change)
-                    const next = [...prev];
-                    next[exists] = mapped;
-                    return next;
-                }
-                // New incoming message — clear typing indicator
-                if (!mapped.sent) {
-                    setContactTyping(false);
-                    if (contactTypingTimer.current) {
-                        clearTimeout(contactTypingTimer.current);
-                        contactTypingTimer.current = null;
+        const unsubscribe = ChatService.subscribeToMessages(chatId, (newMsgs: ServiceMessage[]) => {
+            newMsgs.forEach(msg => {
+                setMessages(prev => {
+                    const exists = prev.findIndex(m => m.id === msg.id);
+                    const mapped: ChatMessage = {
+                        id: msg.id,
+                        text: msg.text || '',
+                        sent: msg.sent ?? false,
+                        time: msg.time || '',
+                        status: msg.status,
+                        type: msg.type as MessageType,
+                        ephemeral: msg.ephemeral,
+                        duration: msg.duration,
+                        consumed: msg.consumed,
+                        kept: msg.kept,
+                        scheduled: msg.scheduled,
+                        scheduledTime: msg.scheduledTime,
+                    };
+                    if (exists >= 0) {
+                        // Update existing message (status change)
+                        const next = [...prev];
+                        next[exists] = mapped;
+                        return next;
                     }
-                }
-                return [...prev, mapped];
+                    // New incoming message — clear typing indicator
+                    if (!mapped.sent) {
+                        setContactTyping(false);
+                        if (contactTypingTimer.current) {
+                            clearTimeout(contactTypingTimer.current);
+                            contactTypingTimer.current = null;
+                        }
+                    }
+                    return [...prev, mapped];
+                });
             });
             // Auto-scroll
             setTimeout(() => scrollRef.current?.scrollToEnd({ animated: true }), 100);
         });
 
         return () => unsubscribe();
-    }, [chatId]);
+    }, [chatId, user]);
 
     // Auto-scroll when messages update
     useEffect(() => {

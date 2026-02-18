@@ -11,13 +11,17 @@ import { LinearGradient } from 'expo-linear-gradient';
 import FontAwesome from '@expo/vector-icons/FontAwesome';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { NDEIP_COLORS } from '@/constants/Colors';
-import { CallService, CallState, ActiveCall } from '@/services/CallService';
+import { CallService, ActiveCall } from '@/services/CallService';
 import CallConnecting from '@/components/calls/CallConnecting';
 import VideoFrame from '@/components/calls/VideoFrame';
+import { useAuth } from '@/contexts/AuthContext';
+
+type CallState = 'idle' | 'ringing' | 'connecting' | 'connected' | 'ended';
 
 export default function CallScreen() {
     const router = useRouter();
     const params = useLocalSearchParams();
+    const { user } = useAuth();
     const contactName = (params.name as string) || 'Unknown';
     const callType = (params.type as string) || 'voice';
     const contactId = (params.id as string) || '0';
@@ -32,26 +36,30 @@ export default function CallScreen() {
     const pulseAnim = React.useRef(new Animated.Value(1)).current;
 
     useEffect(() => {
-        // Start call
-        CallService.startCall(contactId, contactName, callType as any);
+        if (!user) return;
+        CallService.setCurrentUser(user.id);
 
-        // Subscribe to state changes
-        const unsubscribe = CallService.onCallStateChange((call: ActiveCall | null) => {
-            if (call) {
-                setCallState(call.state);
-                setDuration(call.duration);
-                setIsMuted(call.isMuted);
-                setIsSpeaker(call.isSpeaker);
-                setIsVideoOn(call.isVideoOn);
-            } else {
+        // Start call
+        const initCall = async () => {
+            try {
+                const call = await CallService.startCall(contactId, contactName, callType as any);
+                setCallState(call.status as CallState);
+                // Simulate ringing -> connected after 3 seconds
+                setTimeout(() => setCallState('connected'), 3000);
+            } catch (err) {
+                console.error('Failed to start call:', err);
                 setCallState('ended');
             }
-        });
-
-        return () => {
-            unsubscribe();
         };
-    }, []);
+        initCall();
+    }, [user]);
+
+    // Duration counter when connected
+    useEffect(() => {
+        if (callState !== 'connected') return;
+        const timer = setInterval(() => setDuration(d => d + 1), 1000);
+        return () => clearInterval(timer);
+    }, [callState]);
 
     // Pulse animation loop during ringing
     useEffect(() => {
@@ -73,7 +81,13 @@ export default function CallScreen() {
     }, [router]);
 
     const initials = contactName.split(' ').map((n: string) => n[0]).join('').slice(0, 2);
-    const formatDuration = (s: number) => CallService.formatDuration(s);
+
+    const formatDuration = (s: number): string => {
+        if (s < 60) return `0:${String(s).padStart(2, '0')}`;
+        const mins = Math.floor(s / 60);
+        const secs = s % 60;
+        return `${mins}:${String(secs).padStart(2, '0')}`;
+    };
 
     const statusText = {
         idle: 'Connecting...',
@@ -185,7 +199,7 @@ export default function CallScreen() {
                 <View style={styles.controlRow}>
                     <TouchableOpacity
                         style={[styles.controlBtn, isMuted && styles.controlBtnActive]}
-                        onPress={() => CallService.toggleMute()}
+                        onPress={() => { CallService.toggleMute(); setIsMuted(m => !m); }}
                     >
                         <FontAwesome name={isMuted ? 'microphone-slash' : 'microphone'} size={22} color="#fff" />
                         <Text style={styles.controlLabel}>{isMuted ? 'Unmute' : 'Mute'}</Text>
@@ -193,7 +207,7 @@ export default function CallScreen() {
 
                     <TouchableOpacity
                         style={[styles.controlBtn, isSpeaker && styles.controlBtnActive]}
-                        onPress={() => CallService.toggleSpeaker()}
+                        onPress={() => { CallService.toggleSpeaker(); setIsSpeaker(s => !s); }}
                     >
                         <FontAwesome name="volume-up" size={22} color="#fff" />
                         <Text style={styles.controlLabel}>Speaker</Text>
@@ -202,7 +216,7 @@ export default function CallScreen() {
                     {callType === 'video' && (
                         <TouchableOpacity
                             style={[styles.controlBtn, !isVideoOn && styles.controlBtnActive]}
-                            onPress={() => CallService.toggleVideo()}
+                            onPress={() => { CallService.toggleVideo(); setIsVideoOn(v => !v); }}
                         >
                             <FontAwesome name={isVideoOn ? 'video-camera' : 'eye-slash'} size={20} color="#fff" />
                             <Text style={styles.controlLabel}>{isVideoOn ? 'Camera' : 'Camera Off'}</Text>

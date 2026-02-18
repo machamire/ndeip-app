@@ -15,8 +15,7 @@ import { useColorScheme } from '@/components/useColorScheme';
 import { Typography, Spacing, Radii, Glass } from '@/constants/ndeipBrandSystem';
 import { CallService, CallEntry } from '@/services/CallService';
 import EmptyState from '@/components/ui/EmptyState';
-
-
+import { useAuth } from '@/contexts/AuthContext';
 
 function CallAvatar({ name, size = 48 }: { name: string; size?: number }) {
     const initials = name.split(' ').map(n => n[0]).join('').slice(0, 2);
@@ -29,11 +28,20 @@ function CallAvatar({ name, size = 48 }: { name: string; size?: number }) {
     );
 }
 
+function formatDuration(seconds: number): string {
+    if (seconds <= 0) return '';
+    if (seconds < 60) return `${seconds}s`;
+    const mins = Math.floor(seconds / 60);
+    const secs = seconds % 60;
+    return `${mins}:${String(secs).padStart(2, '0')}`;
+}
+
 export default function CallsScreen() {
     const colorScheme = useColorScheme() ?? 'dark';
     const isDark = colorScheme === 'dark';
     const colors = Colors[colorScheme];
     const router = useRouter();
+    const { user } = useAuth();
     const [filter, setFilter] = useState<'all' | 'missed'>('all');
     const [callHistory, setCallHistory] = useState<CallEntry[]>([]);
     const [refreshing, setRefreshing] = useState(false);
@@ -46,17 +54,20 @@ export default function CallsScreen() {
     };
 
     useEffect(() => {
+        if (!user) return;
+        CallService.setCurrentUser(user.id);
+
         const load = async () => {
             const history = await CallService.getCallHistory();
             setCallHistory(history);
         };
         load();
-        const unsubscribe = CallService.onHistoryChange((history) => setCallHistory(history));
-        return () => unsubscribe();
-    }, []);
+    }, [user]);
 
     const bg = isDark ? NDEIP_COLORS.gray[950] : NDEIP_COLORS.gray[50];
-    const filtered = filter === 'missed' ? callHistory.filter(c => c.direction === 'missed') : callHistory;
+    const filtered = filter === 'missed'
+        ? callHistory.filter(c => c.status === 'missed' || c.status === 'no_answer')
+        : callHistory;
 
     return (
         <View style={[styles.container, { backgroundColor: bg }]}>
@@ -99,43 +110,49 @@ export default function CallsScreen() {
                 {filtered.length === 0 ? (
                     <EmptyState variant="calls" isDark={isDark} />
                 ) : (
-                    filtered.map(call => (
-                        <TouchableOpacity key={call.id} style={styles.callRow} activeOpacity={0.6}
-                            onPress={() => router.push({ pathname: '/call', params: { id: call.contactId, name: call.contactName, type: call.type } } as any)}
-                        >
-                            <CallAvatar name={call.contactName} />
-                            <View style={styles.callContent}>
-                                <Text style={[styles.callName, { color: call.direction === 'missed' ? NDEIP_COLORS.rose : colors.text }]}>
-                                    {call.contactName}
-                                </Text>
-                                <View style={styles.callMeta}>
-                                    <FontAwesome
-                                        name={call.direction === 'outgoing' ? 'arrow-up' : call.direction === 'missed' ? 'arrow-down' : 'arrow-down'}
-                                        size={10}
-                                        color={call.direction === 'missed' ? NDEIP_COLORS.rose : NDEIP_COLORS.emerald}
-                                        style={{ transform: [{ rotate: '45deg' }] }}
-                                    />
+                    filtered.map(call => {
+                        const isMissed = call.status === 'missed' || call.status === 'no_answer';
+                        const callName = call.name || 'Unknown';
+                        const otherUserId = call.incoming ? call.caller_id : call.callee_id;
+
+                        return (
+                            <TouchableOpacity key={call.id} style={styles.callRow} activeOpacity={0.6}
+                                onPress={() => router.push({ pathname: '/call', params: { id: otherUserId, name: callName, type: call.type } } as any)}
+                            >
+                                <CallAvatar name={callName} />
+                                <View style={styles.callContent}>
+                                    <Text style={[styles.callName, { color: isMissed ? NDEIP_COLORS.rose : colors.text }]}>
+                                        {callName}
+                                    </Text>
+                                    <View style={styles.callMeta}>
+                                        <FontAwesome
+                                            name={call.incoming ? 'arrow-down' : 'arrow-up'}
+                                            size={10}
+                                            color={isMissed ? NDEIP_COLORS.rose : NDEIP_COLORS.emerald}
+                                            style={{ transform: [{ rotate: '45deg' }] }}
+                                        />
+                                        <FontAwesome
+                                            name={call.type === 'video' ? 'video-camera' : 'phone'}
+                                            size={10}
+                                            color={isDark ? NDEIP_COLORS.gray[500] : NDEIP_COLORS.gray[400]}
+                                        />
+                                        <Text style={[styles.callTime, { color: isDark ? NDEIP_COLORS.gray[500] : NDEIP_COLORS.gray[400] }]}>
+                                            {call.time}{call.duration > 0 ? ` · ${formatDuration(call.duration)}` : ''}
+                                        </Text>
+                                    </View>
+                                </View>
+                                <TouchableOpacity style={styles.callAction} activeOpacity={0.6}
+                                    onPress={() => router.push({ pathname: '/call', params: { id: otherUserId, name: callName, type: call.type } } as any)}
+                                >
                                     <FontAwesome
                                         name={call.type === 'video' ? 'video-camera' : 'phone'}
-                                        size={10}
-                                        color={isDark ? NDEIP_COLORS.gray[500] : NDEIP_COLORS.gray[400]}
+                                        size={16}
+                                        color={NDEIP_COLORS.primaryTeal}
                                     />
-                                    <Text style={[styles.callTime, { color: isDark ? NDEIP_COLORS.gray[500] : NDEIP_COLORS.gray[400] }]}>
-                                        {call.time}{call.duration > 0 ? ` · ${CallService.formatDuration(call.duration)}` : ''}
-                                    </Text>
-                                </View>
-                            </View>
-                            <TouchableOpacity style={styles.callAction} activeOpacity={0.6}
-                                onPress={() => router.push({ pathname: '/call', params: { id: call.contactId, name: call.contactName, type: call.type } } as any)}
-                            >
-                                <FontAwesome
-                                    name={call.type === 'video' ? 'video-camera' : 'phone'}
-                                    size={16}
-                                    color={NDEIP_COLORS.primaryTeal}
-                                />
+                                </TouchableOpacity>
                             </TouchableOpacity>
-                        </TouchableOpacity>
-                    ))
+                        );
+                    })
                 )}
             </ScrollView>
 
@@ -195,14 +212,6 @@ const styles = StyleSheet.create({
         alignItems: 'center',
         justifyContent: 'center',
     },
-    // Empty State
-    emptyState: {
-        alignItems: 'center',
-        justifyContent: 'center',
-        paddingTop: 120,
-        gap: 16,
-    },
-    emptyText: { fontSize: 16, fontWeight: '500' },
     // FAB
     fab: {
         position: 'absolute',

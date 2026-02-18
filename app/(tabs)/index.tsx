@@ -18,6 +18,7 @@ import { useColorScheme } from '@/components/useColorScheme';
 import { Typography, Spacing, Radii, Shadows, Glass } from '@/constants/ndeipBrandSystem';
 import { ChatService, Conversation } from '@/services/ChatService';
 import EmptyState from '@/components/ui/EmptyState';
+import { useAuth } from '@/contexts/AuthContext';
 
 const FILTERS = ['All', 'Unread', 'Groups', 'Channels'];
 
@@ -101,6 +102,8 @@ export default function ChatsScreen() {
   const [mutedContacts, setMutedContacts] = useState<Record<string, boolean>>({});
   const [refreshing, setRefreshing] = useState(false);
 
+  const { user } = useAuth();
+
   const onRefresh = useCallback(async () => {
     setRefreshing(true);
     const convos = await ChatService.getConversations();
@@ -110,6 +113,9 @@ export default function ChatsScreen() {
 
   // ─── Load Conversations from ChatService ────────────────
   useEffect(() => {
+    if (!user) return;
+    ChatService.setCurrentUser(user.id);
+
     const load = async () => {
       const convos = await ChatService.getConversations();
       setConversations(convos);
@@ -120,12 +126,12 @@ export default function ChatsScreen() {
     load();
 
     // Subscribe to real-time updates
-    const unsubscribe = ChatService.onConversationsChange((convos) => {
+    const unsubscribe = ChatService.subscribeToConversations((convos) => {
       setConversations(convos);
     });
 
     return () => unsubscribe();
-  }, []);
+  }, [user]);
 
   const toggleMute = useCallback((id: string) => {
     setMutedContacts(prev => ({ ...prev, [id]: !prev[id] }));

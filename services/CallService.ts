@@ -1,228 +1,383 @@
 /**
- * CallService — Call state machine + history
+ * CallService — Call history & WebRTC signaling via Supabase
  * 
- * Manages voice/video call state flow:
- * idle → ringing → connected → ended
- * 
- * Persists call history to AsyncStorage.
- * Ready for WebRTC integration later.
+ * Replaces AsyncStorage with Supabase for call history and
+ * uses Supabase Realtime for WebRTC signaling.
  */
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import { supabase } from '@/lib/supabase';
+import type { RealtimeChannel } from '@supabase/supabase-js';
 
-// ─── Types ────────────────────────────────────────────────
-export type CallState = 'idle' | 'ringing' | 'connecting' | 'connected' | 'ended';
+// ─── Types ────────────────────────────────────────────────────
 export type CallType = 'voice' | 'video';
+export type CallStatus = 'completed' | 'missed' | 'declined' | 'no_answer';
 
 export interface CallEntry {
     id: string;
-    contactId: string;
-    contactName: string;
+    caller_id: string;
+    callee_id: string;
+    caller_name?: string;
+    callee_name?: string;
     type: CallType;
-    direction: 'outgoing' | 'incoming' | 'missed';
+    status: CallStatus;
     duration: number; // seconds
-    time: string;
-    timestamp: number;
+    started_at: string;
+    ended_at?: string;
+    // UI compat
+    incoming?: boolean;
+    name?: string;
+    time?: string;
 }
 
 export interface ActiveCall {
-    contactId: string;
-    contactName: string;
+    id: string;
+    remoteUserId: string;
+    remoteName: string;
     type: CallType;
-    state: CallState;
-    startTime: number;
-    duration: number;
     isMuted: boolean;
     isSpeaker: boolean;
-    isVideoOn: boolean;
+    isVideoEnabled: boolean;
+    duration: number;
+    status: 'ringing' | 'connected' | 'ended';
 }
 
-// ─── Storage ──────────────────────────────────────────────
-const KEYS = {
-    history: 'ndeip_call_history',
-    initialized: 'ndeip_calls_initialized',
-};
+export interface IncomingCallSignal {
+    callerId: string;
+    callerName: string;
+    type: CallType;
+}
 
-// ─── Seed Data ────────────────────────────────────────────
-const SEED_HISTORY: CallEntry[] = [
-    { id: 'c1', contactId: '1', contactName: 'Sarah Chen', type: 'video', direction: 'outgoing', duration: 342, time: 'Today, 10:15 AM', timestamp: Date.now() - 3600000 * 4 },
-    { id: 'c2', contactId: '2', contactName: 'Marcus Johnson', type: 'voice', direction: 'incoming', duration: 180, time: 'Today, 9:30 AM', timestamp: Date.now() - 3600000 * 5 },
-    { id: 'c3', contactId: '3', contactName: 'Thandi Nkosi', type: 'voice', direction: 'missed', duration: 0, time: 'Yesterday, 6:45 PM', timestamp: Date.now() - 3600000 * 20 },
-    { id: 'c4', contactId: '5', contactName: 'Mom ❤️', type: 'video', direction: 'outgoing', duration: 1200, time: 'Yesterday, 2:00 PM', timestamp: Date.now() - 3600000 * 24 },
-    { id: 'c5', contactId: '7', contactName: 'Priya Sharma', type: 'voice', direction: 'incoming', duration: 420, time: '2 days ago', timestamp: Date.now() - 3600000 * 48 },
-];
+// ─── Helpers ──────────────────────────────────────────────────
+function formatCallTime(dateStr: string): string {
+    const date = new Date(dateStr);
+    const now = new Date();
+    const diffDays = Math.floor((now.getTime() - date.getTime()) / 86400000);
 
-// ─── Listeners ────────────────────────────────────────────
-type CallStateListener = (call: ActiveCall | null) => void;
-type HistoryListener = (history: CallEntry[]) => void;
+    if (diffDays === 0) return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    if (diffDays === 1) return 'Yesterday';
+    if (diffDays < 7) return `${diffDays}d ago`;
+    return date.toLocaleDateString();
+}
 
-const stateListeners: Set<CallStateListener> = new Set();
-const historyListeners: Set<HistoryListener> = new Set();
+function formatDuration(seconds: number): string {
+    if (seconds < 60) return `${seconds}s`;
+    const mins = Math.floor(seconds / 60);
+    const secs = seconds % 60;
+    return `${mins}:${String(secs).padStart(2, '0')}`;
+}
 
-// ─── CallService ──────────────────────────────────────────
+// ─── CallService ──────────────────────────────────────────────
 class CallServiceClass {
+    private currentUserId: string | null = null;
+    private signalChannel: RealtimeChannel | null = null;
+    private incomingCallCallback: ((signal: IncomingCallSignal) => void) | null = null;
     private activeCall: ActiveCall | null = null;
     private callTimer: ReturnType<typeof setInterval> | null = null;
-    private ringingTimeout: ReturnType<typeof setTimeout> | null = null;
 
-    async initialize(): Promise<void> {
-        const initialized = await AsyncStorage.getItem(KEYS.initialized);
-        if (!initialized) {
-            await AsyncStorage.setItem(KEYS.history, JSON.stringify(SEED_HISTORY));
-            await AsyncStorage.setItem(KEYS.initialized, 'true');
-        }
+    setCurrentUser(userId: string) {
+        this.currentUserId = userId;
     }
 
-    // ─── Call History ───────────────────────────────────────
+    // ─── Call History ─────────────────────────────────────────
     async getCallHistory(): Promise<CallEntry[]> {
-        await this.initialize();
-        const data = await AsyncStorage.getItem(KEYS.history);
-        return data ? JSON.parse(data) : [];
+        if (!this.currentUserId) return [];
+
+        const { data, error } = await supabase
+            .from('call_history')
+            .select(`
+                *,
+                caller:profiles!call_history_caller_id_fkey(display_name),
+                callee:profiles!call_history_callee_id_fkey(display_name)
+            `)
+            .or(`caller_id.eq.${this.currentUserId},callee_id.eq.${this.currentUserId}`)
+            .order('started_at', { ascending: false })
+            .limit(50);
+
+        if (error) {
+            console.error('Failed to fetch call history:', error.message);
+            return [];
+        }
+
+        return (data || []).map((entry: any) => ({
+            id: entry.id,
+            caller_id: entry.caller_id,
+            callee_id: entry.callee_id,
+            caller_name: entry.caller?.display_name || 'Unknown',
+            callee_name: entry.callee?.display_name || 'Unknown',
+            type: entry.type,
+            status: entry.status,
+            duration: entry.duration || 0,
+            started_at: entry.started_at,
+            ended_at: entry.ended_at,
+            incoming: entry.callee_id === this.currentUserId,
+            name: entry.caller_id === this.currentUserId
+                ? (entry.callee?.display_name || 'Unknown')
+                : (entry.caller?.display_name || 'Unknown'),
+            time: formatCallTime(entry.started_at),
+        }));
     }
 
-    private async addToHistory(entry: CallEntry): Promise<void> {
-        const history = await this.getCallHistory();
-        history.unshift(entry);
-        await AsyncStorage.setItem(KEYS.history, JSON.stringify(history));
-        historyListeners.forEach(l => l(history));
-    }
+    // ─── Start a Call ─────────────────────────────────────────
+    async startCall(calleeId: string, calleeName: string, type: CallType): Promise<ActiveCall> {
+        if (!this.currentUserId) throw new Error('Not authenticated');
 
-    // ─── Start Call ─────────────────────────────────────────
-    startCall(contactId: string, contactName: string, type: CallType): ActiveCall {
+        // Create call history record
+        const { data: historyEntry, error } = await supabase
+            .from('call_history')
+            .insert({
+                caller_id: this.currentUserId,
+                callee_id: calleeId,
+                type,
+                status: 'missed', // Will be updated on answer
+            })
+            .select()
+            .single();
+
+        if (error) throw error;
+
+        // Send call offer signal
+        await supabase
+            .from('call_signals')
+            .insert({
+                caller_id: this.currentUserId,
+                callee_id: calleeId,
+                type: 'offer',
+                payload: {
+                    call_history_id: historyEntry.id,
+                    call_type: type,
+                },
+            });
+
+        // Set up active call
         this.activeCall = {
-            contactId,
-            contactName,
+            id: historyEntry.id,
+            remoteUserId: calleeId,
+            remoteName: calleeName,
             type,
-            state: 'ringing',
-            startTime: Date.now(),
-            duration: 0,
             isMuted: false,
             isSpeaker: false,
-            isVideoOn: type === 'video',
+            isVideoEnabled: type === 'video',
+            duration: 0,
+            status: 'ringing',
         };
-        this.notifyStateListeners();
 
-        // Simulate: ringing → connecting → connected
-        this.ringingTimeout = setTimeout(() => {
-            if (this.activeCall) {
-                this.activeCall.state = 'connecting';
-                this.notifyStateListeners();
-
-                setTimeout(() => {
-                    if (this.activeCall) {
-                        this.activeCall.state = 'connected';
-                        this.activeCall.startTime = Date.now();
-                        this.notifyStateListeners();
-
-                        // Start call timer
-                        this.callTimer = setInterval(() => {
-                            if (this.activeCall && this.activeCall.state === 'connected') {
-                                this.activeCall.duration = Math.floor((Date.now() - this.activeCall.startTime) / 1000);
-                                this.notifyStateListeners();
-                            }
-                        }, 1000);
-                    }
-                }, 1500);
-            }
-        }, 3000);
-
-        return this.activeCall;
+        return { ...this.activeCall };
     }
 
-    // ─── End Call ───────────────────────────────────────────
+    // ─── Answer a Call ────────────────────────────────────────
+    async answerCall(callerId: string, callHistoryId: string, type: CallType): Promise<void> {
+        if (!this.currentUserId) return;
+
+        // Send answer signal
+        await supabase
+            .from('call_signals')
+            .insert({
+                caller_id: this.currentUserId,
+                callee_id: callerId,
+                type: 'answer',
+                payload: { call_history_id: callHistoryId },
+            });
+
+        // Update call history status
+        await supabase
+            .from('call_history')
+            .update({ status: 'completed' })
+            .eq('id', callHistoryId);
+
+        // Set up active call
+        this.activeCall = {
+            id: callHistoryId,
+            remoteUserId: callerId,
+            remoteName: '',
+            type,
+            isMuted: false,
+            isSpeaker: false,
+            isVideoEnabled: type === 'video',
+            duration: 0,
+            status: 'connected',
+        };
+
+        // Start duration timer
+        this.startCallTimer();
+    }
+
+    // ─── End a Call ───────────────────────────────────────────
     async endCall(): Promise<CallEntry | null> {
-        if (!this.activeCall) return null;
+        if (!this.activeCall || !this.currentUserId) return null;
 
-        const call = this.activeCall;
-        call.state = 'ended';
-        this.notifyStateListeners();
+        const callId = this.activeCall.id;
+        const duration = this.activeCall.duration;
 
-        // Cleanup timers
-        if (this.callTimer) clearInterval(this.callTimer);
-        if (this.ringingTimeout) clearTimeout(this.ringingTimeout);
-        this.callTimer = null;
-        this.ringingTimeout = null;
+        // Stop timer
+        this.stopCallTimer();
 
-        // Create history entry
-        const formatTime = () => {
-            const now = new Date();
-            const h = now.getHours();
-            const m = now.getMinutes().toString().padStart(2, '0');
-            const ampm = h >= 12 ? 'PM' : 'AM';
-            return `Today, ${h % 12 || 12}:${m} ${ampm}`;
+        // Send hangup signal
+        await supabase
+            .from('call_signals')
+            .insert({
+                caller_id: this.currentUserId,
+                callee_id: this.activeCall.remoteUserId,
+                type: 'hangup',
+                payload: { call_history_id: callId },
+            });
+
+        // Update call history
+        await supabase
+            .from('call_history')
+            .update({
+                ended_at: new Date().toISOString(),
+                duration,
+                status: duration > 0 ? 'completed' : 'missed',
+            })
+            .eq('id', callId);
+
+        const endedCall: CallEntry = {
+            id: callId,
+            caller_id: this.currentUserId,
+            callee_id: this.activeCall.remoteUserId,
+            type: this.activeCall.type,
+            status: duration > 0 ? 'completed' : 'missed',
+            duration,
+            started_at: new Date().toISOString(),
         };
 
-        const entry: CallEntry = {
-            id: `call_${Date.now()}`,
-            contactId: call.contactId,
-            contactName: call.contactName,
-            type: call.type,
-            direction: 'outgoing',
-            duration: call.duration,
-            time: formatTime(),
-            timestamp: Date.now(),
-        };
-
-        await this.addToHistory(entry);
         this.activeCall = null;
-
-        // Delayed cleanup notification
-        setTimeout(() => this.notifyStateListeners(), 500);
-
-        return entry;
+        return endedCall;
     }
 
-    // ─── Controls ───────────────────────────────────────────
+    // ─── Decline a Call ───────────────────────────────────────
+    async declineCall(callerId: string, callHistoryId: string): Promise<void> {
+        if (!this.currentUserId) return;
+
+        await supabase
+            .from('call_signals')
+            .insert({
+                caller_id: this.currentUserId,
+                callee_id: callerId,
+                type: 'reject',
+                payload: { call_history_id: callHistoryId },
+            });
+
+        await supabase
+            .from('call_history')
+            .update({ status: 'declined' })
+            .eq('id', callHistoryId);
+    }
+
+    // ─── Toggle Controls ──────────────────────────────────────
     toggleMute(): boolean {
-        if (this.activeCall) {
-            this.activeCall.isMuted = !this.activeCall.isMuted;
-            this.notifyStateListeners();
-            return this.activeCall.isMuted;
-        }
-        return false;
+        if (!this.activeCall) return false;
+        this.activeCall.isMuted = !this.activeCall.isMuted;
+        return this.activeCall.isMuted;
     }
 
     toggleSpeaker(): boolean {
-        if (this.activeCall) {
-            this.activeCall.isSpeaker = !this.activeCall.isSpeaker;
-            this.notifyStateListeners();
-            return this.activeCall.isSpeaker;
-        }
-        return false;
+        if (!this.activeCall) return false;
+        this.activeCall.isSpeaker = !this.activeCall.isSpeaker;
+        return this.activeCall.isSpeaker;
     }
 
     toggleVideo(): boolean {
-        if (this.activeCall) {
-            this.activeCall.isVideoOn = !this.activeCall.isVideoOn;
-            this.notifyStateListeners();
-            return this.activeCall.isVideoOn;
-        }
-        return false;
+        if (!this.activeCall) return false;
+        this.activeCall.isVideoEnabled = !this.activeCall.isVideoEnabled;
+        return this.activeCall.isVideoEnabled;
     }
 
     getActiveCall(): ActiveCall | null {
-        return this.activeCall;
+        return this.activeCall ? { ...this.activeCall } : null;
     }
 
-    // ─── Subscriptions ─────────────────────────────────────
-    onCallStateChange(listener: CallStateListener): () => void {
-        stateListeners.add(listener);
-        return () => { stateListeners.delete(listener); };
+    // ─── Call Signals Subscription ────────────────────────────
+    subscribeToIncomingCalls(callback: (signal: IncomingCallSignal) => void): () => void {
+        if (!this.currentUserId) return () => { };
+
+        this.incomingCallCallback = callback;
+
+        this.signalChannel = supabase
+            .channel(`call-signals:${this.currentUserId}`)
+            .on(
+                'postgres_changes',
+                {
+                    event: 'INSERT',
+                    schema: 'public',
+                    table: 'call_signals',
+                    filter: `callee_id=eq.${this.currentUserId}`,
+                },
+                async (payload) => {
+                    const signal = payload.new as any;
+
+                    if (signal.type === 'offer') {
+                        // Look up caller name
+                        const { data: callerProfile } = await supabase
+                            .from('profiles')
+                            .select('display_name')
+                            .eq('id', signal.caller_id)
+                            .single();
+
+                        callback({
+                            callerId: signal.caller_id,
+                            callerName: callerProfile?.display_name || 'Unknown',
+                            type: signal.payload?.call_type || 'voice',
+                        });
+                    } else if (signal.type === 'hangup') {
+                        // Remote ended the call
+                        if (this.activeCall) {
+                            await this.endCall();
+                        }
+                    } else if (signal.type === 'reject') {
+                        // Call was declined
+                        if (this.activeCall) {
+                            this.stopCallTimer();
+                            this.activeCall.status = 'ended';
+                        }
+                    } else if (signal.type === 'answer') {
+                        // Call was answered — start connected state
+                        if (this.activeCall) {
+                            this.activeCall.status = 'connected';
+                            this.startCallTimer();
+                        }
+                    }
+                }
+            )
+            .subscribe();
+
+        return () => {
+            if (this.signalChannel) {
+                supabase.removeChannel(this.signalChannel);
+                this.signalChannel = null;
+            }
+            this.incomingCallCallback = null;
+        };
     }
 
-    onHistoryChange(listener: HistoryListener): () => void {
-        historyListeners.add(listener);
-        return () => { historyListeners.delete(listener); };
+    // ─── Timer ────────────────────────────────────────────────
+    private startCallTimer() {
+        this.stopCallTimer();
+        this.callTimer = setInterval(() => {
+            if (this.activeCall) {
+                this.activeCall.duration += 1;
+            }
+        }, 1000);
     }
 
-    private notifyStateListeners(): void {
-        stateListeners.forEach(l => l(this.activeCall ? { ...this.activeCall } : null));
+    private stopCallTimer() {
+        if (this.callTimer) {
+            clearInterval(this.callTimer);
+            this.callTimer = null;
+        }
     }
 
-    // Format call duration nicely
-    formatDuration(seconds: number): string {
-        const m = Math.floor(seconds / 60);
-        const s = (seconds % 60).toString().padStart(2, '0');
-        return `${m}:${s}`;
+    // ─── Initialize (no-op, kept for compat) ──────────────────
+    async initialize(): Promise<void> {
+        // No-op — Supabase is always ready
+    }
+
+    // ─── Cleanup ──────────────────────────────────────────────
+    cleanup() {
+        this.stopCallTimer();
+        if (this.signalChannel) {
+            supabase.removeChannel(this.signalChannel);
+            this.signalChannel = null;
+        }
     }
 }
 
