@@ -7,8 +7,11 @@
 import { io } from 'socket.io-client';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import NetInfo from '@react-native-netinfo/';
-import { Audio } from 'expo-av';
-import * as FileSystem from 'expo-file-system';
+// Native-only modules — lazy-load to avoid web build crash
+let Audio = null;
+try { Audio = require('expo-av').Audio; } catch (e) { }
+let FileSystem = null;
+try { FileSystem = require('expo-file-system'); } catch (e) { }
 import { Platform } from 'react-native';
 
 // Import encryption utilities (placeholder for actual implementation)
@@ -59,7 +62,7 @@ class QuantumMessagingService {
     this.eventListeners = new Map();
     this.encryptionKeys = new Map();
     this.messageCache = new Map();
-    
+
     // Retry configuration
     this.retryConfig = {
       maxRetries: 5,
@@ -67,7 +70,7 @@ class QuantumMessagingService {
       maxDelay: 30000,
       backoffFactor: 2,
     };
-    
+
     this.initializeService();
   }
 
@@ -76,13 +79,13 @@ class QuantumMessagingService {
     try {
       // Load offline data
       await this.loadOfflineData();
-      
+
       // Setup network monitoring
       this.setupNetworkMonitoring();
-      
+
       // Initialize socket connection
       await this.initializeSocket();
-      
+
       console.log('QuantumMessaging service initialized');
     } catch (error) {
       console.error('Failed to initialize QuantumMessaging service:', error);
@@ -149,7 +152,7 @@ class QuantumMessagingService {
     NetInfo.addEventListener(state => {
       const wasOnline = this.isOnline;
       this.isOnline = state.isConnected;
-      
+
       if (!wasOnline && this.isOnline) {
         // Came back online
         this.handleConnectionRestored();
@@ -157,7 +160,7 @@ class QuantumMessagingService {
         // Went offline
         this.handleConnectionLost();
       }
-      
+
       this.emit('networkStatusChanged', { isOnline: this.isOnline });
     });
   }
@@ -168,8 +171,8 @@ class QuantumMessagingService {
       this.socket.disconnect();
     }
 
-    const serverUrl = __DEV__ 
-      ? 'http://localhost:3000' 
+    const serverUrl = __DEV__
+      ? 'http://localhost:3000'
       : 'wss://api.ndeip.com';
 
     this.socket = io(serverUrl, {
@@ -237,14 +240,14 @@ class QuantumMessagingService {
   // Authenticate user
   async authenticate(user) {
     this.currentUser = user;
-    
+
     if (this.socket && this.isConnected) {
       this.socket.emit('authenticate', {
         userId: user.id,
         token: user.token,
       });
     }
-    
+
     // Generate encryption keys if needed
     if (!this.encryptionKeys.has(user.id)) {
       const keyPair = await generateKeyPair();
@@ -288,7 +291,7 @@ class QuantumMessagingService {
 
       // Add to message queue for optimistic update
       this.messageQueue.set(message.id, message);
-      
+
       // Emit optimistic update
       this.emit('messageAdded', { message: { ...message } });
 
@@ -298,9 +301,9 @@ class QuantumMessagingService {
       } else {
         message.status = MESSAGE_STATUS.QUEUED;
         this.addToRetryQueue(message);
-        this.emit('messageStatusChanged', { 
-          messageId: message.id, 
-          status: MESSAGE_STATUS.QUEUED 
+        this.emit('messageStatusChanged', {
+          messageId: message.id,
+          status: MESSAGE_STATUS.QUEUED
         });
       }
 
@@ -308,8 +311,8 @@ class QuantumMessagingService {
     } catch (error) {
       console.error('Failed to send message:', error);
       message.status = MESSAGE_STATUS.FAILED;
-      this.emit('messageStatusChanged', { 
-        messageId: message.id, 
+      this.emit('messageStatusChanged', {
+        messageId: message.id,
         status: MESSAGE_STATUS.FAILED,
         error: error.message,
       });
@@ -331,7 +334,7 @@ class QuantumMessagingService {
 
       this.socket.emit('sendMessage', message, (response) => {
         clearTimeout(timeout);
-        
+
         if (response.success) {
           this.updateMessageStatus(message.id, MESSAGE_STATUS.SENT);
           this.messageQueue.delete(message.id);
@@ -347,7 +350,7 @@ class QuantumMessagingService {
   // Handle message send failure
   async handleMessageSendFailure(message, error) {
     console.error('Message send failed:', error);
-    
+
     if (this.shouldRetryMessage(message, error)) {
       this.addToRetryQueue(message);
     } else {
@@ -363,9 +366,9 @@ class QuantumMessagingService {
       'server_error',
       'rate_limit',
     ];
-    
+
     return message.retryCount < this.retryConfig.maxRetries &&
-           retryableErrors.some(e => error.includes(e));
+      retryableErrors.some(e => error.includes(e));
   }
 
   // Add message to retry queue
@@ -374,13 +377,13 @@ class QuantumMessagingService {
       this.retryConfig.baseDelay * Math.pow(this.retryConfig.backoffFactor, message.retryCount),
       this.retryConfig.maxDelay
     );
-    
+
     this.retryQueue.set(message.id, {
       ...message,
       retryCount: message.retryCount + 1,
       nextRetry: Date.now() + delay,
     });
-    
+
     this.scheduleRetry(message.id, delay);
     this.saveOfflineData();
   }
@@ -421,11 +424,11 @@ class QuantumMessagingService {
       } catch (error) {
         await this.handleMessageSendFailure(message, error.message);
       }
-      
+
       // Add small delay between messages to avoid overwhelming the server
       await new Promise(resolve => setTimeout(resolve, 100));
     }
-    
+
     await this.saveOfflineData();
   }
 
@@ -434,10 +437,10 @@ class QuantumMessagingService {
     try {
       // Compress audio
       const compressedUri = await this.compressAudio(audioUri);
-      
+
       // Upload to server
       const uploadResult = await uploadMedia(compressedUri, 'audio');
-      
+
       // Send message with audio URL
       return await this.sendMessage({
         audioUrl: uploadResult.url,
@@ -458,10 +461,10 @@ class QuantumMessagingService {
     try {
       // Compress media
       const compressedUri = await compressMedia(mediaUri, mediaType);
-      
+
       // Upload to server
       const uploadResult = await uploadMedia(compressedUri, mediaType);
-      
+
       // Send message with media URL
       const messageData = {
         [mediaType === 'image' ? 'imageUrl' : 'videoUrl']: uploadResult.url,
@@ -469,11 +472,11 @@ class QuantumMessagingService {
         size: uploadResult.size,
         dimensions: uploadResult.dimensions,
       };
-      
+
       if (options.caption) {
         messageData.caption = options.caption;
       }
-      
+
       return await this.sendMessage(messageData, {
         ...options,
         type: mediaType === 'image' ? MESSAGE_TYPES.IMAGE : MESSAGE_TYPES.VIDEO,
@@ -491,7 +494,7 @@ class QuantumMessagingService {
         fileName,
         mimeType,
       });
-      
+
       return await this.sendMessage({
         fileUrl: uploadResult.url,
         fileName,
@@ -524,19 +527,19 @@ class QuantumMessagingService {
   async handleIncomingMessage(messageData) {
     try {
       let message = { ...messageData };
-      
+
       // Decrypt message if needed
       if (message.encrypted) {
         message.content = await this.decryptMessageContent(message);
         message.encrypted = false;
       }
-      
+
       // Cache message
       this.messageCache.set(message.id, message);
-      
+
       // Emit to listeners
       this.emit('messageReceived', { message });
-      
+
       // Send delivery confirmation
       if (this.socket && this.isConnected) {
         this.socket.emit('messageDelivered', {
@@ -553,7 +556,7 @@ class QuantumMessagingService {
   // Handle message status update
   handleMessageStatusUpdate(data) {
     const { messageId, status, timestamp } = data;
-    
+
     this.emit('messageStatusChanged', {
       messageId,
       status,
@@ -564,11 +567,11 @@ class QuantumMessagingService {
   // Update message status
   updateMessageStatus(messageId, status) {
     const message = this.messageQueue.get(messageId) || this.messageCache.get(messageId);
-    
+
     if (message) {
       message.status = status;
       message.statusTimestamp = Date.now();
-      
+
       this.emit('messageStatusChanged', {
         messageId,
         status,
@@ -605,7 +608,7 @@ class QuantumMessagingService {
       if (!keys) {
         throw new Error('No encryption keys found for recipient');
       }
-      
+
       return await encryptMessage(JSON.stringify(message.content), keys.publicKey);
     } catch (error) {
       console.error('Failed to encrypt message:', error);
@@ -620,7 +623,7 @@ class QuantumMessagingService {
       if (!keys) {
         throw new Error('No encryption keys found for current user');
       }
-      
+
       const decrypted = await decryptMessage(message.content, keys.privateKey);
       return JSON.parse(decrypted);
     } catch (error) {
@@ -657,7 +660,7 @@ class QuantumMessagingService {
   // Get message history
   async getMessageHistory(chatId, options = {}) {
     const { limit = 50, before, after } = options;
-    
+
     try {
       if (this.socket && this.isConnected) {
         return new Promise((resolve, reject) => {
@@ -788,7 +791,7 @@ class QuantumMessagingService {
       this.socket.disconnect();
       this.socket = null;
     }
-    
+
     this.isConnected = false;
     this.eventListeners.clear();
     this.saveOfflineData();

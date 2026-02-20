@@ -24,8 +24,12 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons, MaterialIcons } from '@expo/vector-icons';
 import { PinchGestureHandler, PanGestureHandler, State } from 'react-native-gesture-handler';
-import * as MediaLibrary from 'expo-media-library';
-import * as FileSystem from 'expo-file-system';
+// expo-media-library is native-only; lazy-load to avoid web build crash
+let MediaLibrary = null;
+try { MediaLibrary = require('expo-media-library'); } catch (e) { }
+// expo-file-system is native-only; lazy-load to avoid web build crash
+let FileSystem = null;
+try { FileSystem = require('expo-file-system'); } catch (e) { }
 import Svg, {
   Circle,
   Path,
@@ -187,7 +191,7 @@ const QuantumGallery = ({
       // Load media
       await loadMedia();
       await loadAlbums();
-      
+
       if (enableAIAlbums) {
         await generateAIAlbums();
       }
@@ -245,7 +249,7 @@ const QuantumGallery = ({
           album: album.id,
           first: 1,
         });
-        
+
         if (coverAsset.assets.length > 0) {
           album.coverThumbnail = await generateMeshThumbnail(coverAsset.assets[0]);
         }
@@ -273,11 +277,11 @@ const QuantumGallery = ({
       });
 
       // Screenshots
-      const screenshots = media.filter(item => 
+      const screenshots = media.filter(item =>
         item.filename?.toLowerCase().includes('screenshot') ||
         item.width === screenWidth && item.height === screenHeight
       );
-      
+
       if (screenshots.length > 0) {
         aiCategories.push({
           id: 'screenshots',
@@ -363,7 +367,7 @@ const QuantumGallery = ({
   const handleMediaSelect = (item) => {
     if (multiSelect) {
       const newSelection = new Set(selectedMedia);
-      
+
       if (newSelection.has(item.id)) {
         newSelection.delete(item.id);
       } else if (newSelection.size < maxSelection) {
@@ -372,9 +376,9 @@ const QuantumGallery = ({
         Alert.alert('Selection Limit', `You can only select up to ${maxSelection} items.`);
         return;
       }
-      
+
       setSelectedMedia(newSelection);
-      
+
       if (newSelection.size === 0) {
         setIsSelectionMode(false);
       }
@@ -441,11 +445,11 @@ const QuantumGallery = ({
               for (const item of items) {
                 await MediaLibrary.deleteAssetsAsync([item]);
               }
-              
+
               setMedia(prev => prev.filter(m => !items.find(i => i.id === m.id)));
               setSelectedMedia(new Set());
               setIsSelectionMode(false);
-              
+
               if (onMediaDelete) {
                 onMediaDelete(items);
               }
@@ -544,8 +548,8 @@ const QuantumGallery = ({
   // Render media item
   const renderMediaItem = ({ item, index }) => {
     const isSelected = selectedMedia.has(item.id);
-    const itemSize = viewMode === VIEW_MODES.GRID ? 
-      (screenWidth - MeshSpacing.md * 4) / 3 : 
+    const itemSize = viewMode === VIEW_MODES.GRID ?
+      (screenWidth - MeshSpacing.md * 4) / 3 :
       screenWidth - MeshSpacing.md * 2;
 
     return (
@@ -605,7 +609,7 @@ const QuantumGallery = ({
             <Text style={[styles.headerTitle, { color: colors.text }]}>
               {isSelectionMode ? `${selectedMedia.size} Selected` : 'Gallery'}
             </Text>
-            
+
             <View style={styles.headerActions}>
               {isSelectionMode ? (
                 <>
@@ -614,10 +618,10 @@ const QuantumGallery = ({
                     onPress={handleBatchShare}
                     disabled={selectedMedia.size === 0}
                   >
-                    <Ionicons 
-                      name="share" 
-                      size={24} 
-                      color={selectedMedia.size > 0 ? colors.primary : colors.textSecondary} 
+                    <Ionicons
+                      name="share"
+                      size={24}
+                      color={selectedMedia.size > 0 ? colors.primary : colors.textSecondary}
                     />
                   </TouchableOpacity>
                   <TouchableOpacity
@@ -625,10 +629,10 @@ const QuantumGallery = ({
                     onPress={handleBatchDelete}
                     disabled={selectedMedia.size === 0}
                   >
-                    <Ionicons 
-                      name="trash" 
-                      size={24} 
-                      color={selectedMedia.size > 0 ? colors.accents.mutedRed : colors.textSecondary} 
+                    <Ionicons
+                      name="trash"
+                      size={24}
+                      color={selectedMedia.size > 0 ? colors.accents.mutedRed : colors.textSecondary}
                     />
                   </TouchableOpacity>
                   <TouchableOpacity
@@ -644,17 +648,17 @@ const QuantumGallery = ({
                     style={styles.headerAction}
                     onPress={() => setViewMode(viewMode === VIEW_MODES.GRID ? VIEW_MODES.LIST : VIEW_MODES.GRID)}
                   >
-                    <MaterialIcons 
-                      name={viewMode === VIEW_MODES.GRID ? "view-list" : "view-module"} 
-                      size={24} 
-                      color={colors.text} 
+                    <MaterialIcons
+                      name={viewMode === VIEW_MODES.GRID ? "view-list" : "view-module"}
+                      size={24}
+                      color={colors.text}
                     />
                   </TouchableOpacity>
-                  
+
                   <TouchableOpacity style={styles.headerAction}>
                     <Ionicons name="search" size={24} color={colors.text} />
                   </TouchableOpacity>
-                  
+
                   <TouchableOpacity style={styles.headerAction}>
                     <MaterialIcons name="more-vert" size={24} color={colors.text} />
                   </TouchableOpacity>
@@ -711,7 +715,7 @@ const QuantumGallery = ({
                 />
               </View>
             )}
-            
+
             <View style={styles.albumsSection}>
               <Text style={[styles.sectionTitle, { color: colors.text }]}>
                 My Albums
@@ -782,13 +786,13 @@ const QuantumGallery = ({
 };
 
 // Media grid item component
-const MediaGridItem = ({ 
-  media, 
-  size, 
-  isSelected, 
-  isSelectionMode, 
-  onPress, 
-  onLongPress, 
+const MediaGridItem = ({
+  media,
+  size,
+  isSelected,
+  isSelectionMode,
+  onPress,
+  onLongPress,
   onZoom,
   colors,
   timing,
@@ -819,7 +823,7 @@ const MediaGridItem = ({
         useNativeDriver: true,
       }),
     ]).start();
-    
+
     onPress();
   };
 
@@ -857,7 +861,7 @@ const MediaGridItem = ({
                 <Stop offset="100%" stopColor={colors.secondary} stopOpacity="0.3" />
               </SvgGradient>
             </Defs>
-            
+
             <Rect
               width={size}
               height={size}
@@ -939,11 +943,11 @@ const AlbumGridItem = ({ album, onPress, colors }) => (
             </View>
           )}
         </View>
-        
+
         <Text style={[styles.albumTitle, { color: colors.text }]} numberOfLines={1}>
           {album.title}
         </Text>
-        
+
         <Text style={[styles.albumCount, { color: colors.textSecondary }]}>
           {album.assetCount} items
         </Text>
@@ -1000,8 +1004,8 @@ const CloudSyncProgress = ({ progress, colors }) => (
 
 // Media filter tabs component
 const MediaFilterTabs = ({ activeFilter, onFilterChange, colors }) => (
-  <ScrollView 
-    horizontal 
+  <ScrollView
+    horizontal
     showsHorizontalScrollIndicator={false}
     contentContainerStyle={styles.filterTabs}
   >

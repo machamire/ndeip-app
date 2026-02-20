@@ -7,7 +7,9 @@
 import { RTCPeerConnection, RTCSessionDescription, RTCIceCandidate, mediaDevices } from 'react-native-webrtc';
 import { io } from 'socket.io-client';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { Audio } from 'expo-av';
+// expo-av is native-only; lazy-load to avoid web build crash
+let Audio = null;
+try { Audio = require('expo-av').Audio; } catch (e) { }
 import { Platform } from 'react-native';
 
 // Import encryption utilities
@@ -62,10 +64,10 @@ class WebRTCQuantumService {
     this.isRecording = false;
     this.currentUser = null;
     this.remoteUser = null;
-    
+
     // Event listeners
     this.eventListeners = new Map();
-    
+
     // Quality monitoring
     this.qualityMonitor = {
       interval: null,
@@ -78,7 +80,7 @@ class WebRTCQuantumService {
         frameRate: 0,
       },
     };
-    
+
     // Recording state
     this.recordingState = {
       isRecording: false,
@@ -88,7 +90,7 @@ class WebRTCQuantumService {
       startTime: null,
       duration: 0,
     };
-    
+
     // Audio processing
     this.audioProcessing = {
       noiseSuppressionEnabled: false,
@@ -97,7 +99,7 @@ class WebRTCQuantumService {
       audioContext: null,
       analyser: null,
     };
-    
+
     this.initializeService();
   }
 
@@ -115,8 +117,8 @@ class WebRTCQuantumService {
 
   // Setup socket connection for signaling
   async setupSocketConnection() {
-    const serverUrl = __DEV__ 
-      ? 'http://localhost:3000' 
+    const serverUrl = __DEV__
+      ? 'http://localhost:3000'
       : 'wss://api.ndeip.com';
 
     this.socket = io(serverUrl, {
@@ -299,7 +301,7 @@ class WebRTCQuantumService {
     this.peerConnection.onconnectionstatechange = () => {
       const state = this.peerConnection.connectionState;
       console.log('Connection state changed:', state);
-      
+
       switch (state) {
         case 'connected':
           this.callState = CALL_STATES.CONNECTED;
@@ -318,7 +320,7 @@ class WebRTCQuantumService {
           this.cleanup();
           break;
       }
-      
+
       this.emit('callStateChanged', { state: this.callState });
     };
 
@@ -427,9 +429,9 @@ class WebRTCQuantumService {
 
       const stats = await this.peerConnection.getStats();
       const metrics = this.parseRTCStats(stats);
-      
+
       this.qualityMonitor.stats = { ...this.qualityMonitor.stats, ...metrics };
-      
+
       // Emit quality update
       this.emit('qualityUpdate', {
         stats: this.qualityMonitor.stats,
@@ -462,16 +464,16 @@ class WebRTCQuantumService {
         metrics.packetsLost = report.packetsLost || 0;
         metrics.jitter = report.jitter || 0;
         metrics.frameRate = report.framesPerSecond || 0;
-        
+
         if (report.frameWidth && report.frameHeight) {
           metrics.resolution = `${report.frameWidth}x${report.frameHeight}`;
         }
       }
-      
+
       if (report.type === 'candidate-pair' && report.state === 'succeeded') {
         metrics.rtt = report.currentRoundTripTime * 1000 || 0;
       }
-      
+
       if (report.type === 'outbound-rtp') {
         const bitrate = report.bytesSent * 8 / report.timestamp * 1000;
         metrics.bitrate = bitrate || 0;
@@ -484,7 +486,7 @@ class WebRTCQuantumService {
   // Calculate quality level based on metrics
   calculateQualityLevel(metrics) {
     const { packetsLost, rtt, bitrate } = metrics;
-    
+
     if (packetsLost > 5 || rtt > 300 || bitrate < 100000) {
       return 'poor';
     } else if (packetsLost > 2 || rtt > 150 || bitrate < 500000) {
@@ -530,7 +532,7 @@ class WebRTCQuantumService {
   async setQuality(quality) {
     try {
       this.qualityLevel = quality;
-      
+
       if (this.localStream) {
         const videoTrack = this.localStream.getVideoTracks()[0];
         if (videoTrack) {
@@ -579,7 +581,7 @@ class WebRTCQuantumService {
   async enableNoiseSuppression(enabled) {
     try {
       this.audioProcessing.noiseSuppressionEnabled = enabled;
-      
+
       if (this.localStream) {
         const audioTrack = this.localStream.getAudioTracks()[0];
         if (audioTrack) {
@@ -827,8 +829,8 @@ class WebRTCQuantumService {
       qualityLevel: this.qualityLevel,
       qualityStats: this.qualityMonitor.stats,
       isRecording: this.recordingState.isRecording,
-      recordingDuration: this.recordingState.isRecording 
-        ? Date.now() - this.recordingState.startTime 
+      recordingDuration: this.recordingState.isRecording
+        ? Date.now() - this.recordingState.startTime
         : 0,
     };
   }

@@ -25,8 +25,12 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons, MaterialIcons } from '@expo/vector-icons';
 import { PinchGestureHandler, PanGestureHandler, RotationGestureHandler } from 'react-native-gesture-handler';
-import * as ImageManipulator from 'expo-image-manipulator';
-import * as FileSystem from 'expo-file-system';
+// expo-image-manipulator is native-only; lazy-load to avoid web build crash
+let ImageManipulator = null;
+try { ImageManipulator = require('expo-image-manipulator'); } catch (e) { }
+// expo-file-system is native-only; lazy-load to avoid web build crash
+let FileSystem = null;
+try { FileSystem = require('expo-file-system'); } catch (e) { }
 import Svg, {
   Circle,
   Path,
@@ -229,10 +233,10 @@ const MediaEditor = ({
   // Handle filter application
   const handleFilterApply = async (filter) => {
     if (filter === activeFilter) return;
-    
+
     setActiveFilter(filter);
     setHasChanges(true);
-    
+
     if (filter !== MESH_FILTERS.NONE) {
       await applyMeshFilter(filter);
     }
@@ -247,7 +251,7 @@ const MediaEditor = ({
       // In a real implementation, this would apply the actual filter
       // For now, we'll simulate the process
       await new Promise(resolve => setTimeout(resolve, 1000));
-      
+
       // Here you would use image processing libraries to apply mesh effects
       const processedImage = await ImageManipulator.manipulateAsync(
         editedImage,
@@ -259,7 +263,7 @@ const MediaEditor = ({
       );
 
       setEditedImage(processedImage.uri);
-      
+
     } catch (error) {
       console.error('Failed to apply filter:', error);
       Alert.alert('Error', 'Failed to apply filter');
@@ -282,15 +286,15 @@ const MediaEditor = ({
   const applyAdjustments = async () => {
     try {
       setIsProcessing(true);
-      
+
       const actions = [];
-      
+
       // Convert adjustments to ImageManipulator actions
       if (adjustments.brightness !== 0) {
         // Note: expo-image-manipulator has limited built-in adjustments
         // In a real app, you'd use a more powerful image processing library
       }
-      
+
       const result = await ImageManipulator.manipulateAsync(
         editedImage,
         actions,
@@ -301,7 +305,7 @@ const MediaEditor = ({
       );
 
       setEditedImage(result.uri);
-      
+
     } catch (error) {
       console.error('Failed to apply adjustments:', error);
       Alert.alert('Error', 'Failed to apply adjustments');
@@ -314,13 +318,13 @@ const MediaEditor = ({
   const handleCrop = async (preset) => {
     try {
       setIsProcessing(true);
-      
+
       let cropRect = { ...cropData };
-      
+
       if (preset !== CROP_PRESETS.ORIGINAL) {
         const aspectRatio = getCropAspectRatio(preset);
         const imageAspect = media.width / media.height;
-        
+
         if (aspectRatio > imageAspect) {
           // Crop height
           const newHeight = media.width / aspectRatio;
@@ -363,7 +367,7 @@ const MediaEditor = ({
       setEditedImage(result.uri);
       setCropData(cropRect);
       setHasChanges(true);
-      
+
     } catch (error) {
       console.error('Failed to crop image:', error);
       Alert.alert('Error', 'Failed to crop image');
@@ -376,7 +380,7 @@ const MediaEditor = ({
   const handleRotate = async (degrees) => {
     try {
       setIsProcessing(true);
-      
+
       const result = await ImageManipulator.manipulateAsync(
         editedImage,
         [{ rotate: degrees }],
@@ -389,7 +393,7 @@ const MediaEditor = ({
       setEditedImage(result.uri);
       setRotation(prev => prev + degrees);
       setHasChanges(true);
-      
+
     } catch (error) {
       console.error('Failed to rotate image:', error);
       Alert.alert('Error', 'Failed to rotate image');
@@ -409,7 +413,7 @@ const MediaEditor = ({
         x: screenWidth / 2,
         y: screenHeight / 2,
       };
-      
+
       setTextOverlays(prev => [...prev, newTextOverlay]);
       setCurrentText('');
       setShowTextModal(false);
@@ -453,7 +457,7 @@ const MediaEditor = ({
       }
 
       navigation.goBack();
-      
+
     } catch (error) {
       console.error('Failed to save media:', error);
       Alert.alert('Error', 'Failed to save edited media');
@@ -608,7 +612,7 @@ const MediaEditor = ({
                 <Stop offset="50%" stopColor="#0A71EF" stopOpacity="0.6" />
                 <Stop offset="100%" stopColor="#320096" stopOpacity="0.4" />
               </SvgGradient>
-              
+
               <Pattern id="crystallinePattern" x="0" y="0" width="30" height="30" patternUnits="userSpaceOnUse">
                 <Polygon
                   points="0,15 15,0 30,15 15,30"
@@ -620,9 +624,9 @@ const MediaEditor = ({
                 <Circle cx="15" cy="15" r="2" fill="#0A71EF" opacity="0.4" />
               </Pattern>
             </Defs>
-            
+
             <Rect width="100%" height="100%" fill="url(#crystallinePattern)" />
-            
+
             {meshPattern.connections?.slice(0, 15).map((connection, index) => (
               <AnimatedPath
                 key={index}
@@ -647,7 +651,7 @@ const MediaEditor = ({
                 <Stop offset="100%" stopColor="#00F5FF" stopOpacity="0.6" />
               </SvgGradient>
             </Defs>
-            
+
             {/* Vertical lines */}
             {Array.from({ length: 12 }, (_, index) => (
               <AnimatedPath
@@ -661,7 +665,7 @@ const MediaEditor = ({
                 })}
               />
             ))}
-            
+
             {/* Horizontal lines */}
             {Array.from({ length: 8 }, (_, index) => (
               <AnimatedPath
@@ -687,12 +691,12 @@ const MediaEditor = ({
                 <Stop offset="100%" stopColor="#00F5FF" stopOpacity="0.4" />
               </SvgGradient>
             </Defs>
-            
+
             {Array.from({ length: 50 }, (_, index) => {
               const x = (index * 50) % screenWidth;
               const y = (index * 30) % screenHeight;
               const radius = 2 + (index % 3);
-              
+
               return (
                 <AnimatedCircle
                   key={index}
@@ -767,10 +771,10 @@ const MediaEditor = ({
                 style={styles.editImage}
                 resizeMode="contain"
               />
-              
+
               {/* Mesh filter overlay */}
               {renderMeshFilterOverlay()}
-              
+
               {/* Text overlays */}
               {textOverlays.map((overlay) => (
                 <TouchableOpacity
@@ -797,7 +801,7 @@ const MediaEditor = ({
                   </Text>
                 </TouchableOpacity>
               ))}
-              
+
               {/* Crop overlay */}
               {activeTool === EDIT_TOOLS.CROP && (
                 <CropOverlay
@@ -875,19 +879,19 @@ const MediaEditor = ({
     switch (activeTool) {
       case EDIT_TOOLS.FILTERS:
         return <FiltersPanel activeFilter={activeFilter} onFilterSelect={handleFilterApply} colors={colors} />;
-      
+
       case EDIT_TOOLS.ADJUST:
         return <AdjustmentsPanel adjustments={adjustments} onAdjustmentChange={handleAdjustmentChange} colors={colors} />;
-      
+
       case EDIT_TOOLS.CROP:
         return <CropPanel onCropSelect={handleCrop} colors={colors} />;
-      
+
       case EDIT_TOOLS.ROTATE:
         return <RotatePanel onRotate={handleRotate} colors={colors} />;
 
       case EDIT_TOOLS.TEXT:
         return <TextPanel onAddText={() => setShowTextModal(true)} colors={colors} />;
-      
+
       default:
         return null;
     }
@@ -933,7 +937,7 @@ const MediaEditor = ({
         <View style={styles.modalOverlay}>
           <FloatingCard style={styles.textModal}>
             <Text style={[styles.modalTitle, { color: colors.text }]}>Add Text</Text>
-            
+
             <TextInput
               style={[styles.textInput, { color: colors.text, borderColor: colors.border }]}
               value={currentText}
@@ -941,8 +945,8 @@ const MediaEditor = ({
               placeholder="Enter text..."
               placeholderTextColor={colors.textSecondary}
               multiline={true}
-              autoFocus={true}/>
-            
+              autoFocus={true} />
+
             <View style={styles.colorPicker}>
               <Text style={[styles.inputLabel, { color: colors.text }]}>Text Color</Text>
               <ScrollView horizontal showsHorizontalScrollIndicator={false}>
@@ -982,7 +986,7 @@ const MediaEditor = ({
               >
                 <Text style={[styles.modalButtonText, { color: colors.text }]}>Cancel</Text>
               </TouchableOpacity>
-              
+
               <TouchableOpacity
                 style={[styles.modalButton, { backgroundColor: colors.primary }]}
                 onPress={handleAddText}
@@ -1082,10 +1086,10 @@ const AdjustmentsPanel = ({ adjustments, onAdjustmentChange, colors }) => (
           </View>
         </View>
       ))}
-      
+
       <TouchableOpacity
         style={[styles.applyButton, { backgroundColor: colors.electricBlue }]}
-        onPress={() => {}}
+        onPress={() => { }}
       >
         <Text style={[styles.applyButtonText, { color: colors.crystallineWhite }]}>
           Apply Changes
@@ -1130,7 +1134,7 @@ const RotatePanel = ({ onRotate, colors }) => (
         <MaterialIcons name="rotate-left" size={24} color={colors.text} />
         <Text style={[styles.rotateText, { color: colors.text }]}>90° Left</Text>
       </TouchableOpacity>
-      
+
       <TouchableOpacity
         style={[styles.rotateButton, { backgroundColor: colors.surface }]}
         onPress={() => onRotate(90)}
@@ -1138,7 +1142,7 @@ const RotatePanel = ({ onRotate, colors }) => (
         <MaterialIcons name="rotate-right" size={24} color={colors.text} />
         <Text style={[styles.rotateText, { color: colors.text }]}>90° Right</Text>
       </TouchableOpacity>
-      
+
       <TouchableOpacity
         style={[styles.rotateButton, { backgroundColor: colors.surface }]}
         onPress={() => onRotate(180)}
@@ -1191,7 +1195,7 @@ const CropOverlay = ({ cropData, onCropChange, colors }) => {
             <Stop offset="100%" stopColor={colors.electricBlue} stopOpacity="0.1" />
           </SvgGradient>
         </Defs>
-        
+
         {/* Crop frame */}
         <Rect
           x={cropData.originX}
@@ -1203,7 +1207,7 @@ const CropOverlay = ({ cropData, onCropChange, colors }) => {
           strokeWidth="2"
           strokeDasharray="5,5"
         />
-        
+
         {/* Corner handles */}
         {[
           { x: cropData.originX, y: cropData.originY },
@@ -1231,7 +1235,7 @@ const renderFilterPreview = (filter, colors) => {
   switch (filter) {
     case MESH_FILTERS.NONE:
       return <View style={[styles.noFilterPreview, { backgroundColor: colors.surface }]} />;
-    
+
     case MESH_FILTERS.CRYSTALLINE:
       return (
         <Svg width={40} height={40}>
@@ -1243,7 +1247,7 @@ const renderFilterPreview = (filter, colors) => {
           <Circle cx="20" cy="20" r="3" fill={colors.electricBlue} />
         </Svg>
       );
-    
+
     case MESH_FILTERS.NEON_GRID:
       return (
         <Svg width={40} height={40}>
@@ -1265,7 +1269,7 @@ const renderFilterPreview = (filter, colors) => {
           ))}
         </Svg>
       );
-    
+
     default:
       return (
         <View style={[styles.defaultFilterPreview, { backgroundColor: colors.primary }]}>
@@ -1278,7 +1282,7 @@ const renderFilterPreview = (filter, colors) => {
 // Helper function to get crop preview style
 const getCropPreviewStyle = (ratio) => {
   const baseSize = 40;
-  
+
   switch (ratio) {
     case '1:1':
       return { width: baseSize, height: baseSize };
@@ -1386,7 +1390,7 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(0, 0, 0, 0.95)',
     paddingVertical: MeshSpacing.md,
   },
-  
+
   // Modal styles
   modalOverlay: {
     flex: 1,
@@ -1456,7 +1460,7 @@ const styles = StyleSheet.create({
     fontWeight: MeshTypography.weights.medium,
     fontFamily: MeshTypography.families.primary,
   },
-  
+
   // Processing overlay
   processingOverlay: {
     backgroundColor: 'rgba(0, 0, 0, 0.9)',
@@ -1472,7 +1476,7 @@ const styles = StyleSheet.create({
     fontFamily: MeshTypography.families.primary,
     marginTop: MeshSpacing.md,
   },
-  
+
   // Panel styles
   filtersPanel: {
     paddingHorizontal: MeshSpacing.md,
@@ -1519,7 +1523,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  
+
   // Adjustments panel
   adjustmentsPanel: {
     paddingHorizontal: MeshSpacing.md,
@@ -1557,7 +1561,7 @@ const styles = StyleSheet.create({
     fontWeight: MeshTypography.weights.medium,
     fontFamily: MeshTypography.families.primary,
   },
-  
+
   // Crop panel
   cropPanel: {
     paddingHorizontal: MeshSpacing.md,
@@ -1589,7 +1593,7 @@ const styles = StyleSheet.create({
     fontFamily: MeshTypography.families.primary,
     textAlign: 'center',
   },
-  
+
   // Rotate panel
   rotatePanel: {
     paddingHorizontal: MeshSpacing.md,
@@ -1612,7 +1616,7 @@ const styles = StyleSheet.create({
     fontFamily: MeshTypography.families.primary,
     marginTop: MeshSpacing.xs,
   },
-  
+
   // Text panel
   textPanel: {
     paddingHorizontal: MeshSpacing.md,
@@ -1632,7 +1636,7 @@ const styles = StyleSheet.create({
     fontFamily: MeshTypography.families.primary,
     marginLeft: MeshSpacing.sm,
   },
-  
+
   // Error state
   errorText: {
     fontSize: MeshTypography.sizes.lg,

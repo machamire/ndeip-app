@@ -13,7 +13,9 @@ import {
   Text,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
-import { Audio } from 'expo-av';
+// expo-av is native-only; lazy-load to avoid web build crash
+let Audio = null;
+try { Audio = require('expo-av').Audio; } catch (e) { }
 import Svg, {
   Circle,
   Path,
@@ -94,7 +96,7 @@ const CallConnecting = ({
     initializeConnectionSequence();
     generateMeshNodes();
     generateConnectionParticles();
-    
+
     if (visualizeAudio) {
       generateAudioWaveData();
     }
@@ -170,13 +172,13 @@ const CallConnecting = ({
   // Animate to specific stage
   const animateToStage = (stageIndex) => {
     const progress = (stageIndex + 1) / connectionStages.length;
-    
+
     Animated.timing(progressAnimation, {
       toValue: progress,
       duration: timing.normal,
       useNativeDriver: false,
     }).start();
-    
+
     setProgressValue(progress);
 
     // Handle completion
@@ -201,7 +203,7 @@ const CallConnecting = ({
       const angle = (i / nodeCount) * 2 * Math.PI;
       const x = centerX + Math.cos(angle) * radius;
       const y = centerY + Math.sin(angle) * radius;
-      
+
       nodes.push({
         id: i,
         x,
@@ -217,7 +219,7 @@ const CallConnecting = ({
     nodes.forEach((node, index) => {
       const nextIndex = (index + 1) % nodes.length;
       const oppositeIndex = (index + Math.floor(nodeCount / 2)) % nodes.length;
-      
+
       node.connections = [
         nodes[nextIndex],
         nodes[oppositeIndex],
@@ -231,7 +233,7 @@ const CallConnecting = ({
   const generateConnectionParticles = () => {
     const particles = [];
     const particleCount = 8;
-    
+
     for (let i = 0; i < particleCount; i++) {
       particles.push({
         id: i,
@@ -252,7 +254,7 @@ const CallConnecting = ({
   const generateAudioWaveData = () => {
     const waveData = [];
     const waveCount = 20;
-    
+
     for (let i = 0; i < waveCount; i++) {
       waveData.push({
         id: i,
@@ -278,7 +280,7 @@ const CallConnecting = ({
           <Stop offset="50%" stopColor={colors.secondary} stopOpacity="1" />
           <Stop offset="100%" stopColor={colors.primary} stopOpacity="0.6" />
         </SvgGradient>
-        
+
         <SvgGradient id="connectionGradient" x1="0%" y1="0%" x2="100%" y2="0%">
           <Stop offset="0%" stopColor={colors.primary} stopOpacity="0.3" />
           <Stop offset="50%" stopColor={colors.secondary} stopOpacity="0.8" />
@@ -292,11 +294,9 @@ const CallConnecting = ({
           {node.connections.map((connection, connIndex) => (
             <AnimatedPath
               key={`connection-${node.id}-${connIndex}`}
-              d={`M ${node.x} ${node.y} Q ${
-                (node.x + connection.x) / 2 + Math.sin(meshAnimation._value * Math.PI) * 20
-              } ${
-                (node.y + connection.y) / 2 + Math.cos(meshAnimation._value * Math.PI) * 20
-              } ${connection.x} ${connection.y}`}
+              d={`M ${node.x} ${node.y} Q ${(node.x + connection.x) / 2 + Math.sin(meshAnimation._value * Math.PI) * 20
+                } ${(node.y + connection.y) / 2 + Math.cos(meshAnimation._value * Math.PI) * 20
+                } ${connection.x} ${connection.y}`}
               stroke="url(#meshGradient)"
               strokeWidth="2"
               fill="none"
@@ -310,7 +310,7 @@ const CallConnecting = ({
               })}
             />
           ))}
-          
+
           {/* Mesh nodes */}
           <AnimatedCircle
             cx={node.x}
@@ -340,10 +340,10 @@ const CallConnecting = ({
       {connectionParticles.map((particle, index) => {
         const progress = particleAnimation._value || 0;
         const adjustedProgress = (progress + particle.delay / 1000) % 1;
-        
+
         const x = particle.startX + (particle.endX - particle.startX) * adjustedProgress * particle.speed;
         const y = particle.startY + Math.sin(adjustedProgress * Math.PI * 2) * 30;
-        
+
         const opacity = Math.sin(adjustedProgress * Math.PI) * 0.8;
 
         return (
@@ -421,9 +421,8 @@ const CallConnecting = ({
       </Defs>
 
       <AnimatedPath
-        d={`M ${screenWidth * 0.2} ${screenHeight / 2} Q ${screenWidth / 2} ${
-          screenHeight / 2 - 50
-        } ${screenWidth * 0.8} ${screenHeight / 2}`}
+        d={`M ${screenWidth * 0.2} ${screenHeight / 2} Q ${screenWidth / 2} ${screenHeight / 2 - 50
+          } ${screenWidth * 0.8} ${screenHeight / 2}`}
         stroke="url(#connectionLineGradient)"
         strokeWidth="4"
         fill="none"
@@ -470,7 +469,7 @@ const CallConnecting = ({
         <Text style={[styles.progressLabel, { color: colors.crystallineWhite }]}>
           {currentStageData?.label || 'Connecting...'}
         </Text>
-        
+
         <View style={[styles.progressBar, { backgroundColor: getDynamicColor(colors.crystallineWhite, 0.2) }]}>
           <Animated.View
             style={[
@@ -485,7 +484,7 @@ const CallConnecting = ({
             ]}
           />
         </View>
-        
+
         <Text style={[styles.progressPercent, { color: colors.crystallineWhite }]}>
           {Math.round(progressValue * 100)}%
         </Text>
@@ -736,8 +735,8 @@ export const VideoCallConnecting = (props) => (
 );
 
 export const GroupCallConnecting = ({ participants, ...props }) => (
-  <CallConnecting 
-    {...props} 
+  <CallConnecting
+    {...props}
     caller={{ name: `${participants?.length || 0} participants` }}
     receiver={{ name: 'Group Call' }}
   />

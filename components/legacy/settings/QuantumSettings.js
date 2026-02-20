@@ -24,9 +24,13 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons, MaterialIcons, Feather } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import * as Notifications from 'expo-notifications';
-import * as LocalAuthentication from 'expo-local-authentication';
-import * as Haptics from 'expo-haptics';
+let Notifications = null;
+try { Notifications = require('expo-notifications'); } catch (e) { }
+// expo-local-authentication is native-only; lazy-load to avoid web build crash
+let LocalAuthentication = null;
+try { LocalAuthentication = require('expo-local-authentication'); } catch (e) { }
+let Haptics = null;
+try { Haptics = require('expo-haptics'); } catch (e) { }
 import { BlurView } from 'expo-blur';
 
 import CrystallineMesh from '../../components/ndeip/CrystallineMesh';
@@ -131,7 +135,7 @@ const SETTINGS_ITEMS = {
     type: 'navigation',
     screen: 'TwoFactorAuth',
   },
-  
+
   // Notifications section
   notifications: {
     section: 'notifications',
@@ -171,7 +175,7 @@ const SETTINGS_ITEMS = {
     screen: 'NotificationSounds',
     dependsOn: 'messageNotifications',
   },
-  
+
   // Privacy section
   lastSeen: {
     section: 'privacy',
@@ -214,7 +218,7 @@ const SETTINGS_ITEMS = {
     type: 'navigation',
     screen: 'BlockedContacts',
   },
-  
+
   // Chat section
   enterToSend: {
     section: 'chat',
@@ -253,7 +257,7 @@ const SETTINGS_ITEMS = {
     type: 'navigation',
     screen: 'ChatBackup',
   },
-  
+
   // Calls section
   callsTab: {
     section: 'calls',
@@ -282,7 +286,7 @@ const SETTINGS_ITEMS = {
     key: 'lowDataMode',
     defaultValue: false,
   },
-  
+
   // Appearance section
   darkMode: {
     section: 'appearance',
@@ -313,7 +317,7 @@ const SETTINGS_ITEMS = {
     type: 'navigation',
     screen: 'ChatWallpaper',
   },
-  
+
   // Storage section
   storageUsage: {
     section: 'storage',
@@ -340,7 +344,7 @@ const SETTINGS_ITEMS = {
     action: 'clearCache',
     confirmRequired: true,
   },
-  
+
   // Advanced section
   developerMode: {
     section: 'advanced',
@@ -384,7 +388,7 @@ const SETTINGS_ITEMS = {
 const QuantumSettings = ({ navigation }) => {
   const { colors, isDark } = useMeshColors();
   const { timing } = useMeshAnimations();
-  
+
   // State management
   const [activeSection, setActiveSection] = useState(null);
   const [searchQuery, setSearchQuery] = useState('');
@@ -392,61 +396,61 @@ const QuantumSettings = ({ navigation }) => {
   const [settings, setSettings] = useState({});
   const [isLoading, setIsLoading] = useState(true);
   const [meshPattern, setMeshPattern] = useState(null);
-  
+
   // Animation refs
   const searchAnimation = useRef(new Animated.Value(0)).current;
   const sectionAnimation = useRef(new Animated.Value(0)).current;
   const meshAnimation = useRef(new Animated.Value(0)).current;
   const scrollViewRef = useRef(null);
-  
+
   // Initialize settings
   useEffect(() => {
     loadSettings();
     generateMeshPattern();
     startMeshAnimation();
   }, []);
-  
+
   // Load settings from storage
   const loadSettings = async () => {
     try {
       const savedSettings = await AsyncStorage.getItem('app_settings');
       const defaultSettings = {};
-      
+
       // Set default values
       Object.entries(SETTINGS_ITEMS).forEach(([key, item]) => {
         if (item.type === 'toggle' || item.type === 'slider') {
           defaultSettings[item.key] = item.defaultValue;
         }
       });
-      
+
       if (savedSettings) {
         setSettings({ ...defaultSettings, ...JSON.parse(savedSettings) });
       } else {
         setSettings(defaultSettings);
       }
-      
+
     } catch (error) {
       console.error('Failed to load settings:', error);
     } finally {
       setIsLoading(false);
     }
   };
-  
+
   // Save settings to storage
   const saveSettings = async (newSettings) => {
     try {
       const updatedSettings = { ...settings, ...newSettings };
       setSettings(updatedSettings);
       await AsyncStorage.setItem('app_settings', JSON.stringify(updatedSettings));
-      
+
       // Trigger haptic feedback
       Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-      
+
     } catch (error) {
       console.error('Failed to save settings:', error);
     }
   };
-  
+
   // Generate mesh pattern for settings visualization
   const generateMeshPattern = () => {
     const pattern = {
@@ -461,7 +465,7 @@ const QuantumSettings = ({ navigation }) => {
         intensity: 0.5,
       })),
     };
-    
+
     // Create connections between related sections
     const relationships = [
       ['account', 'privacy'],
@@ -470,11 +474,11 @@ const QuantumSettings = ({ navigation }) => {
       ['appearance', 'advanced'],
       ['storage', 'advanced'],
     ];
-    
+
     relationships.forEach(([from, to]) => {
       const fromSection = pattern.sections.find(s => s.id === from);
       const toSection = pattern.sections.find(s => s.id === to);
-      
+
       if (fromSection && toSection) {
         pattern.connections.push({
           from: fromSection,
@@ -484,10 +488,10 @@ const QuantumSettings = ({ navigation }) => {
         });
       }
     });
-    
+
     setMeshPattern(pattern);
   };
-  
+
   // Start mesh animation
   const startMeshAnimation = () => {
     Animated.loop(
@@ -505,11 +509,11 @@ const QuantumSettings = ({ navigation }) => {
       ])
     ).start();
   };
-  
+
   // Handle section selection
   const handleSectionSelect = (sectionId) => {
     setActiveSection(activeSection === sectionId ? null : sectionId);
-    
+
     // Update mesh pattern
     if (meshPattern) {
       const updatedPattern = {
@@ -524,10 +528,10 @@ const QuantumSettings = ({ navigation }) => {
           active: conn.from.id === sectionId || conn.to.id === sectionId,
         })),
       };
-      
+
       setMeshPattern(updatedPattern);
     }
-    
+
     // Animate section expansion
     Animated.spring(sectionAnimation, {
       toValue: activeSection === sectionId ? 0 : 1,
@@ -535,21 +539,21 @@ const QuantumSettings = ({ navigation }) => {
       friction: 8,
       useNativeDriver: true,
     }).start();
-    
+
     // Trigger haptic feedback
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
   };
-  
+
   // Handle setting toggle
   const handleToggle = (item, value) => {
     saveSettings({ [item.key]: value });
-    
+
     // Update mesh visualization based on setting change
     if (item.key === 'meshIntensity') {
       updateMeshIntensity(value);
     }
   };
-  
+
   // Handle setting action
   const handleAction = (item) => {
     switch (item.action) {
@@ -563,11 +567,11 @@ const QuantumSettings = ({ navigation }) => {
           ]
         );
         break;
-        
+
       case 'exportData':
         exportUserData();
         break;
-        
+
       case 'resetApp':
         Alert.alert(
           'Reset App',
@@ -580,7 +584,7 @@ const QuantumSettings = ({ navigation }) => {
         break;
     }
   };
-  
+
   // Clear cache action
   const clearCache = async () => {
     try {
@@ -591,7 +595,7 @@ const QuantumSettings = ({ navigation }) => {
       Alert.alert('Error', 'Failed to clear cache');
     }
   };
-  
+
   // Export user data
   const exportUserData = async () => {
     try {
@@ -600,17 +604,17 @@ const QuantumSettings = ({ navigation }) => {
         exportedAt: new Date().toISOString(),
         version: '1.0.0',
       };
-      
+
       await Share.share({
         message: JSON.stringify(userData, null, 2),
         title: 'ndeip Data Export',
       });
-      
+
     } catch (error) {
       Alert.alert('Error', 'Failed to export data');
     }
   };
-  
+
   // Reset app action
   const resetApp = async () => {
     try {
@@ -621,7 +625,7 @@ const QuantumSettings = ({ navigation }) => {
       Alert.alert('Error', 'Failed to reset app');
     }
   };
-  
+
   // Update mesh intensity
   const updateMeshIntensity = (intensity) => {
     if (meshPattern) {
@@ -633,15 +637,15 @@ const QuantumSettings = ({ navigation }) => {
           intensity: (intensity / 100) * (section.active ? 1 : 0.5),
         })),
       };
-      
+
       setMeshPattern(updatedPattern);
     }
   };
-  
+
   // Handle search
   const handleSearch = (query) => {
     setSearchQuery(query);
-    
+
     if (query.length > 0 && !searchActive) {
       setSearchActive(true);
       Animated.timing(searchAnimation, {
@@ -658,34 +662,34 @@ const QuantumSettings = ({ navigation }) => {
       }).start();
     }
   };
-  
+
   // Filter settings based on search
   const filteredSections = Object.keys(SETTINGS_SECTIONS).filter(sectionId => {
     if (!searchQuery) return true;
-    
+
     const section = SETTINGS_SECTIONS[sectionId];
     const sectionItems = Object.values(SETTINGS_ITEMS).filter(item => item.section === sectionId);
-    
+
     return (
       section.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
       section.description.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      sectionItems.some(item => 
+      sectionItems.some(item =>
         item.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
         item.subtitle?.toLowerCase().includes(searchQuery.toLowerCase())
       )
     );
   });
-  
+
   // Check if setting is dependent and should be disabled
   const isSettingDisabled = (item) => {
     if (!item.dependsOn) return false;
     return !settings[item.dependsOn];
   };
-  
+
   // Render setting item
   const renderSettingItem = (item) => {
     const isDisabled = isSettingDisabled(item);
-    
+
     return (
       <FloatingCard
         key={item.title}
@@ -698,7 +702,7 @@ const QuantumSettings = ({ navigation }) => {
           style={styles.settingContent}
           onPress={() => {
             if (isDisabled) return;
-            
+
             if (item.type === 'navigation') {
               navigation.navigate(item.screen);
             } else if (item.type === 'action') {
@@ -714,7 +718,7 @@ const QuantumSettings = ({ navigation }) => {
               color={isDisabled ? colors.textSecondary : colors.primary}
             />
           </View>
-          
+
           <View style={styles.settingText}>
             <Text style={[styles.settingTitle, { color: colors.text }]}>
               {item.title}
@@ -725,7 +729,7 @@ const QuantumSettings = ({ navigation }) => {
               </Text>
             )}
           </View>
-          
+
           <View style={styles.settingControl}>
             {item.type === 'toggle' && (
               <Switch
@@ -741,7 +745,7 @@ const QuantumSettings = ({ navigation }) => {
                 disabled={isDisabled}
               />
             )}
-            
+
             {item.type === 'slider' && (
               <View style={styles.sliderContainer}>
                 <Text style={[styles.sliderValue, { color: colors.text }]}>
@@ -761,7 +765,7 @@ const QuantumSettings = ({ navigation }) => {
                 />
               </View>
             )}
-            
+
             {item.type === 'navigation' && (
               <Ionicons
                 name="chevron-forward"
@@ -769,7 +773,7 @@ const QuantumSettings = ({ navigation }) => {
                 color={colors.textSecondary}
               />
             )}
-            
+
             {item.type === 'action' && (
               <Ionicons
                 name={item.destructive ? "warning" : "arrow-forward"}
@@ -782,13 +786,13 @@ const QuantumSettings = ({ navigation }) => {
       </FloatingCard>
     );
   };
-  
+
   // Render section
   const renderSection = (sectionId) => {
     const section = SETTINGS_SECTIONS[sectionId];
     const sectionItems = Object.values(SETTINGS_ITEMS).filter(item => item.section === sectionId);
     const isExpanded = activeSection === sectionId;
-    
+
     return (
       <View key={sectionId} style={styles.section}>
         <TouchableOpacity
@@ -803,7 +807,7 @@ const QuantumSettings = ({ navigation }) => {
             <View style={[styles.sectionIcon, { backgroundColor: section.meshColor }]}>
               <Ionicons name={section.icon} size={24} color={colors.crystallineWhite} />
             </View>
-            
+
             <View style={styles.sectionInfo}>
               <Text style={[styles.sectionTitle, { color: colors.text }]}>
                 {section.title}
@@ -812,7 +816,7 @@ const QuantumSettings = ({ navigation }) => {
                 {section.description}
               </Text>
             </View>
-            
+
             <Animated.View
               style={{
                 transform: [{
@@ -831,7 +835,7 @@ const QuantumSettings = ({ navigation }) => {
             </Animated.View>
           </View>
         </TouchableOpacity>
-        
+
         {isExpanded && (
           <Animated.View
             style={[
@@ -853,7 +857,7 @@ const QuantumSettings = ({ navigation }) => {
       </View>
     );
   };
-  
+
   if (isLoading) {
     return (
       <View style={[styles.container, { backgroundColor: colors.background }]}>
@@ -873,7 +877,7 @@ const QuantumSettings = ({ navigation }) => {
       </View>
     );
   }
-  
+
   return (
     <View style={[styles.container, { backgroundColor: colors.background }]}>
       <StatusBar
@@ -881,7 +885,7 @@ const QuantumSettings = ({ navigation }) => {
         backgroundColor="transparent"
         translucent
       />
-      
+
       {/* Mesh background */}
       <CrystallineMesh
         variant="large"
@@ -890,7 +894,7 @@ const QuantumSettings = ({ navigation }) => {
         color={getDynamicColor(colors.primary, 0.03)}
         style={[StyleSheet.absoluteFillObject, { zIndex: -1 }]}
       />
-      
+
       <SafeAreaView style={styles.safeArea}>
         {/* Header */}
         <View style={styles.header}>
@@ -900,11 +904,11 @@ const QuantumSettings = ({ navigation }) => {
           >
             <Ionicons name="arrow-back" size={24} color={colors.text} />
           </TouchableOpacity>
-          
+
           <Text style={[styles.headerTitle, { color: colors.text }]}>
             Settings
           </Text>
-          
+
           <TouchableOpacity
             style={[styles.searchButton, { backgroundColor: getDynamicColor(colors.surface, 0.9) }]}
             onPress={() => {
@@ -919,7 +923,7 @@ const QuantumSettings = ({ navigation }) => {
             <Ionicons name="search" size={24} color={colors.text} />
           </TouchableOpacity>
         </View>
-        
+
         {/* Search bar */}
         <Animated.View
           style={[
@@ -955,7 +959,7 @@ const QuantumSettings = ({ navigation }) => {
             </View>
           </BlurView>
         </Animated.View>
-        
+
         {/* Settings content */}
         <ScrollView
           ref={scrollViewRef}
@@ -964,7 +968,7 @@ const QuantumSettings = ({ navigation }) => {
           showsVerticalScrollIndicator={false}
         >
           {filteredSections.map(renderSection)}
-          
+
           {/* App info */}
           <View style={styles.appInfo}>
             <Text style={[styles.appVersion, { color: colors.textSecondary }]}>

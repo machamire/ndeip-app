@@ -22,7 +22,9 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import { BlurView } from 'expo-blur';
 import { Ionicons, MaterialIcons } from '@expo/vector-icons';
-import { Audio } from 'expo-av';
+// expo-av is native-only; lazy-load to avoid web build crash
+let Audio = null;
+try { Audio = require('expo-av').Audio; } catch (e) { }
 import Svg, {
   Circle,
   Path,
@@ -115,10 +117,10 @@ const CallNotification = ({
       startRingtone();
       startVibration();
       startAutoDeclineTimer();
-      
+
       // Handle Android back button
       const backHandler = BackHandler.addEventListener('hardwareBackPress', handleBackPress);
-      
+
       return () => {
         backHandler.remove();
       };
@@ -137,7 +139,7 @@ const CallNotification = ({
         setCurrentDuration(prev => prev + 1);
       }, 1000);
     }
-    
+
     return () => {
       if (durationTimer.current) {
         clearInterval(durationTimer.current);
@@ -148,7 +150,7 @@ const CallNotification = ({
   // Show notification animation
   const showNotification = () => {
     StatusBar.setHidden(true);
-    
+
     Animated.parallel([
       Animated.timing(fadeAnimation, {
         toValue: 1,
@@ -244,13 +246,13 @@ const CallNotification = ({
   const startRingtone = async () => {
     try {
       const soundSource = customRingtone || require('../../assets/sounds/default_ringtone.mp3');
-      
+
       const { sound } = await Audio.Sound.createAsync(soundSource, {
         shouldPlay: true,
         isLooping: true,
         volume: 0.8,
       });
-      
+
       setRingtoneSound(sound);
     } catch (error) {
       console.error('Failed to start ringtone:', error);
@@ -283,7 +285,7 @@ const CallNotification = ({
   const stopVibration = () => {
     Vibration.cancel();
     setIsVibrating(false);
-    
+
     if (vibrationTimer.current) {
       clearInterval(vibrationTimer.current);
       vibrationTimer.current = null;
@@ -305,7 +307,7 @@ const CallNotification = ({
       clearInterval(durationTimer.current);
       durationTimer.current = null;
     }
-    
+
     if (autoDeclineTimer.current) {
       clearTimeout(autoDeclineTimer.current);
       autoDeclineTimer.current = null;
@@ -321,14 +323,14 @@ const CallNotification = ({
   // Handle touch ripple effect
   const handleTouch = (event) => {
     const { locationX, locationY } = event.nativeEvent;
-    
+
     const newRipple = {
       id: nextRippleId,
       x: locationX,
       y: locationY,
       animValue: new Animated.Value(0),
     };
-    
+
     setTouchRipples(prev => [...prev, newRipple]);
     setNextRippleId(prev => prev + 1);
 
@@ -348,7 +350,7 @@ const CallNotification = ({
     clearTimers();
     stopRingtone();
     stopVibration();
-    
+
     if (onAnswer) {
       onAnswer(callType);
     }
@@ -359,7 +361,7 @@ const CallNotification = ({
     clearTimers();
     stopRingtone();
     stopVibration();
-    
+
     if (onDecline) {
       onDecline();
     }
@@ -370,7 +372,7 @@ const CallNotification = ({
     clearTimers();
     stopRingtone();
     stopVibration();
-    
+
     if (onMessage) {
       onMessage(caller);
     }
@@ -381,7 +383,7 @@ const CallNotification = ({
     clearTimers();
     stopRingtone();
     stopVibration();
-    
+
     if (onRemindLater) {
       onRemindLater();
     }
@@ -499,7 +501,7 @@ const CallNotification = ({
             <Stop offset="50%" stopColor={colors.secondary} stopOpacity="1" />
             <Stop offset="100%" stopColor={colors.primary} stopOpacity="0.8" />
           </SvgGradient>
-          
+
           <Pattern id="avatarMeshPattern" x="0" y="0" width="20" height="20" patternUnits="userSpaceOnUse">
             <Circle cx="10" cy="10" r="1" fill={colors.secondary} opacity="0.3" />
             <Path
@@ -619,23 +621,23 @@ const CallNotification = ({
       <Text style={[styles.callerName, { color: colors.crystallineWhite }]}>
         {caller?.name || 'Unknown Caller'}
       </Text>
-      
+
       <Text style={[styles.callerNumber, { color: getDynamicColor(colors.crystallineWhite, 0.8) }]}>
         {caller?.phoneNumber || caller?.email || ''}
       </Text>
-      
+
       <View style={styles.callDetails}>
         <Text style={[styles.callType, { color: getDynamicColor(colors.crystallineWhite, 0.7) }]}>
-          {callType === CALL_TYPES.VIDEO ? 'Video Call' : 
-           callType === CALL_TYPES.GROUP ? 'Group Call' :
-           callType === CALL_TYPES.CONFERENCE ? 'Conference Call' : 'Voice Call'}
+          {callType === CALL_TYPES.VIDEO ? 'Video Call' :
+            callType === CALL_TYPES.GROUP ? 'Group Call' :
+              callType === CALL_TYPES.CONFERENCE ? 'Conference Call' : 'Voice Call'}
         </Text>
-        
+
         <View style={styles.callDuration}>
-          <MaterialIcons 
-            name="access-time" 
-            size={16} 
-            color={getDynamicColor(colors.crystallineWhite, 0.7)} 
+          <MaterialIcons
+            name="access-time"
+            size={16}
+            color={getDynamicColor(colors.crystallineWhite, 0.7)}
           />
           <Text style={[styles.durationText, { color: getDynamicColor(colors.crystallineWhite, 0.7) }]}>
             {formatDuration(currentDuration)}

@@ -4,44 +4,52 @@
  * Batch processing, format conversion, and quality optimization
  */
 
-import * as ImageManipulator from 'expo-image-manipulator';
-import * as VideoThumbnails from 'expo-video-thumbnails';
-import * as FileSystem from 'expo-file-system';
-import { Audio } from 'expo-av';
+// Native-only modules — lazy-load to avoid web build crash
+let ImageManipulator = null;
+try { ImageManipulator = require('expo-image-manipulator'); } catch (e) { }
+let VideoThumbnails = null;
+try { VideoThumbnails = require('expo-video-thumbnails'); } catch (e) { }
+let FileSystem = null;
+try { FileSystem = require('expo-file-system'); } catch (e) { }
+let Audio = null;
+try { Audio = require('expo-av').Audio; } catch (e) { }
+
+// Fallback for ImageManipulator.SaveFormat used in COMPRESSION_PRESETS
+const SaveFormat = ImageManipulator?.SaveFormat || { JPEG: 'jpeg', PNG: 'png' };
 import { MeshColors, getDynamicColor } from '../constants/ndeipBrandSystem';
 
 // Compression quality presets
 const COMPRESSION_PRESETS = {
   ULTRA_HIGH: {
-    image: { compress: 0.95, format: ImageManipulator.SaveFormat.JPEG },
+    image: { compress: 0.95, format: SaveFormat.JPEG },
     video: { quality: '1080p', bitrate: 8000 },
     audio: { bitrate: 320, sampleRate: 48000 },
     name: 'Ultra High',
     meshIntensity: 1.0,
   },
   HIGH: {
-    image: { compress: 0.85, format: ImageManipulator.SaveFormat.JPEG },
+    image: { compress: 0.85, format: SaveFormat.JPEG },
     video: { quality: '720p', bitrate: 4000 },
     audio: { bitrate: 192, sampleRate: 44100 },
     name: 'High',
     meshIntensity: 0.8,
   },
   MEDIUM: {
-    image: { compress: 0.7, format: ImageManipulator.SaveFormat.JPEG },
+    image: { compress: 0.7, format: SaveFormat.JPEG },
     video: { quality: '480p', bitrate: 2000 },
     audio: { bitrate: 128, sampleRate: 44100 },
     name: 'Medium',
     meshIntensity: 0.6,
   },
   LOW: {
-    image: { compress: 0.5, format: ImageManipulator.SaveFormat.JPEG },
+    image: { compress: 0.5, format: SaveFormat.JPEG },
     video: { quality: '360p', bitrate: 1000 },
     audio: { bitrate: 96, sampleRate: 22050 },
     name: 'Low',
     meshIntensity: 0.4,
   },
   ULTRA_LOW: {
-    image: { compress: 0.3, format: ImageManipulator.SaveFormat.JPEG },
+    image: { compress: 0.3, format: SaveFormat.JPEG },
     video: { quality: '240p', bitrate: 500 },
     audio: { bitrate: 64, sampleRate: 22050 },
     name: 'Ultra Low',
@@ -77,7 +85,7 @@ class MediaCompression {
   generateCompressionMesh() {
     const points = [];
     const connections = [];
-    
+
     for (let i = 0; i < 20; i++) {
       points.push({
         id: i,
@@ -86,15 +94,15 @@ class MediaCompression {
         intensity: Math.random(),
       });
     }
-    
+
     // Create connections between nearby points
     for (let i = 0; i < points.length; i++) {
       for (let j = i + 1; j < points.length; j++) {
         const distance = Math.sqrt(
-          Math.pow(points[i].x - points[j].x, 2) + 
+          Math.pow(points[i].x - points[j].x, 2) +
           Math.pow(points[i].y - points[j].y, 2)
         );
-        
+
         if (distance < 30) {
           connections.push({
             from: points[i],
@@ -104,7 +112,7 @@ class MediaCompression {
         }
       }
     }
-    
+
     return { points, connections };
   }
 
@@ -114,20 +122,20 @@ class MediaCompression {
       const fileInfo = await FileSystem.getInfoAsync(fileUri);
       const fileExtension = this.getFileExtension(fileUri).toLowerCase();
       const fileType = this.getFileType(fileExtension);
-      
+
       if (!fileInfo.exists) {
         throw new Error('File does not exist');
       }
 
       // Determine optimal compression preset
       const preset = this.getOptimalPreset(fileInfo.size, fileType, options);
-      
+
       // Generate compression ID for progress tracking
       const compressionId = `compression_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
-      
+
       // Start compression process
       const result = await this.compressFile(fileUri, fileType, preset, compressionId, options);
-      
+
       return {
         ...result,
         originalSize: fileInfo.size,
@@ -136,7 +144,7 @@ class MediaCompression {
         meshPattern: this.meshPattern,
         compressionId,
       };
-      
+
     } catch (error) {
       console.error('Smart compression failed:', error);
       throw new Error(`Compression failed: ${error.message}`);
@@ -147,11 +155,11 @@ class MediaCompression {
   async batchCompress(files, options = {}) {
     const results = [];
     const totalFiles = files.length;
-    
+
     for (let i = 0; i < files.length; i++) {
       try {
         const batchProgress = (i / totalFiles) * 100;
-        
+
         if (options.onBatchProgress) {
           options.onBatchProgress({
             currentFile: i + 1,
@@ -161,7 +169,7 @@ class MediaCompression {
             meshIntensity: batchProgress / 100,
           });
         }
-        
+
         const result = await this.smartCompress(files[i], {
           ...options,
           onProgress: (progress) => {
@@ -175,9 +183,9 @@ class MediaCompression {
             }
           },
         });
-        
+
         results.push(result);
-        
+
       } catch (error) {
         console.error(`Failed to compress file ${i}:`, error);
         results.push({
@@ -187,7 +195,7 @@ class MediaCompression {
         });
       }
     }
-    
+
     return {
       results,
       successCount: results.filter(r => !r.failed).length,
@@ -216,11 +224,11 @@ class MediaCompression {
     try {
       // Get image dimensions
       const imageInfo = await ImageManipulator.manipulateAsync(imageUri, [], {});
-      
+
       // Calculate optimal resize dimensions
       const maxDimension = this.getMaxDimensionForPreset(preset);
       const resizeOptions = this.calculateImageResize(imageInfo.width, imageInfo.height, maxDimension);
-      
+
       // Progress callback setup
       const progressCallback = (progress) => {
         if (options.onProgress) {
@@ -235,10 +243,10 @@ class MediaCompression {
 
       // Simulate progress for compression steps
       progressCallback(25);
-      
+
       // Apply transformations
       const transformations = [];
-      
+
       if (resizeOptions.shouldResize) {
         transformations.push({
           resize: {
@@ -247,9 +255,9 @@ class MediaCompression {
           },
         });
       }
-      
+
       progressCallback(50);
-      
+
       // Apply mesh-enhanced compression
       const result = await ImageManipulator.manipulateAsync(
         imageUri,
@@ -260,14 +268,14 @@ class MediaCompression {
           base64: options.includeBase64 || false,
         }
       );
-      
+
       progressCallback(75);
-      
+
       // Get final file info
       const finalInfo = await FileSystem.getInfoAsync(result.uri);
-      
+
       progressCallback(100);
-      
+
       return {
         uri: result.uri,
         width: result.width,
@@ -278,7 +286,7 @@ class MediaCompression {
         compressionLevel: preset.image.compress,
         meshVisualization: this.generateCompressionVisualization(preset.meshIntensity),
       };
-      
+
     } catch (error) {
       console.error('Image compression failed:', error);
       throw new Error(`Image compression failed: ${error.message}`);
@@ -290,7 +298,7 @@ class MediaCompression {
     try {
       // Note: In a real implementation, you would use FFmpeg or similar
       // For this example, we'll simulate video compression
-      
+
       const progressCallback = (progress) => {
         if (options.onProgress) {
           options.onProgress({
@@ -303,23 +311,23 @@ class MediaCompression {
       };
 
       progressCallback(10);
-      
+
       // Generate thumbnail for preview
       const thumbnailResult = await VideoThumbnails.getThumbnailAsync(videoUri, {
         time: 1000,
         quality: 0.8,
       });
-      
+
       progressCallback(30);
-      
+
       // Simulate video compression process
       await this.simulateCompressionDelay(2000, progressCallback, 30, 90);
-      
+
       // Get file info
       const fileInfo = await FileSystem.getInfoAsync(videoUri);
-      
+
       progressCallback(100);
-      
+
       // In real implementation, return compressed video
       return {
         uri: videoUri, // Would be compressed video URI
@@ -329,7 +337,7 @@ class MediaCompression {
         bitrate: preset.video.bitrate,
         meshVisualization: this.generateCompressionVisualization(preset.meshIntensity),
       };
-      
+
     } catch (error) {
       console.error('Video compression failed:', error);
       throw new Error(`Video compression failed: ${error.message}`);
@@ -351,24 +359,24 @@ class MediaCompression {
       };
 
       progressCallback(20);
-      
+
       // Load audio for analysis
       const { sound } = await Audio.Sound.createAsync({ uri: audioUri });
       const status = await sound.getStatusAsync();
-      
+
       progressCallback(50);
-      
+
       // Simulate audio compression
       await this.simulateCompressionDelay(1500, progressCallback, 50, 90);
-      
+
       // Get file info
       const fileInfo = await FileSystem.getInfoAsync(audioUri);
-      
+
       progressCallback(100);
-      
+
       // Unload sound
       await sound.unloadAsync();
-      
+
       return {
         uri: audioUri, // Would be compressed audio URI
         duration: status.durationMillis,
@@ -377,7 +385,7 @@ class MediaCompression {
         sampleRate: preset.audio.sampleRate,
         meshVisualization: this.generateCompressionVisualization(preset.meshIntensity),
       };
-      
+
     } catch (error) {
       console.error('Audio compression failed:', error);
       throw new Error(`Audio compression failed: ${error.message}`);
@@ -389,10 +397,10 @@ class MediaCompression {
     if (options.forcePreset) {
       return COMPRESSION_PRESETS[options.forcePreset] || COMPRESSION_PRESETS.MEDIUM;
     }
-    
+
     const sizeLimits = SIZE_LIMITS[`${fileType.toUpperCase()}_MAX`];
     const ratio = fileSize / sizeLimits;
-    
+
     if (ratio > 0.8) return COMPRESSION_PRESETS.LOW;
     if (ratio > 0.6) return COMPRESSION_PRESETS.MEDIUM;
     if (ratio > 0.3) return COMPRESSION_PRESETS.HIGH;
@@ -404,10 +412,10 @@ class MediaCompression {
     if (width <= maxDimension && height <= maxDimension) {
       return { shouldResize: false, width, height };
     }
-    
+
     const aspectRatio = width / height;
     let newWidth, newHeight;
-    
+
     if (width > height) {
       newWidth = maxDimension;
       newHeight = Math.round(maxDimension / aspectRatio);
@@ -415,7 +423,7 @@ class MediaCompression {
       newHeight = maxDimension;
       newWidth = Math.round(maxDimension * aspectRatio);
     }
-    
+
     return { shouldResize: true, width: newWidth, height: newHeight };
   }
 
@@ -467,11 +475,11 @@ class MediaCompression {
     const successCount = results.filter(r => !r.failed).length;
     const totalCount = results.length;
     const successRatio = successCount / totalCount;
-    
+
     return {
       successRatio,
-      meshColor: successRatio > 0.8 ? MeshColors.electricBlue : 
-                 successRatio > 0.5 ? MeshColors.primaryTeal : '#C83232',
+      meshColor: successRatio > 0.8 ? MeshColors.electricBlue :
+        successRatio > 0.5 ? MeshColors.primaryTeal : '#C83232',
       crystallineIntensity: successRatio,
       particleCount: Math.floor(successCount * 10),
       glowEffect: successRatio > 0.9,
@@ -482,14 +490,14 @@ class MediaCompression {
   calculateTotalSizeReduction(results) {
     let originalTotal = 0;
     let compressedTotal = 0;
-    
+
     results.forEach(result => {
       if (!result.failed && result.originalSize && result.size) {
         originalTotal += result.originalSize;
         compressedTotal += result.size;
       }
     });
-    
+
     return {
       originalSize: originalTotal,
       compressedSize: compressedTotal,
@@ -521,7 +529,7 @@ class MediaCompression {
     const steps = 10;
     const stepMs = totalMs / steps;
     const progressStep = (endProgress - startProgress) / steps;
-    
+
     for (let i = 0; i < steps; i++) {
       await new Promise(resolve => setTimeout(resolve, stepMs));
       progressCallback(startProgress + (progressStep * (i + 1)));
@@ -531,11 +539,11 @@ class MediaCompression {
   // Format file size for display
   formatFileSize(bytes) {
     if (bytes === 0) return '0 Bytes';
-    
+
     const k = 1024;
     const sizes = ['Bytes', 'KB', 'MB', 'GB'];
     const i = Math.floor(Math.log(bytes) / Math.log(k));
-    
+
     return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
   }
 
@@ -544,7 +552,7 @@ class MediaCompression {
     const compressionRatio = originalSize > 0 ? compressedSize / originalSize : 1;
     const savedBytes = originalSize - compressedSize;
     const savedPercentage = originalSize > 0 ? (savedBytes / originalSize) * 100 : 0;
-    
+
     return {
       compressionRatio,
       savedBytes,
