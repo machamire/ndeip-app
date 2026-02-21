@@ -22,11 +22,28 @@ import {
   Glass,
 } from "@/constants/ndeipBrandSystem";
 
+// ─── Country Codes ─────────────────────────────────────────
+const COUNTRY_CODES = [
+  { code: '+263', flag: '🇿🇼', label: 'ZW' },
+  { code: '+27', flag: '🇿🇦', label: 'SA' },
+  { code: '+1', flag: '🇺🇸', label: 'US' },
+  { code: '+44', flag: '🇬🇧', label: 'UK' },
+  { code: '+61', flag: '🇦🇺', label: 'AU' },
+  { code: '+91', flag: '🇮🇳', label: 'IN' },
+  { code: '+234', flag: '🇳🇬', label: 'NG' },
+  { code: '+254', flag: '🇰🇪', label: 'KE' },
+  { code: '+971', flag: '🇦🇪', label: 'AE' },
+  { code: '+86', flag: '🇨🇳', label: 'CN' },
+];
+
 export default function SignupScreen() {
   const router = useRouter();
   const { signUp } = useAuth();
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
+  const [phone, setPhone] = useState("");
+  const [countryCode, setCountryCode] = useState(COUNTRY_CODES[0]);
+  const [showCountryCodes, setShowCountryCodes] = useState(false);
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [focused, setFocused] = useState<string | null>(null);
@@ -66,6 +83,15 @@ export default function SignupScreen() {
       return;
     }
 
+    // Phone validation (optional field)
+    if (phone.trim()) {
+      const digitsOnly = phone.replace(/\D/g, '');
+      if (digitsOnly.length < 7 || digitsOnly.length > 15) {
+        setError("Phone number must be 7-15 digits");
+        return;
+      }
+    }
+
     // Basic password validation
     if (password.length < 6) {
       setError("Password must be at least 6 characters");
@@ -75,7 +101,8 @@ export default function SignupScreen() {
     setLoading(true);
     try {
       // Authenticate — AuthGate will redirect to /(tabs) automatically
-      await signUp(email, password, name);
+      const fullPhone = phone.trim() ? `${countryCode.code}${phone.replace(/\D/g, '')}` : '';
+      await signUp(email, password, name, fullPhone);
     } catch (err: any) {
       setError(err?.message || "Failed to create account");
     } finally {
@@ -161,6 +188,56 @@ export default function SignupScreen() {
                   onBlur={() => setFocused(null)}
                 />
               </View>
+            </View>
+
+            {/* Phone (Optional) */}
+            <View style={styles.inputGroup}>
+              <Text style={styles.inputLabel}>Phone Number <Text style={{ color: NDEIP_COLORS.gray[600], fontWeight: '400' }}>(optional)</Text></Text>
+              <View
+                style={[
+                  styles.inputWrap,
+                  focused === "phone" && styles.inputFocused,
+                ]}
+              >
+                <TouchableOpacity
+                  onPress={() => setShowCountryCodes(!showCountryCodes)}
+                  style={styles.countryCodeBtn}
+                  activeOpacity={0.7}
+                >
+                  <Text style={styles.countryFlag}>{countryCode.flag}</Text>
+                  <Text style={styles.countryCodeText}>{countryCode.code}</Text>
+                  <FontAwesome name="caret-down" size={12} color={NDEIP_COLORS.gray[500]} />
+                </TouchableOpacity>
+                <TextInput
+                  value={phone}
+                  onChangeText={setPhone}
+                  placeholder="Phone number"
+                  placeholderTextColor={NDEIP_COLORS.gray[600]}
+                  keyboardType="phone-pad"
+                  style={[styles.input, { flex: 1 }]}
+                  onFocus={() => setFocused("phone")}
+                  onBlur={() => setFocused(null)}
+                />
+              </View>
+              {/* Country Code Picker */}
+              {showCountryCodes && (
+                <View style={styles.countryDropdown}>
+                  {COUNTRY_CODES.map((cc) => (
+                    <TouchableOpacity
+                      key={cc.code}
+                      onPress={() => { setCountryCode(cc); setShowCountryCodes(false); }}
+                      style={[
+                        styles.countryOption,
+                        cc.code === countryCode.code && styles.countryOptionActive,
+                      ]}
+                      activeOpacity={0.7}
+                    >
+                      <Text style={styles.countryFlag}>{cc.flag}</Text>
+                      <Text style={styles.countryOptionText}>{cc.label} ({cc.code})</Text>
+                    </TouchableOpacity>
+                  ))}
+                </View>
+              )}
             </View>
 
             {/* Password */}
@@ -251,8 +328,8 @@ export default function SignupScreen() {
             {/* Terms */}
             <Text style={styles.terms}>
               By signing up, you agree to our{" "}
-              <Text style={styles.termsLink}>Terms of Service</Text> and{" "}
-              <Text style={styles.termsLink}>Privacy Policy</Text>
+              <Text style={styles.termsLink} onPress={() => router.push('/legal/terms' as any)}>Terms of Service</Text> and{" "}
+              <Text style={styles.termsLink} onPress={() => router.push('/legal/terms' as any)}>Privacy Policy</Text>
             </Text>
           </View>
 
@@ -370,6 +447,38 @@ const styles = StyleSheet.create({
     lineHeight: 18,
   },
   termsLink: { color: NDEIP_COLORS.primaryTeal },
+  // Phone / Country Code
+  countryCodeBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    paddingRight: 8,
+    borderRightWidth: 1,
+    borderRightColor: 'rgba(255,255,255,0.08)',
+  },
+  countryFlag: { fontSize: 18 },
+  countryCodeText: { color: NDEIP_COLORS.gray[400], fontSize: 14, fontWeight: '500' as any },
+  countryDropdown: {
+    marginTop: 6,
+    backgroundColor: 'rgba(255,255,255,0.06)',
+    borderRadius: Radii.input,
+    borderWidth: 1,
+    borderColor: 'rgba(27,77,62,0.2)',
+    overflow: 'hidden',
+  },
+  countryOption: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    paddingHorizontal: 14,
+    paddingVertical: 10,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomColor: 'rgba(255,255,255,0.04)',
+  },
+  countryOptionActive: {
+    backgroundColor: 'rgba(27,77,62,0.15)',
+  },
+  countryOptionText: { color: NDEIP_COLORS.gray[300], fontSize: 14 },
   // Footer
   footer: { flexDirection: "row", justifyContent: "center", marginTop: 32 },
   footerText: { color: NDEIP_COLORS.gray[500], fontSize: 14 },

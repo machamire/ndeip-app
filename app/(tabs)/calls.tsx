@@ -101,6 +101,26 @@ export default function CallsScreen() {
                 })}
             </View>
 
+            {/* ─── Quick Actions ─── */}
+            <View style={styles.quickActions}>
+                {[
+                    { icon: 'phone' as const, label: 'Call', action: () => router.push('/call' as any) },
+                    { icon: 'calendar' as const, label: 'Schedule', action: () => router.push('/calls/schedule' as any) },
+                    { icon: 'th' as const, label: 'Keypad', action: () => router.push('/calls/keypad' as any) },
+                    { icon: 'star' as const, label: 'Favorites', action: () => { } },
+                ].map((qa, i) => (
+                    <TouchableOpacity key={i} onPress={qa.action} style={styles.quickActionBtn} activeOpacity={0.7}>
+                        <LinearGradient
+                            colors={['rgba(27,77,62,0.15)', 'rgba(27,77,62,0.05)'] as any}
+                            style={styles.quickActionIcon}
+                        >
+                            <FontAwesome name={qa.icon} size={18} color={NDEIP_COLORS.primaryTeal} />
+                        </LinearGradient>
+                        <Text style={[styles.quickActionLabel, { color: isDark ? NDEIP_COLORS.gray[400] : NDEIP_COLORS.gray[600] }]}>{qa.label}</Text>
+                    </TouchableOpacity>
+                ))}
+            </View>
+
             {/* ─── Call History ─── */}
             <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 100 }}
                 refreshControl={
@@ -229,5 +249,27 @@ const styles = StyleSheet.create({
         borderRadius: 28,
         alignItems: 'center',
         justifyContent: 'center',
+    },
+    // Quick Actions
+    quickActions: {
+        flexDirection: 'row',
+        justifyContent: 'space-around',
+        paddingHorizontal: Spacing.screenHorizontal,
+        paddingVertical: 12,
+    },
+    quickActionBtn: {
+        alignItems: 'center',
+        gap: 6,
+    },
+    quickActionIcon: {
+        width: 48,
+        height: 48,
+        borderRadius: 16,
+        alignItems: 'center',
+        justifyContent: 'center',
+    },
+    quickActionLabel: {
+        fontSize: 11,
+        fontWeight: '500',
     },
 });

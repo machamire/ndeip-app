@@ -3,8 +3,10 @@ import { DarkTheme, DefaultTheme, ThemeProvider } from '@react-navigation/native
 import { useFonts } from 'expo-font';
 import { Stack, useRouter, useSegments } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
-import React, { useEffect, useState, useCallback } from 'react';
+import React, { useEffect, useState, useCallback, useRef } from 'react';
+import { AppState, AppStateStatus } from 'react-native';
 import 'react-native-reanimated';
+import LoadingScreen from '@/components/LoadingScreen';
 
 import { useColorScheme } from '@/components/useColorScheme';
 import { MeshThemeProvider } from '@/hooks/useMeshTheme';
@@ -46,6 +48,7 @@ export default function RootLayout() {
     SpaceMono: require('../assets/fonts/SpaceMono-Regular.ttf'),
     ...FontAwesome.font,
   });
+  const [showSplash, setShowSplash] = useState(true);
 
   useEffect(() => {
     if (error) throw error;
@@ -54,6 +57,9 @@ export default function RootLayout() {
   useEffect(() => {
     if (loaded) {
       SplashScreen.hideAsync();
+      // Show our custom loading screen for a smooth minimum display
+      const timer = setTimeout(() => setShowSplash(false), 1000);
+      return () => clearTimeout(timer);
     }
   }, [loaded]);
 
@@ -61,12 +67,39 @@ export default function RootLayout() {
     return null;
   }
 
-  return <RootLayoutNav />;
+  return (
+    <>
+      <RootLayoutNav />
+      <LoadingScreen visible={showSplash} />
+    </>
+  );
 }
 
 function RootLayoutNav() {
   const colorScheme = useColorScheme();
   const router = useRouter();
+
+  // ─── Resume Loading Overlay ──────────────────────────
+  const [showResumeOverlay, setShowResumeOverlay] = useState(false);
+  const lastBackgroundTime = useRef<number | null>(null);
+  const RESUME_THRESHOLD = 15000; // 15 seconds
+
+  useEffect(() => {
+    const handleAppState = (nextState: AppStateStatus) => {
+      if (nextState === 'background') {
+        lastBackgroundTime.current = Date.now();
+      } else if (nextState === 'active' && lastBackgroundTime.current) {
+        const elapsed = Date.now() - lastBackgroundTime.current;
+        if (elapsed > RESUME_THRESHOLD) {
+          setShowResumeOverlay(true);
+          setTimeout(() => setShowResumeOverlay(false), 800);
+        }
+        lastBackgroundTime.current = null;
+      }
+    };
+    const sub = AppState.addEventListener('change', handleAppState);
+    return () => sub.remove();
+  }, []);
 
   // ─── Simulated incoming call ─────────────────────────
   const [incomingCall, setIncomingCall] = useState<{ name: string; type: string } | null>(null);
@@ -105,6 +138,9 @@ function RootLayoutNav() {
             <Stack.Screen name="features" options={{ headerShown: false }} />
             <Stack.Screen name="gallery" options={{ headerShown: false, presentation: 'modal', animation: 'slide_from_bottom' }} />
             <Stack.Screen name="editor" options={{ headerShown: false, presentation: 'modal', animation: 'slide_from_bottom' }} />
+            <Stack.Screen name="calls" options={{ headerShown: false }} />
+            <Stack.Screen name="villages" options={{ headerShown: false }} />
+            <Stack.Screen name="legal" options={{ headerShown: false }} />
             <Stack.Screen name="modal" options={{ presentation: 'modal' }} />
           </Stack>
 
@@ -120,6 +156,9 @@ function RootLayoutNav() {
               onRemindLater={() => setIncomingCall(null)}
             />
           )}
+
+          {/* Resume Loading Overlay */}
+          <LoadingScreen visible={showResumeOverlay} />
         </ThemeProvider>
       </MeshThemeProvider>
     </AuthProvider>

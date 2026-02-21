@@ -9,10 +9,14 @@ import {
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import FontAwesome from '@expo/vector-icons/FontAwesome';
+import { useRouter } from 'expo-router';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import Colors, { NDEIP_COLORS } from '@/constants/Colors';
 import { useColorScheme } from '@/components/useColorScheme';
 import { Typography, Spacing, Radii, Glass, Shadows } from '@/constants/ndeipBrandSystem';
 import { VillageService } from '@/services/VillageService';
+import VillageOnboarding from '@/components/villages/VillageOnboarding';
+import EmojiReactionBar, { ReactionCounts, REACTION_EMOJIS } from '@/components/EmojiReactionBar';
 
 // ─── Live Rooms Data ──────────────────────────────────────
 const LIVE_ROOMS = [
@@ -137,6 +141,17 @@ function MiniAvatars({ count }: { count: number }) {
 // ─── Announcement Card ────────────────────────────────────
 function AnnouncementCard({ item, isDark, colors, onLike }: { item: NoticeItem; isDark: boolean; colors: any; onLike?: (id: string) => void }) {
     const [liked, setLiked] = useState(false);
+    const [reactions, setReactions] = useState<ReactionCounts>({ '👍': 2, '❤️': 1 });
+    const [userReactions, setUserReactions] = useState<string[]>([]);
+    const handleReact = (emoji: string) => {
+        setReactions((prev) => {
+            const isRemoving = userReactions.includes(emoji);
+            return { ...prev, [emoji]: Math.max(0, (prev[emoji] || 0) + (isRemoving ? -1 : 1)) };
+        });
+        setUserReactions((prev) =>
+            prev.includes(emoji) ? prev.filter((e) => e !== emoji) : [...prev, emoji]
+        );
+    };
     return (
         <View style={[styles.noticeCard, {
             backgroundColor: isDark ? Glass.dark.background : Glass.light.background,
@@ -181,6 +196,7 @@ function AnnouncementCard({ item, isDark, colors, onLike }: { item: NoticeItem; 
                     <Text style={[styles.noticeActionText, { color: NDEIP_COLORS.gray[500] }]}>Share</Text>
                 </TouchableOpacity>
             </View>
+            <EmojiReactionBar reactions={reactions} userReactions={userReactions} onReact={handleReact} compact />
         </View>
     );
 }
@@ -306,6 +322,20 @@ export default function VillagesScreen() {
     const bg = isDark ? NDEIP_COLORS.gray[950] : NDEIP_COLORS.gray[50];
     const [activeTab, setActiveTab] = useState<'rooms' | 'noticeboard'>('noticeboard');
     const [refreshing, setRefreshing] = useState(false);
+    const [showOnboarding, setShowOnboarding] = useState(false);
+    const router = useRouter();
+
+    // Check for first-time village visit
+    useEffect(() => {
+        AsyncStorage.getItem('ndeip_village_onboarded').then((val) => {
+            if (!val) setShowOnboarding(true);
+        });
+    }, []);
+
+    const handleDismissOnboarding = useCallback(async () => {
+        setShowOnboarding(false);
+        await AsyncStorage.setItem('ndeip_village_onboarded', 'true');
+    }, []);
 
     const handleLike = useCallback(async (id: string) => {
         await VillageService.likeNotice(id);
@@ -350,6 +380,16 @@ export default function VillagesScreen() {
                     </Text>
                 </TouchableOpacity>
             </View>
+
+            {/* ─── Help Link ─── */}
+            <TouchableOpacity
+                onPress={() => router.push('/villages/help' as any)}
+                style={styles.helpLink}
+                activeOpacity={0.7}
+            >
+                <FontAwesome name="question-circle-o" size={14} color={NDEIP_COLORS.primaryTeal} />
+                <Text style={styles.helpLinkText}>What are Villages?</Text>
+            </TouchableOpacity>
 
             <ScrollView
                 showsVerticalScrollIndicator={false}
@@ -486,6 +526,9 @@ export default function VillagesScreen() {
                     <FontAwesome name="plus" size={22} color="#fff" />
                 </LinearGradient>
             </TouchableOpacity>
+
+            {/* ─── Onboarding Overlay ─── */}
+            <VillageOnboarding visible={showOnboarding} onDismiss={handleDismissOnboarding} />
         </View>
     );
 }
@@ -696,4 +739,17 @@ const styles = StyleSheet.create({
         elevation: 10,
     },
     fabInner: { width: 56, height: 56, borderRadius: 28, alignItems: 'center', justifyContent: 'center' },
+    helpLink: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'center',
+        gap: 6,
+        paddingVertical: 6,
+        paddingHorizontal: Spacing.screenHorizontal,
+    },
+    helpLinkText: {
+        color: NDEIP_COLORS.primaryTeal,
+        fontSize: 13,
+        fontWeight: '500',
+    },
 });
