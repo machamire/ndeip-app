@@ -25,9 +25,10 @@ import VoiceWaveform from '@/components/chat/VoiceWaveform';
 import MessageReactions from '@/components/chat/MessageReactions';
 import HolographicBubble from '@/components/chat/HolographicBubbles';
 import EmptyState from '@/components/ui/EmptyState';
+import MeshReadIndicator from '@/components/chat/MeshReadIndicator';
 
 // ─── Types ────────────────────────────────────────────────
-type MessageType = 'text' | 'voice' | 'video' | 'viewonce';
+type MessageType = 'text' | 'voice' | 'video' | 'viewonce' | 'call_event';
 interface ChatMessage {
     id: string;
     text?: string;
@@ -43,6 +44,10 @@ interface ChatMessage {
     viewOnceViewed?: boolean;
     scheduled?: boolean;
     scheduledTime?: string;
+    // Call event fields
+    call_type?: 'voice' | 'video';
+    call_status?: string;
+    call_duration?: number;
 }
 
 // ─── Quick Phrases Data ───────────────────────────────────
@@ -277,6 +282,50 @@ function MessageBubble({ message, isDark, isFirst, isLast, onConsume, onKeep }: 
         return <ViewOnceBubble message={message} isDark={isDark} sent={sent} bubbleRadius={bubbleRadius} />;
     }
 
+    // Call event bubble — centered, compact
+    if (message.type === 'call_event') {
+        const isVideo = message.call_type === 'video';
+        const isMissed = message.call_status === 'missed' || message.call_status === 'no_answer';
+        const callIcon = isVideo ? 'video-camera' : 'phone';
+        const callLabel = isMissed
+            ? `Missed ${isVideo ? 'video' : 'voice'} call`
+            : `${isVideo ? 'Video' : 'Voice'} call`;
+        const durationText = message.call_duration && message.call_duration > 0
+            ? ` · ${Math.floor(message.call_duration / 60)}:${String(message.call_duration % 60).padStart(2, '0')}`
+            : '';
+        return (
+            <View style={{ alignItems: 'center', marginVertical: 8 }}>
+                <View style={{
+                    flexDirection: 'row',
+                    alignItems: 'center',
+                    backgroundColor: isDark ? 'rgba(255,255,255,0.04)' : 'rgba(0,0,0,0.03)',
+                    borderRadius: 16,
+                    paddingHorizontal: 14,
+                    paddingVertical: 8,
+                    gap: 8,
+                }}>
+                    <FontAwesome
+                        name={callIcon as any}
+                        size={12}
+                        color={isMissed ? NDEIP_COLORS.rose : NDEIP_COLORS.emerald}
+                    />
+                    <Text style={{
+                        fontSize: 13,
+                        color: isMissed
+                            ? NDEIP_COLORS.rose
+                            : (isDark ? NDEIP_COLORS.gray[400] : NDEIP_COLORS.gray[600]),
+                        fontWeight: '500',
+                    }}>
+                        {callLabel}{durationText}
+                    </Text>
+                    <Text style={{ fontSize: 11, color: isDark ? NDEIP_COLORS.gray[600] : NDEIP_COLORS.gray[400] }}>
+                        {message.time}
+                    </Text>
+                </View>
+            </View>
+        );
+    }
+
     // Ephemeral voice/video bubble
     if (message.type === 'voice' || message.type === 'video') {
         const isVoice = message.type === 'voice';
@@ -416,12 +465,7 @@ function MessageBubble({ message, isDark, isFirst, isLast, onConsume, onKeep }: 
                             <Text style={styles.bubbleTextSent}>{message.text}</Text>
                             <View style={styles.bubbleMeta}>
                                 <Text style={styles.bubbleTimeSent}>{message.time}</Text>
-                                <View style={styles.statusIcons}>
-                                    <FontAwesome name="check" size={9} color={statusColor} />
-                                    {(message.status === 'read' || message.status === 'delivered') && (
-                                        <FontAwesome name="check" size={9} color={statusColor} style={{ marginLeft: -4 }} />
-                                    )}
-                                </View>
+                                <MeshReadIndicator status={message.status || 'sent'} />
                             </View>
                         </LinearGradient>
                     ) : (
@@ -803,16 +847,22 @@ export default function ChatDetailScreen() {
                 <TouchableOpacity onPress={() => router.back()} style={styles.headerBack}>
                     <FontAwesome name="arrow-left" size={18} color={colors.text} />
                 </TouchableOpacity>
-                <LinearGradient
-                    colors={[NDEIP_COLORS.primaryTeal, NDEIP_COLORS.electricBlue] as any}
-                    style={styles.headerAvatar}
+                <TouchableOpacity
+                    onPress={() => router.push({ pathname: '/settings/user-profile', params: { id: chatId, name: contactName } } as any)}
+                    style={{ flexDirection: 'row', alignItems: 'center', flex: 1, gap: 10 }}
+                    activeOpacity={0.7}
                 >
-                    <Text style={styles.headerAvatarText}>{initials}</Text>
-                </LinearGradient>
-                <View style={styles.headerInfo}>
-                    <Text style={[styles.headerName, { color: colors.text }]}>{contactName}</Text>
-                    <Text style={[styles.headerStatus, { color: NDEIP_COLORS.emerald }]}>Online</Text>
-                </View>
+                    <LinearGradient
+                        colors={[NDEIP_COLORS.primaryTeal, NDEIP_COLORS.electricBlue] as any}
+                        style={styles.headerAvatar}
+                    >
+                        <Text style={styles.headerAvatarText}>{initials}</Text>
+                    </LinearGradient>
+                    <View style={styles.headerInfo}>
+                        <Text style={[styles.headerName, { color: colors.text }]}>{contactName}</Text>
+                        <Text style={[styles.headerStatus, { color: NDEIP_COLORS.emerald }]}>Online</Text>
+                    </View>
+                </TouchableOpacity>
                 <View style={styles.e2eBadge}>
                     <FontAwesome name="lock" size={10} color={NDEIP_COLORS.emerald} />
                 </View>

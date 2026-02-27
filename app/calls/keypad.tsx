@@ -40,6 +40,10 @@ export default function KeypadScreen() {
         if (!number.trim()) return;
         router.push({ pathname: '/call', params: { id: 'dial', name: number, type: 'voice' } } as any);
     };
+    const handleVideoCall = () => {
+        if (!number.trim()) return;
+        router.push({ pathname: '/call', params: { id: 'dial', name: number, type: 'video' } } as any);
+    };
 
     return (
         <SafeAreaView style={styles.container}>
@@ -83,9 +87,18 @@ export default function KeypadScreen() {
                 ))}
             </View>
 
-            {/* Action row */}
+            {/* Action row — voice + video + delete */}
             <View style={styles.actionRow}>
-                <View style={{ width: 56 }} />
+                {/* Video call */}
+                <TouchableOpacity onPress={handleVideoCall} activeOpacity={0.85}>
+                    <LinearGradient
+                        colors={['#2563EB', '#3B82F6'] as any}
+                        style={styles.videoCallBtn}
+                    >
+                        <FontAwesome name="video-camera" size={18} color="#fff" />
+                    </LinearGradient>
+                </TouchableOpacity>
+                {/* Voice call */}
                 <TouchableOpacity onPress={handleCall} activeOpacity={0.85}>
                     <LinearGradient
                         colors={NDEIP_COLORS.gradients.brand as any}
@@ -94,6 +107,7 @@ export default function KeypadScreen() {
                         <FontAwesome name="phone" size={24} color="#fff" />
                     </LinearGradient>
                 </TouchableOpacity>
+                {/* Delete */}
                 <TouchableOpacity onPress={handleDelete} style={styles.deleteBtn} activeOpacity={0.7}>
                     <FontAwesome name="long-arrow-left" size={22} color={NDEIP_COLORS.gray[400]} />
                 </TouchableOpacity>
@@ -156,6 +170,10 @@ const styles = StyleSheet.create({
     },
     callBtn: {
         width: 64, height: 64, borderRadius: 32,
+        alignItems: 'center', justifyContent: 'center',
+    },
+    videoCallBtn: {
+        width: 52, height: 52, borderRadius: 26,
         alignItems: 'center', justifyContent: 'center',
     },
     deleteBtn: {

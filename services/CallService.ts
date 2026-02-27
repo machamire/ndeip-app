@@ -9,7 +9,7 @@ import type { RealtimeChannel } from '@supabase/supabase-js';
 
 // ─── Types ────────────────────────────────────────────────────
 export type CallType = 'voice' | 'video';
-export type CallStatus = 'completed' | 'missed' | 'declined' | 'no_answer';
+export type CallStatus = 'completed' | 'missed' | 'declined' | 'no_answer' | 'failed';
 
 export interface CallEntry {
     id: string;
@@ -37,7 +37,7 @@ export interface ActiveCall {
     isSpeaker: boolean;
     isVideoEnabled: boolean;
     duration: number;
-    status: 'ringing' | 'connected' | 'ended';
+    status: 'ringing' | 'connected' | 'ended' | 'no_answer' | 'failed';
 }
 
 export interface IncomingCallSignal {
@@ -201,7 +201,7 @@ class CallServiceClass {
     }
 
     // ─── End a Call ───────────────────────────────────────────
-    async endCall(): Promise<CallEntry | null> {
+    async endCall(overrideStatus?: CallStatus): Promise<CallEntry | null> {
         if (!this.activeCall || !this.currentUserId) return null;
 
         const callId = this.activeCall.id;
@@ -209,6 +209,10 @@ class CallServiceClass {
 
         // Stop timer
         this.stopCallTimer();
+
+        // Determine final status
+        const finalStatus: CallStatus = overrideStatus
+            || (duration > 0 ? 'completed' : 'missed');
 
         // Send hangup signal
         await supabase
@@ -226,7 +230,7 @@ class CallServiceClass {
             .update({
                 ended_at: new Date().toISOString(),
                 duration,
-                status: duration > 0 ? 'completed' : 'missed',
+                status: finalStatus,
             })
             .eq('id', callId);
 
@@ -235,7 +239,7 @@ class CallServiceClass {
             caller_id: this.currentUserId,
             callee_id: this.activeCall.remoteUserId,
             type: this.activeCall.type,
-            status: duration > 0 ? 'completed' : 'missed',
+            status: finalStatus,
             duration,
             started_at: new Date().toISOString(),
         };

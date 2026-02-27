@@ -6,6 +6,8 @@ import {
     ScrollView,
     TouchableOpacity,
     RefreshControl,
+    Modal,
+    Pressable,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import FontAwesome from '@expo/vector-icons/FontAwesome';
@@ -45,6 +47,7 @@ export default function CallsScreen() {
     const [filter, setFilter] = useState<'all' | 'missed'>('all');
     const [callHistory, setCallHistory] = useState<CallEntry[]>([]);
     const [refreshing, setRefreshing] = useState(false);
+    const [showActionSheet, setShowActionSheet] = useState(false);
 
     const onRefresh = async () => {
         setRefreshing(true);
@@ -137,7 +140,7 @@ export default function CallsScreen() {
 
                         return (
                             <TouchableOpacity key={call.id} style={styles.callRow} activeOpacity={0.6}
-                                onPress={() => router.push({ pathname: '/call', params: { id: otherUserId, name: callName, type: call.type } } as any)}
+                                onPress={() => router.push({ pathname: '/settings/user-profile', params: { id: otherUserId, name: callName } } as any)}
                             >
                                 <CallAvatar name={callName} />
                                 <View style={styles.callContent}>
@@ -176,17 +179,62 @@ export default function CallsScreen() {
                 )}
             </ScrollView>
 
-            {/* ─── FAB ─── */}
-            <TouchableOpacity style={styles.fab} activeOpacity={0.85}>
+            {/* ─── + Header Button ─── */}
+            <TouchableOpacity
+                style={styles.fab}
+                activeOpacity={0.85}
+                onPress={() => setShowActionSheet(true)}
+            >
                 <LinearGradient
                     colors={NDEIP_COLORS.gradients.brand as any}
                     start={{ x: 0, y: 0 }}
                     end={{ x: 1, y: 1 }}
                     style={styles.fabInner}
                 >
-                    <FontAwesome name="phone" size={22} color="#fff" />
+                    <FontAwesome name="plus" size={22} color="#fff" />
                 </LinearGradient>
             </TouchableOpacity>
+
+            {/* ─── Action Sheet Modal ─── */}
+            <Modal
+                visible={showActionSheet}
+                transparent
+                animationType="fade"
+                onRequestClose={() => setShowActionSheet(false)}
+            >
+                <Pressable style={styles.overlay} onPress={() => setShowActionSheet(false)}>
+                    <View style={[styles.actionSheet, { backgroundColor: isDark ? NDEIP_COLORS.gray[900] : '#fff' }]}>
+                        <View style={styles.actionSheetHandle} />
+                        {[
+                            { icon: 'phone' as const, label: 'Start new call', onPress: () => { setShowActionSheet(false); router.push('/call' as any); } },
+                            { icon: 'link' as const, label: 'Create call link', onPress: () => { setShowActionSheet(false); }, disabled: true },
+                            { icon: 'calendar' as const, label: 'Schedule a call', onPress: () => { setShowActionSheet(false); router.push('/calls/schedule' as any); } },
+                        ].map((item, i) => (
+                            <TouchableOpacity
+                                key={i}
+                                style={[styles.actionSheetItem, item.disabled && { opacity: 0.4 }]}
+                                onPress={item.onPress}
+                                disabled={item.disabled}
+                                activeOpacity={0.6}
+                            >
+                                <View style={[styles.actionSheetIcon, { backgroundColor: isDark ? 'rgba(27,77,62,0.15)' : 'rgba(27,77,62,0.08)' }]}>
+                                    <FontAwesome name={item.icon} size={16} color={NDEIP_COLORS.primaryTeal} />
+                                </View>
+                                <Text style={[styles.actionSheetLabel, { color: isDark ? '#F0F4F3' : NDEIP_COLORS.gray[900] }]}>
+                                    {item.label}
+                                    {item.disabled && ' (coming soon)'}
+                                </Text>
+                            </TouchableOpacity>
+                        ))}
+                        <TouchableOpacity
+                            style={styles.actionSheetCancel}
+                            onPress={() => setShowActionSheet(false)}
+                        >
+                            <Text style={{ color: NDEIP_COLORS.gray[500], fontWeight: '600', fontSize: 15 }}>Cancel</Text>
+                        </TouchableOpacity>
+                    </View>
+                </Pressable>
+            </Modal>
         </View>
     );
 }
@@ -271,5 +319,50 @@ const styles = StyleSheet.create({
     quickActionLabel: {
         fontSize: 11,
         fontWeight: '500',
+    },
+    // Action Sheet
+    overlay: {
+        flex: 1,
+        backgroundColor: 'rgba(0,0,0,0.5)',
+        justifyContent: 'flex-end',
+    },
+    actionSheet: {
+        borderTopLeftRadius: 20,
+        borderTopRightRadius: 20,
+        paddingTop: 12,
+        paddingBottom: 40,
+        paddingHorizontal: 20,
+    },
+    actionSheetHandle: {
+        width: 36,
+        height: 4,
+        borderRadius: 2,
+        backgroundColor: NDEIP_COLORS.gray[600],
+        alignSelf: 'center',
+        marginBottom: 16,
+    },
+    actionSheetItem: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        paddingVertical: 14,
+        gap: 14,
+    },
+    actionSheetIcon: {
+        width: 40,
+        height: 40,
+        borderRadius: 12,
+        alignItems: 'center',
+        justifyContent: 'center',
+    },
+    actionSheetLabel: {
+        fontSize: 15,
+        fontWeight: '500',
+    },
+    actionSheetCancel: {
+        alignItems: 'center',
+        paddingTop: 16,
+        marginTop: 8,
+        borderTopWidth: StyleSheet.hairlineWidth,
+        borderTopColor: NDEIP_COLORS.gray[700],
     },
 });

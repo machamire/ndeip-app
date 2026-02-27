@@ -516,7 +516,11 @@ export default function VillagesScreen() {
             </ScrollView>
 
             {/* ─── FAB ─── */}
-            <TouchableOpacity style={styles.fab} activeOpacity={0.85}>
+            <TouchableOpacity
+                style={styles.fab}
+                activeOpacity={0.85}
+                onPress={() => router.push('/villages/create-channel' as any)}
+            >
                 <LinearGradient
                     colors={NDEIP_COLORS.gradients.brand as any}
                     start={{ x: 0, y: 0 }}

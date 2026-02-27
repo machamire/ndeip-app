@@ -9,7 +9,7 @@ import type { RealtimeChannel } from '@supabase/supabase-js';
 
 // ─── Types ────────────────────────────────────────────────────
 export type MessageStatus = 'sending' | 'sent' | 'delivered' | 'read';
-export type MessageType = 'text' | 'voice' | 'image' | 'video' | 'file' | 'system';
+export type MessageType = 'text' | 'voice' | 'image' | 'video' | 'file' | 'system' | 'call_event';
 
 export interface Message {
     id: string;
@@ -33,6 +33,10 @@ export interface Message {
     kept?: boolean;
     scheduled?: boolean;
     scheduledTime?: string;
+    // Call event fields
+    call_type?: 'voice' | 'video';
+    call_status?: string;
+    call_duration?: number;
 }
 
 export interface Conversation {
@@ -312,6 +316,47 @@ class ChatServiceClass {
             .eq('id', conversationId);
 
         return enrichMessage(data, this.currentUserId);
+    }
+
+    // ─── Call Event Message ───────────────────────────────────
+    async sendCallEvent(
+        conversationId: string,
+        callType: 'voice' | 'video',
+        callStatus: string,
+        duration: number = 0
+    ): Promise<Message | null> {
+        if (!this.currentUserId) return null;
+
+        const label = callStatus === 'missed' || callStatus === 'no_answer'
+            ? `Missed ${callType} call`
+            : `${callType === 'video' ? 'Video' : 'Voice'} call`;
+
+        const { data, error } = await supabase
+            .from('messages')
+            .insert({
+                conversation_id: conversationId,
+                sender_id: this.currentUserId,
+                text: label,
+                type: 'call_event',
+                status: 'sent',
+            })
+            .select()
+            .single();
+
+        if (error) return null;
+
+        // Attach call metadata locally
+        const msg = enrichMessage(data, this.currentUserId);
+        msg.call_type = callType;
+        msg.call_status = callStatus;
+        msg.call_duration = duration;
+
+        await supabase
+            .from('conversations')
+            .update({ updated_at: new Date().toISOString() })
+            .eq('id', conversationId);
+
+        return msg;
     }
 
     // ─── Find or Create Conversation ──────────────────────────

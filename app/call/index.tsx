@@ -6,17 +6,21 @@ import {
     TouchableOpacity,
     Platform,
     Animated,
+    Alert,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import FontAwesome from '@expo/vector-icons/FontAwesome';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { NDEIP_COLORS } from '@/constants/Colors';
 import { CallService, ActiveCall } from '@/services/CallService';
+import { ChatService } from '@/services/ChatService';
 import CallConnecting from '@/components/calls/CallConnecting';
 import VideoFrame from '@/components/calls/VideoFrame';
 import { useAuth } from '@/contexts/AuthContext';
 
-type CallState = 'idle' | 'ringing' | 'connecting' | 'connected' | 'ended';
+type CallState = 'idle' | 'ringing' | 'connecting' | 'connected' | 'ended' | 'no_answer' | 'failed';
+
+const RING_TIMEOUT_MS = 30000; // 30 seconds before "no answer"
 
 export default function CallScreen() {
     const router = useRouter();
@@ -34,6 +38,7 @@ export default function CallScreen() {
 
     // Pulse animation for ringing
     const pulseAnim = React.useRef(new Animated.Value(1)).current;
+    const ringTimeoutRef = React.useRef<ReturnType<typeof setTimeout> | null>(null);
 
     useEffect(() => {
         if (!user) return;
@@ -44,21 +49,45 @@ export default function CallScreen() {
             try {
                 const call = await CallService.startCall(contactId, contactName, callType as any);
                 setCallState(call.status as CallState);
-                // Simulate ringing -> connected after 3 seconds
-                setTimeout(() => setCallState('connected'), 3000);
+
+                // Set a timeout: if still ringing after 30s, transition to no_answer
+                ringTimeoutRef.current = setTimeout(() => {
+                    setCallState((current) => {
+                        if (current === 'ringing' || current === 'idle') {
+                            return 'no_answer';
+                        }
+                        return current;
+                    });
+                }, RING_TIMEOUT_MS);
             } catch (err) {
                 console.error('Failed to start call:', err);
-                setCallState('ended');
+                setCallState('failed');
             }
         };
         initCall();
+
+        return () => {
+            if (ringTimeoutRef.current) clearTimeout(ringTimeoutRef.current);
+        };
     }, [user]);
 
     // Duration counter when connected
     useEffect(() => {
         if (callState !== 'connected') return;
+        // Clear ring timeout since we connected
+        if (ringTimeoutRef.current) {
+            clearTimeout(ringTimeoutRef.current);
+            ringTimeoutRef.current = null;
+        }
         const timer = setInterval(() => setDuration(d => d + 1), 1000);
         return () => clearInterval(timer);
+    }, [callState]);
+
+    // When transitioning to no_answer, update the call record
+    useEffect(() => {
+        if (callState === 'no_answer') {
+            CallService.endCall('no_answer');
+        }
     }, [callState]);
 
     // Pulse animation loop during ringing
@@ -76,9 +105,43 @@ export default function CallScreen() {
     }, [callState]);
 
     const handleEndCall = useCallback(async () => {
+        if (ringTimeoutRef.current) clearTimeout(ringTimeoutRef.current);
         await CallService.endCall();
         router.back();
     }, [router]);
+
+    const handleCallAgain = useCallback(async () => {
+        setCallState('idle');
+        setDuration(0);
+        try {
+            const call = await CallService.startCall(contactId, contactName, callType as any);
+            setCallState(call.status as CallState);
+            ringTimeoutRef.current = setTimeout(() => {
+                setCallState((current) => {
+                    if (current === 'ringing' || current === 'idle') return 'no_answer';
+                    return current;
+                });
+            }, RING_TIMEOUT_MS);
+        } catch (err) {
+            setCallState('failed');
+        }
+    }, [contactId, contactName, callType]);
+
+    const handleRecordVoiceMessage = useCallback(async () => {
+        // Navigate to chat — user can record a voice note there
+        try {
+            const conversationId = await ChatService.findOrCreateConversation(contactId);
+            if (conversationId) {
+                router.replace({ pathname: '/chat', params: { conversationId, name: contactName } } as any);
+            } else {
+                Alert.alert('Error', 'Could not open conversation');
+                router.back();
+            }
+        } catch {
+            Alert.alert('Error', 'Could not open conversation');
+            router.back();
+        }
+    }, [contactId, contactName, router]);
 
     const initials = contactName.split(' ').map((n: string) => n[0]).join('').slice(0, 2);
 
@@ -95,8 +158,93 @@ export default function CallScreen() {
         connecting: 'Connecting...',
         connected: formatDuration(duration),
         ended: 'Call Ended',
+        no_answer: 'No Answer',
+        failed: 'Call Failed',
     }[callState];
 
+    // ─── No Answer / Failed Screen ───────────────────────────────
+    if (callState === 'no_answer' || callState === 'failed') {
+        return (
+            <LinearGradient
+                colors={['#0A1A14', '#0D1F18', '#0A1A14']}
+                style={styles.container}
+            >
+                <View style={{ height: Platform.OS === 'ios' ? 60 : 40 }} />
+
+                {/* Contact Info */}
+                <View style={styles.contactSection}>
+                    <LinearGradient
+                        colors={[NDEIP_COLORS.primaryTeal, NDEIP_COLORS.electricBlue]}
+                        style={styles.avatar}
+                    >
+                        <Text style={styles.avatarText}>{initials}</Text>
+                    </LinearGradient>
+
+                    <Text style={styles.contactName}>{contactName}</Text>
+                    <Text style={[styles.statusText, { color: callState === 'failed' ? NDEIP_COLORS.rose : NDEIP_COLORS.gray[400] }]}>
+                        {statusText}
+                    </Text>
+
+                    {/* Decorative line */}
+                    <View style={{
+                        width: 40, height: 3, borderRadius: 2, marginTop: 24,
+                        backgroundColor: callState === 'failed' ? NDEIP_COLORS.rose : NDEIP_COLORS.gray[700],
+                    }} />
+                </View>
+
+                {/* Post-call actions */}
+                <View style={styles.postCallActions}>
+                    {/* Cancel (go back) */}
+                    <TouchableOpacity
+                        style={styles.postCallBtn}
+                        onPress={() => router.back()}
+                        activeOpacity={0.7}
+                    >
+                        <View style={[styles.postCallIcon, { backgroundColor: 'rgba(255,255,255,0.08)' }]}>
+                            <FontAwesome name="times" size={22} color={NDEIP_COLORS.gray[400]} />
+                        </View>
+                        <Text style={styles.postCallLabel}>Cancel</Text>
+                    </TouchableOpacity>
+
+                    {/* Record voice message */}
+                    <TouchableOpacity
+                        style={styles.postCallBtn}
+                        onPress={handleRecordVoiceMessage}
+                        activeOpacity={0.7}
+                    >
+                        <LinearGradient
+                            colors={['rgba(27,77,62,0.3)', 'rgba(27,77,62,0.15)']}
+                            style={styles.postCallIcon}
+                        >
+                            <FontAwesome name="microphone" size={22} color={NDEIP_COLORS.emerald} />
+                        </LinearGradient>
+                        <Text style={[styles.postCallLabel, { color: NDEIP_COLORS.emerald }]}>
+                            Voice Message
+                        </Text>
+                    </TouchableOpacity>
+
+                    {/* Call again */}
+                    <TouchableOpacity
+                        style={styles.postCallBtn}
+                        onPress={handleCallAgain}
+                        activeOpacity={0.7}
+                    >
+                        <LinearGradient
+                            colors={NDEIP_COLORS.gradients.brand as any}
+                            style={styles.postCallIcon}
+                        >
+                            <FontAwesome name="phone" size={22} color="#fff" />
+                        </LinearGradient>
+                        <Text style={[styles.postCallLabel, { color: NDEIP_COLORS.primaryTeal }]}>
+                            Call Again
+                        </Text>
+                    </TouchableOpacity>
+                </View>
+            </LinearGradient>
+        );
+    }
+
+    // ─── Normal Call Screen ─────────────────────────────────────
     return (
         <LinearGradient
             colors={['#0A1A14', '#0D1F18', '#0A1A14']}
@@ -270,16 +418,11 @@ const styles = StyleSheet.create({
     },
     callTypeText: { color: NDEIP_COLORS.emerald, fontSize: 12, fontWeight: '500' },
     videoArea: { flex: 1, position: 'relative', margin: 20, borderRadius: 20, overflow: 'hidden' },
-    remoteVideo: {
-        flex: 1, backgroundColor: 'rgba(255,255,255,0.03)', borderRadius: 20,
-        alignItems: 'center', justifyContent: 'center',
-    },
     localVideo: {
         position: 'absolute', bottom: 16, right: 16,
         width: 100, height: 140, borderRadius: 16, overflow: 'hidden',
         borderWidth: 2, borderColor: NDEIP_COLORS.primaryTeal,
     },
-    localVideoGrad: { flex: 1, alignItems: 'center', justifyContent: 'center' },
     controlsSection: {
         paddingBottom: Platform.OS === 'ios' ? 50 : 30,
         paddingHorizontal: 30, alignItems: 'center', gap: 30,
@@ -296,5 +439,27 @@ const styles = StyleSheet.create({
     endCallBtn: {
         width: 72, height: 72, borderRadius: 36,
         alignItems: 'center', justifyContent: 'center',
+    },
+    // Post-call (No Answer / Failed) screen
+    postCallActions: {
+        flex: 1,
+        flexDirection: 'row',
+        justifyContent: 'center',
+        alignItems: 'flex-end',
+        paddingBottom: Platform.OS === 'ios' ? 80 : 60,
+        gap: 36,
+    },
+    postCallBtn: {
+        alignItems: 'center',
+        gap: 10,
+    },
+    postCallIcon: {
+        width: 64, height: 64, borderRadius: 32,
+        alignItems: 'center', justifyContent: 'center',
+    },
+    postCallLabel: {
+        color: NDEIP_COLORS.gray[400],
+        fontSize: 12,
+        fontWeight: '500',
     },
 });
