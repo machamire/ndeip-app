@@ -21,9 +21,8 @@ import Svg, {
   Defs,
   LinearGradient as SvgGradient,
   Stop,
-  AnimatedCircle,
-  AnimatedPath,
 } from 'react-native-svg';
+import { AnimatedCircle, AnimatedPath } from '../../utils/AnimatedSvg';
 
 import { useMeshTheme, useMeshColors, useMeshAnimations } from '../../hooks/useMeshTheme';
 import { generateUserMesh } from '../../utils/MeshGenerator';
@@ -78,14 +77,14 @@ const QuantumTyping = ({
     if (isVisible) {
       // Initialize particles
       initializeParticles();
-      
+
       // Fade in
       Animated.timing(containerOpacity, {
         toValue: 1,
         duration: timing.normal,
         useNativeDriver: true,
       }).start();
-      
+
       // Start main animation
       startMainAnimation();
     } else {
@@ -95,7 +94,7 @@ const QuantumTyping = ({
         duration: timing.fast,
         useNativeDriver: true,
       }).start();
-      
+
       // Stop all animations
       stopAllAnimations();
     }
@@ -105,15 +104,15 @@ const QuantumTyping = ({
   const initializeParticles = () => {
     const newParticles = [];
     const particleCount = config.particleCount;
-    
+
     // Clear existing animations
     particleAnimations.current.forEach(anim => anim.stopAnimation());
     particleAnimations.current = [];
-    
+
     for (let i = 0; i < particleCount; i++) {
       const animValue = new Animated.Value(0);
       particleAnimations.current.push(animValue);
-      
+
       newParticles.push({
         id: i,
         animValue,
@@ -126,7 +125,7 @@ const QuantumTyping = ({
         color: i % 2 === 0 ? colors.primary : colors.secondary,
       });
     }
-    
+
     setParticles(newParticles);
   };
 
@@ -136,7 +135,7 @@ const QuantumTyping = ({
     const particleSequence = particleAnimations.current.map((animValue, index) => {
       const particle = particles[index];
       if (!particle) return Animated.timing(animValue, { toValue: 0, duration: 0, useNativeDriver: true });
-      
+
       return Animated.loop(
         Animated.sequence([
           Animated.delay(particle.delay),
@@ -153,7 +152,7 @@ const QuantumTyping = ({
         ])
       );
     });
-    
+
     // Main pulsing animation
     const mainSequence = Animated.loop(
       Animated.sequence([
@@ -169,7 +168,7 @@ const QuantumTyping = ({
         }),
       ])
     );
-    
+
     // Sound wave animation
     if (soundVisualization) {
       const soundSequence = Animated.loop(
@@ -186,12 +185,12 @@ const QuantumTyping = ({
           }),
         ])
       );
-      
+
       Animated.parallel([mainSequence, soundSequence, ...particleSequence]).start();
     } else {
       Animated.parallel([mainSequence, ...particleSequence]).start();
     }
-    
+
     // Start avatar animations
     startAvatarAnimations();
   };
@@ -202,9 +201,9 @@ const QuantumTyping = ({
       if (!avatarAnimations.current.has(user.id)) {
         avatarAnimations.current.set(user.id, new Animated.Value(0));
       }
-      
+
       const avatarAnim = avatarAnimations.current.get(user.id);
-      
+
       Animated.loop(
         Animated.sequence([
           Animated.delay(index * 200),
@@ -253,17 +252,17 @@ const QuantumTyping = ({
         {particles.slice(0, -1).map((particle, index) => {
           const nextParticle = particles[index + 1];
           if (!nextParticle) return null;
-          
+
           const progress1 = particle.animValue._value || 0;
           const progress2 = nextParticle.animValue._value || 0;
-          
+
           const x1 = particle.startX + (particle.endX - particle.startX) * progress1;
           const y1 = particle.startY + (particle.endY - particle.startY) * progress1;
           const x2 = nextParticle.startX + (nextParticle.endX - nextParticle.startX) * progress2;
           const y2 = nextParticle.startY + (nextParticle.endY - nextParticle.startY) * progress2;
-          
+
           const opacity = Math.min(progress1, progress2) * 0.3;
-          
+
           return (
             <AnimatedPath
               key={`connection-${index}`}
@@ -283,7 +282,7 @@ const QuantumTyping = ({
           const y = particle.startY + (particle.endY - particle.startY) * progress;
           const opacity = Math.sin(progress * Math.PI) * 0.8;
           const scale = 0.5 + progress * 0.5;
-          
+
           return (
             <AnimatedCircle
               key={particle.id}
@@ -308,12 +307,12 @@ const QuantumTyping = ({
         {visibleUsers.map((user, index) => {
           const avatarAnim = avatarAnimations.current.get(user.id);
           if (!avatarAnim) return null;
-          
+
           const scale = avatarAnim.interpolate({
             inputRange: [0, 1],
             outputRange: [1, 1.1],
           });
-          
+
           const glowOpacity = avatarAnim.interpolate({
             inputRange: [0, 1],
             outputRange: [0, 0.6],
@@ -342,7 +341,7 @@ const QuantumTyping = ({
                   },
                 ]}
               />
-              
+
               {/* Avatar */}
               <View style={[styles.avatar, { backgroundColor: colors.surface }]}>
                 {user.avatar ? (
@@ -353,7 +352,7 @@ const QuantumTyping = ({
                   </Text>
                 )}
               </View>
-              
+
               {/* Typing dots */}
               <View style={styles.typingDotsContainer}>
                 <TypingDots
@@ -376,12 +375,12 @@ const QuantumTyping = ({
     const waves = Array.from({ length: waveCount }, (_, index) => {
       const delay = index * 150;
       const radius = 20 + index * 8;
-      
+
       const scale = soundWaves.interpolate({
         inputRange: [0, 1],
         outputRange: [0.8, 1.2],
       });
-      
+
       const opacity = soundWaves.interpolate({
         inputRange: [0, 1],
         outputRange: [0.1, 0.4 - index * 0.08],
@@ -413,7 +412,7 @@ const QuantumTyping = ({
     if (!showUserNames && !customMessage) return null;
 
     const message = customMessage || generateTypingMessage(visibleUsers);
-    
+
     const textOpacity = mainAnimation.interpolate({
       inputRange: [0, 1],
       outputRange: [0.7, 1],
@@ -441,14 +440,14 @@ const QuantumTyping = ({
     <Animated.View style={[containerStyle, { opacity: containerOpacity }]}>
       {/* Mesh particles background */}
       {renderMeshParticles()}
-      
+
       {/* Sound visualization */}
       {renderSoundVisualization()}
-      
+
       <View style={styles.content}>
         {/* User avatars */}
         {renderUserAvatars()}
-        
+
         {/* Typing text */}
         {renderTypingText()}
       </View>
@@ -499,7 +498,7 @@ const TypingDots = ({ color, delay = 0 }) => {
       inputRange: [0, 1],
       outputRange: [0.6, 1],
     });
-    
+
     const opacity = animValue.interpolate({
       inputRange: [0, 1],
       outputRange: [0.3, 1],
@@ -603,14 +602,14 @@ const getVariantConfig = (variant) => {
       showBackground: false,
     },
   };
-  
+
   return configs[variant] || configs.standard;
 };
 
 // Generate typing message based on users
 const generateTypingMessage = (users) => {
   if (users.length === 0) return '';
-  
+
   if (users.length === 1) {
     return `${users[0].name || 'Someone'} is typing...`;
   } else if (users.length === 2) {
@@ -626,25 +625,25 @@ const styles = StyleSheet.create({
     alignSelf: 'flex-start',
     maxWidth: screenWidth * 0.8,
   },
-  
+
   content: {
     flexDirection: 'row',
     alignItems: 'center',
     position: 'relative',
     zIndex: 2,
   },
-  
+
   avatarsContainer: {
     flexDirection: 'row',
     alignItems: 'center',
     marginRight: MeshSpacing.sm,
   },
-  
+
   avatarContainer: {
     position: 'relative',
     alignItems: 'center',
   },
-  
+
   avatarGlow: {
     position: 'absolute',
     width: 36,
@@ -652,7 +651,7 @@ const styles = StyleSheet.create({
     borderRadius: 18,
     zIndex: 1,
   },
-  
+
   avatar: {
     width: 28,
     height: 28,
@@ -662,45 +661,45 @@ const styles = StyleSheet.create({
     zIndex: 2,
     overflow: 'hidden',
   },
-  
+
   avatarImage: {
     width: '100%',
     height: '100%',
     borderRadius: 14,
   },
-  
+
   avatarText: {
     fontSize: MeshTypography.sizes.bodySmall,
     fontWeight: MeshTypography.weights.semiBold,
   },
-  
+
   typingDotsContainer: {
     position: 'absolute',
     bottom: -8,
     alignSelf: 'center',
   },
-  
+
   typingDots: {
     flexDirection: 'row',
     alignItems: 'center',
   },
-  
+
   typingDot: {
     width: 4,
     height: 4,
     borderRadius: 2,
     marginHorizontal: 1,
   },
-  
+
   textContainer: {
     flex: 1,
   },
-  
+
   typingText: {
     fontSize: MeshTypography.sizes.bodySmall,
     fontStyle: 'italic',
   },
-  
+
   soundVisualizationContainer: {
     position: 'absolute',
     left: 0,
@@ -710,7 +709,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
   },
-  
+
   soundWave: {
     position: 'absolute',
     borderWidth: 1,

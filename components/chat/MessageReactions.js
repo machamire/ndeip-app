@@ -26,9 +26,8 @@ import Svg, {
   Defs,
   LinearGradient as SvgGradient,
   Stop,
-  AnimatedCircle,
-  AnimatedPath,
 } from 'react-native-svg';
+import { AnimatedCircle, AnimatedPath } from '../../utils/AnimatedSvg';
 
 import { useMeshTheme, useMeshColors, useMeshAnimations } from '../../hooks/useMeshTheme';
 import FloatingCard from '../ui/FloatingCards';
@@ -128,12 +127,12 @@ const MessageReactions = ({
     // Create floating animation
     const reactionId = Date.now() + Math.random();
     createFloatingReaction(emoji, reactionId);
-    
+
     // Call parent handler
     if (onReaction) {
       onReaction(message.id, emoji);
     }
-    
+
     // Hide picker
     if (onReactionPickerToggle) {
       onReactionPickerToggle(false);
@@ -144,7 +143,7 @@ const MessageReactions = ({
   const createFloatingReaction = (emoji, reactionId) => {
     const animValue = new Animated.Value(0);
     const particles = generateParticleTrail();
-    
+
     const newReaction = {
       id: reactionId,
       emoji,
@@ -152,9 +151,9 @@ const MessageReactions = ({
       particles,
       timestamp: Date.now(),
     };
-    
+
     setReactionAnimations(prev => [...prev, newReaction]);
-    
+
     // Start animation
     Animated.timing(animValue, {
       toValue: 1,
@@ -170,7 +169,7 @@ const MessageReactions = ({
   const generateParticleTrail = () => {
     const particles = [];
     const particleCount = 8;
-    
+
     for (let i = 0; i < particleCount; i++) {
       particles.push({
         id: i,
@@ -181,7 +180,7 @@ const MessageReactions = ({
         opacity: 0.8 - (i * 0.1),
       });
     }
-    
+
     return particles;
   };
 
@@ -189,7 +188,7 @@ const MessageReactions = ({
   const handleReactionLongPress = (reactionGroup) => {
     setSelectedReaction(reactionGroup);
     setShowReactionHistory(true);
-    
+
     if (onReactionLongPress) {
       onReactionLongPress(reactionGroup);
     }
@@ -229,7 +228,7 @@ const MessageReactions = ({
         >
           {/* Mesh overlay */}
           <ReactionPickerMesh colors={colors} />
-          
+
           <View style={styles.reactionPickerContent}>
             {DEFAULT_EMOJI_SET.map((emoji, index) => (
               <ReactionButton
@@ -241,11 +240,11 @@ const MessageReactions = ({
                 timing={timing}
               />
             ))}
-            
+
             {/* More emoji button */}
             <TouchableOpacity
               style={[styles.moreEmojiButton, { backgroundColor: colors.primary }]}
-              onPress={() => {/* Show emoji picker */}}
+              onPress={() => {/* Show emoji picker */ }}
             >
               <Ionicons name="add" size={20} color={colors.background} />
             </TouchableOpacity>
@@ -279,7 +278,7 @@ const MessageReactions = ({
             ]}
           />
         ))}
-        
+
         {hasMore && (
           <TouchableOpacity
             style={[
@@ -303,13 +302,13 @@ const MessageReactions = ({
       <View style={StyleSheet.absoluteFillObject}>
         {renderFloatingReactions()}
       </View>
-      
+
       {/* Reaction picker */}
       {renderReactionPicker()}
-      
+
       {/* Reaction badges */}
       {renderReactionBadges()}
-      
+
       {/* Reaction history modal */}
       <ReactionHistoryModal
         visible={showReactionHistory}
@@ -329,12 +328,12 @@ const FloatingReactionAnimation = ({ reaction, colors }) => {
     inputRange: [0, 1],
     outputRange: [0, -100],
   });
-  
+
   const opacity = reaction.animValue.interpolate({
     inputRange: [0, 0.2, 0.8, 1],
     outputRange: [0, 1, 1, 0],
   });
-  
+
   const scale = reaction.animValue.interpolate({
     inputRange: [0, 0.3, 0.7, 1],
     outputRange: [0.5, 1.2, 1, 0.8],
@@ -354,18 +353,18 @@ const FloatingReactionAnimation = ({ reaction, colors }) => {
             <Stop offset="100%" stopColor={colors.secondary} stopOpacity="0.3" />
           </SvgGradient>
         </Defs>
-        
+
         {reaction.particles.map((particle, index) => {
           const particleProgress = reaction.animValue.interpolate({
             inputRange: [0, 1],
             outputRange: [0, 1],
           });
-          
+
           const particleOpacity = reaction.animValue.interpolate({
             inputRange: [0, 0.3, 0.7, 1],
             outputRange: [0, particle.opacity, particle.opacity * 0.5, 0],
           });
-          
+
           return (
             <AnimatedCircle
               key={particle.id}
@@ -378,7 +377,7 @@ const FloatingReactionAnimation = ({ reaction, colors }) => {
           );
         })}
       </Svg>
-      
+
       {/* Floating emoji */}
       <Animated.View
         style={[
@@ -408,7 +407,7 @@ const ReactionPickerMesh = ({ colors }) => (
         <Stop offset="100%" stopColor={colors.secondary} stopOpacity="0.05" />
       </SvgGradient>
     </Defs>
-    
+
     {/* Mesh pattern */}
     {Array.from({ length: 6 }, (_, i) => (
       <AnimatedPath
@@ -442,7 +441,7 @@ const ReactionButton = ({ emoji, index, onPress, colors, timing }) => {
         useNativeDriver: true,
       }),
     ]).start();
-    
+
     // Ripple effect
     Animated.timing(rippleAnim, {
       toValue: 1,
@@ -451,7 +450,7 @@ const ReactionButton = ({ emoji, index, onPress, colors, timing }) => {
     }).start(() => {
       rippleAnim.setValue(0);
     });
-    
+
     onPress();
   };
 
@@ -459,7 +458,7 @@ const ReactionButton = ({ emoji, index, onPress, colors, timing }) => {
     inputRange: [0, 1],
     outputRange: [0, 0.3],
   });
-  
+
   const rippleScale = rippleAnim.interpolate({
     inputRange: [0, 1],
     outputRange: [0, 2],
@@ -482,7 +481,7 @@ const ReactionButton = ({ emoji, index, onPress, colors, timing }) => {
           },
         ]}
       />
-      
+
       {/* Emoji */}
       <Animated.View style={[styles.emojiContainer, { transform: [{ scale: scaleAnim }] }]}>
         <Text style={styles.emojiText}>{emoji}</Text>
@@ -532,7 +531,7 @@ const ReactionBadge = ({
         useNativeDriver: true,
       }),
     ]).start();
-    
+
     onPress();
   };
 
@@ -567,12 +566,12 @@ const ReactionBadge = ({
             },
           ]}
         />
-        
+
         <View style={styles.badgeContent}>
           <Text style={[styles.badgeEmoji, variant === 'compact' && styles.badgeEmojiCompact]}>
             {reactionGroup.emoji}
           </Text>
-          
+
           {variant !== 'compact' && (
             <Text style={[styles.badgeCount, { color: textColor }]}>
               {reactionGroup.count}
@@ -616,7 +615,7 @@ const ReactionHistoryModal = ({
             </Text>
           )}
         </View>
-        
+
         <View style={styles.reactionUserInfo}>
           <Text style={[styles.reactionUserName, { color: colors.text }]}>
             {reaction.user.name}
@@ -625,7 +624,7 @@ const ReactionHistoryModal = ({
             {new Date(reaction.timestamp).toLocaleTimeString()}
           </Text>
         </View>
-        
+
         <Text style={styles.reactionUserEmoji}>{reaction.emoji}</Text>
       </View>
     </FloatingCard>
@@ -644,7 +643,7 @@ const ReactionHistoryModal = ({
           </Text>
           <View style={{ width: 24 }} />
         </View>
-        
+
         {/* Reaction tabs */}
         <View style={styles.reactionTabs}>
           <TouchableOpacity
@@ -659,7 +658,7 @@ const ReactionHistoryModal = ({
               All ({reactions.length})
             </Text>
           </TouchableOpacity>
-          
+
           {Object.entries(reactionTabs).map(([emoji, reactionList]) => (
             <TouchableOpacity
               key={emoji}
@@ -677,7 +676,7 @@ const ReactionHistoryModal = ({
             </TouchableOpacity>
           ))}
         </View>
-        
+
         {/* Reactions list */}
         <FlatList
           data={selectedTab ? reactionTabs[selectedTab] : reactions}
@@ -695,7 +694,7 @@ const styles = StyleSheet.create({
   container: {
     position: 'relative',
   },
-  
+
   reactionPicker: {
     position: 'absolute',
     bottom: '100%',
@@ -706,18 +705,18 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
     ...MeshShadows.floating.medium,
   },
-  
+
   reactionPickerGradient: {
     paddingVertical: MeshSpacing.md,
     paddingHorizontal: MeshSpacing.lg,
   },
-  
+
   reactionPickerContent: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-around',
   },
-  
+
   reactionButton: {
     width: 44,
     height: 44,
@@ -726,23 +725,23 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     position: 'relative',
   },
-  
+
   rippleEffect: {
     position: 'absolute',
     width: 44,
     height: 44,
     borderRadius: 22,
   },
-  
+
   emojiContainer: {
     justifyContent: 'center',
     alignItems: 'center',
   },
-  
+
   emojiText: {
     fontSize: 24,
   },
-  
+
   moreEmojiButton: {
     width: 36,
     height: 36,
@@ -750,13 +749,13 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
   },
-  
+
   reactionBadgesContainer: {
     flexDirection: 'row',
     alignItems: 'center',
     marginTop: MeshSpacing.xs,
   },
-  
+
   badgeBase: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -767,11 +766,11 @@ const styles = StyleSheet.create({
     position: 'relative',
     ...MeshShadows.floating.light,
   },
-  
+
   badgeCompact: {
     paddingHorizontal: MeshSpacing.xs,
   },
-  
+
   badgeGlow: {
     position: 'absolute',
     top: -2,
@@ -780,29 +779,29 @@ const styles = StyleSheet.create({
     bottom: -2,
     borderRadius: MeshBorderRadius.lg + 2,
   },
-  
+
   badgeContent: {
     flexDirection: 'row',
     alignItems: 'center',
   },
-  
+
   badgeEmoji: {
     fontSize: 16,
     marginRight: MeshSpacing.xs,
   },
-  
+
   badgeEmojiCompact: {
     fontSize: 14,
     marginRight: 0,
   },
-  
+
   badgeCount: {
     fontSize: MeshTypography.sizes.caption,
     fontWeight: MeshTypography.weights.medium,
     minWidth: 16,
     textAlign: 'center',
   },
-  
+
   moreReactionsBadge: {
     paddingHorizontal: MeshSpacing.sm,
     paddingVertical: MeshSpacing.xs,
@@ -810,12 +809,12 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     marginLeft: MeshSpacing.xs,
   },
-  
+
   moreReactionsText: {
     fontSize: MeshTypography.sizes.caption,
     fontWeight: MeshTypography.weights.medium,
   },
-  
+
   floatingReactionContainer: {
     position: 'absolute',
     bottom: 0,
@@ -823,7 +822,7 @@ const styles = StyleSheet.create({
     width: 60,
     height: 120,
   },
-  
+
   floatingEmoji: {
     position: 'absolute',
     bottom: 0,
@@ -833,15 +832,15 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
   },
-  
+
   floatingEmojiText: {
     fontSize: 28,
   },
-  
+
   modalContainer: {
     flex: 1,
   },
-  
+
   modalHeader: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -851,19 +850,19 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
     borderBottomColor: getDynamicColor(MeshColors.neutrals.mediumGrey, 0.2),
   },
-  
+
   modalTitle: {
     fontSize: MeshTypography.sizes.h3,
     fontWeight: MeshTypography.weights.semiBold,
   },
-  
+
   reactionTabs: {
     flexDirection: 'row',
     paddingHorizontal: MeshSpacing.lg,
     borderBottomWidth: 1,
     borderBottomColor: getDynamicColor(MeshColors.neutrals.lightGrey, 0.5),
   },
-  
+
   reactionTab: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -873,40 +872,40 @@ const styles = StyleSheet.create({
     borderBottomWidth: 2,
     borderBottomColor: 'transparent',
   },
-  
+
   reactionTabActive: {
     borderBottomWidth: 2,
   },
-  
+
   reactionTabText: {
     fontSize: MeshTypography.sizes.body,
     fontWeight: MeshTypography.weights.medium,
   },
-  
+
   reactionTabEmoji: {
     fontSize: 20,
     marginRight: MeshSpacing.xs,
   },
-  
+
   reactionTabCount: {
     fontSize: MeshTypography.sizes.bodySmall,
     fontWeight: MeshTypography.weights.medium,
   },
-  
+
   reactionsList: {
     paddingHorizontal: MeshSpacing.lg,
     paddingVertical: MeshSpacing.md,
   },
-  
+
   reactionUserCard: {
     marginVertical: MeshSpacing.xs,
   },
-  
+
   reactionUserContent: {
     flexDirection: 'row',
     alignItems: 'center',
   },
-  
+
   reactionUserAvatar: {
     width: 40,
     height: 40,
@@ -916,31 +915,31 @@ const styles = StyleSheet.create({
     marginRight: MeshSpacing.md,
     overflow: 'hidden',
   },
-  
+
   reactionUserAvatarImage: {
     width: '100%',
     height: '100%',
   },
-  
+
   reactionUserAvatarText: {
     fontSize: MeshTypography.sizes.body,
     fontWeight: MeshTypography.weights.semiBold,
   },
-  
+
   reactionUserInfo: {
     flex: 1,
   },
-  
+
   reactionUserName: {
     fontSize: MeshTypography.sizes.body,
     fontWeight: MeshTypography.weights.medium,
   },
-  
+
   reactionTime: {
     fontSize: MeshTypography.sizes.caption,
     marginTop: 2,
   },
-  
+
   reactionUserEmoji: {
     fontSize: 24,
   },
@@ -968,7 +967,7 @@ export const useMessageReactions = (messageId, initialReactions = []) => {
       timestamp: Date.now(),
       messageId,
     };
-    
+
     setReactions(prev => [...prev, newReaction]);
   }, [messageId]);
 
@@ -980,7 +979,7 @@ export const useMessageReactions = (messageId, initialReactions = []) => {
     const existingReaction = reactions.find(
       r => r.emoji === emoji && r.user.id === user.id
     );
-    
+
     if (existingReaction) {
       removeReaction(existingReaction.id);
     } else {

@@ -23,9 +23,8 @@ import Svg, {
   Defs,
   LinearGradient as SvgGradient,
   Stop,
-  AnimatedRect,
-  AnimatedPath,
 } from 'react-native-svg';
+import { AnimatedRect, AnimatedPath } from '../../utils/AnimatedSvg';
 
 import { useMeshTheme, useMeshColors, useMeshAnimations } from '../../hooks/useMeshTheme';
 import QuantumLoader from '../ndeip/QuantumLoader';
@@ -118,7 +117,7 @@ const VoiceWaveform = ({
         ])
       );
       pulseAnimation.start();
-      
+
       return () => pulseAnimation.stop();
     }
   }, [isRecording]);
@@ -208,7 +207,7 @@ const VoiceWaveform = ({
   // Handle transcription toggle
   const handleTranscriptionToggle = () => {
     if (isTranscribing) return;
-    
+
     if (showTranscription) {
       setShowFullTranscription(!showFullTranscription);
     } else if (onTranscribe) {
@@ -278,7 +277,7 @@ const VoiceWaveform = ({
               <Stop offset="50%" stopColor={colors.primary} stopOpacity="1" />
               <Stop offset="100%" stopColor={colors.primary} stopOpacity="0.6" />
             </SvgGradient>
-            
+
             <SvgGradient id="progressGradient" x1="0%" y1="0%" x2="0%" y2="100%">
               <Stop offset="0%" stopColor={colors.secondary} stopOpacity="0.8" />
               <Stop offset="50%" stopColor={colors.secondary} stopOpacity="1" />
@@ -303,11 +302,11 @@ const VoiceWaveform = ({
                   rx={barWidth / 2}
                   opacity={isPlayed ? 1 : 0.4}
                 />
-                
+
                 {/* Mesh effect for active bars */}
                 {localIsPlaying && isPlayed && (
                   <AnimatedPath
-                    d={`M ${x} ${y} Q ${x + barWidth/2} ${y - 5} ${x + barWidth} ${y} L ${x + barWidth} ${y + height} Q ${x + barWidth/2} ${y + height + 5} ${x} ${y + height} Z`}
+                    d={`M ${x} ${y} Q ${x + barWidth / 2} ${y - 5} ${x + barWidth} ${y} L ${x + barWidth} ${y + height} Q ${x + barWidth / 2} ${y + height + 5} ${x} ${y + height} Z`}
                     fill="none"
                     stroke={getDynamicColor(colors.secondary, 0.3)}
                     strokeWidth="0.5"
@@ -461,7 +460,7 @@ const VoiceWaveform = ({
     <View style={containerStyle}>
       <View style={styles.waveformSection}>
         {renderControls()}
-        
+
         <View style={styles.waveformWrapper}>
           {isRecording ? renderRecordingWaveform() : renderPlaybackWaveform()}
           {renderDuration()}
@@ -520,7 +519,7 @@ const getVariantConfig = (variant) => {
       },
     },
   };
-  
+
   return configs[variant] || configs.standard;
 };
 
@@ -564,22 +563,22 @@ const styles = StyleSheet.create({
   container: {
     overflow: 'hidden',
   },
-  
+
   waveformSection: {
     flexDirection: 'row',
     alignItems: 'center',
   },
-  
+
   controls: {
     flexDirection: 'row',
     alignItems: 'center',
     marginRight: MeshSpacing.sm,
   },
-  
+
   playButton: {
     marginRight: MeshSpacing.xs,
   },
-  
+
   playButtonInner: {
     width: 36,
     height: 36,
@@ -587,18 +586,18 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
   },
-  
+
   controlButton: {
     padding: MeshSpacing.xs,
     marginHorizontal: MeshSpacing.xs,
   },
-  
+
   recorderControls: {
     flexDirection: 'row',
     alignItems: 'center',
     marginRight: MeshSpacing.md,
   },
-  
+
   recordingIndicator: {
     width: 12,
     height: 12,
@@ -607,67 +606,67 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginRight: MeshSpacing.xs,
   },
-  
+
   recordingDot: {
     width: 6,
     height: 6,
     borderRadius: 3,
   },
-  
+
   recordingText: {
     fontSize: MeshTypography.sizes.bodySmall,
     fontWeight: MeshTypography.weights.medium,
   },
-  
+
   waveformWrapper: {
     flex: 1,
     alignItems: 'center',
   },
-  
+
   waveformContainer: {
     justifyContent: 'center',
     alignItems: 'center',
   },
-  
+
   durationContainer: {
     marginTop: MeshSpacing.xs,
   },
-  
+
   durationText: {
     fontSize: MeshTypography.sizes.caption,
     textAlign: 'center',
   },
-  
+
   transcriptionContainer: {
     marginTop: MeshSpacing.sm,
     paddingTop: MeshSpacing.sm,
     borderTopWidth: 1,
     borderTopColor: getDynamicColor(MeshColors.neutrals.mediumGrey, 0.3),
   },
-  
+
   transcriptionHeader: {
     flexDirection: 'row',
     alignItems: 'center',
     marginBottom: MeshSpacing.xs,
   },
-  
+
   transcriptionLabel: {
     fontSize: MeshTypography.sizes.bodySmall,
     fontWeight: MeshTypography.weights.medium,
     marginLeft: MeshSpacing.xs,
     flex: 1,
   },
-  
+
   transcribingIndicator: {
     alignItems: 'center',
     paddingVertical: MeshSpacing.sm,
   },
-  
+
   transcriptionText: {
     fontSize: MeshTypography.sizes.bodySmall,
     lineHeight: MeshTypography.lineHeights.normal * MeshTypography.sizes.bodySmall,
   },
-  
+
   transcriptionTextCollapsed: {
     opacity: 0.8,
   },

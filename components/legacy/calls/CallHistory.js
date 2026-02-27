@@ -28,10 +28,9 @@ import Svg, {
   Defs,
   LinearGradient as SvgGradient,
   Stop,
-  AnimatedCircle,
-  AnimatedPath,
   Rect,
 } from 'react-native-svg';
+import { AnimatedCircle, AnimatedPath } from '../../../utils/AnimatedSvg';
 
 // Import our mesh components
 import CrystallineMesh from '../../components/ndeip/CrystallineMesh';
@@ -203,7 +202,7 @@ const CallHistory = ({
       newSelection.add(callId);
     }
     setSelectedCalls(newSelection);
-    
+
     if (newSelection.size === 0) {
       setSelectionMode(false);
     }
@@ -251,7 +250,7 @@ const CallHistory = ({
             <Text style={[styles.headerTitle, { color: colors.text }]}>
               Call History
             </Text>
-            
+
             <View style={styles.headerActions}>
               {selectionMode ? (
                 <>
@@ -260,10 +259,10 @@ const CallHistory = ({
                     onPress={handleBulkDelete}
                     disabled={selectedCalls.size === 0}
                   >
-                    <Ionicons 
-                      name="trash" 
-                      size={24} 
-                      color={selectedCalls.size > 0 ? colors.accents.mutedRed : colors.textSecondary} 
+                    <Ionicons
+                      name="trash"
+                      size={24}
+                      color={selectedCalls.size > 0 ? colors.accents.mutedRed : colors.textSecondary}
                     />
                   </TouchableOpacity>
                   <TouchableOpacity
@@ -284,14 +283,14 @@ const CallHistory = ({
                   >
                     <MaterialIcons name="insights" size={24} color={colors.text} />
                   </TouchableOpacity>
-                  
+
                   <TouchableOpacity
                     style={styles.headerAction}
                     onPress={() => setShowFilterMenu(true)}
                   >
                     <Ionicons name="filter" size={24} color={colors.text} />
                   </TouchableOpacity>
-                  
+
                   <TouchableOpacity
                     style={styles.headerAction}
                     onPress={() => setSelectionMode(true)}
@@ -314,8 +313,8 @@ const CallHistory = ({
   // Render filter tabs
   const renderFilterTabs = () => (
     <View style={styles.filterTabs}>
-      <ScrollView 
-        horizontal 
+      <ScrollView
+        horizontal
         showsHorizontalScrollIndicator={false}
         contentContainerStyle={styles.filterTabsContent}
       >
@@ -620,14 +619,14 @@ const CallHistoryItem = ({
                 <Text style={[styles.contactName, { color: colors.text }]}>
                   {call.contact?.name || call.phoneNumber || 'Unknown'}
                 </Text>
-                
+
                 <View style={styles.callMeta}>
                   <Ionicons
                     name={getCallIcon()}
                     size={16}
                     color={getCallIconColor()}
                   />
-                  
+
                   {call.isVideoCall && (
                     <MaterialIcons
                       name="videocam"
@@ -636,11 +635,11 @@ const CallHistoryItem = ({
                       style={{ marginLeft: MeshSpacing.xs }}
                     />
                   )}
-                  
+
                   <Text style={[styles.callTime, { color: colors.textSecondary }]}>
-                    {new Date(call.timestamp).toLocaleTimeString([], { 
-                      hour: '2-digit', 
-                      minute: '2-digit' 
+                    {new Date(call.timestamp).toLocaleTimeString([], {
+                      hour: '2-digit',
+                      minute: '2-digit'
                     })}
                   </Text>
                 </View>
@@ -652,7 +651,7 @@ const CallHistoryItem = ({
               <Text style={[styles.callStatus, { color: getCallIconColor() }]}>
                 {getStatusText()}
               </Text>
-              
+
               {call.duration > 0 && (
                 <CallDurationVisualization
                   duration={call.duration}
@@ -673,7 +672,7 @@ const CallHistoryItem = ({
               >
                 <Ionicons name="call" size={18} color={colors.background} />
               </TouchableOpacity>
-              
+
               {call.isVideoCall && (
                 <TouchableOpacity
                   style={[styles.quickActionButton, { backgroundColor: colors.secondary }]}
@@ -715,14 +714,14 @@ const CallDurationVisualization = ({ duration, maxDuration, colors }) => {
             <Stop offset="100%" stopColor={colors.secondary} stopOpacity="1" />
           </SvgGradient>
         </Defs>
-        
+
         <Rect
           width={60}
           height={8}
           rx={4}
           fill={getDynamicColor(colors.surface, 0.5)}
         />
-        
+
         <AnimatedPath
           d={`M 0 4 L ${animValue._value * 60} 4`}
           stroke="url(#durationGradient)"
@@ -745,7 +744,7 @@ const CallInsightsSummary = ({ insights, colors }) => (
         Today
       </Text>
     </View>
-    
+
     <View style={styles.insightItem}>
       <Text style={[styles.insightValue, { color: colors.accents.mutedRed }]}>
         {insights.missedCalls}
@@ -754,7 +753,7 @@ const CallInsightsSummary = ({ insights, colors }) => (
         Missed
       </Text>
     </View>
-    
+
     <View style={styles.insightItem}>
       <Text style={[styles.insightValue, { color: colors.secondary }]}>
         {Math.round(insights.avgDuration / 60)}m
@@ -775,13 +774,13 @@ const EmptyCallHistory = ({ activeFilter, colors }) => (
       color={colors.primary}
       style={styles.emptyLoader}
     />
-    
+
     <Text style={[styles.emptyTitle, { color: colors.text }]}>
       No {activeFilter === 'all' ? '' : activeFilter} calls
     </Text>
-    
+
     <Text style={[styles.emptyDescription, { color: colors.textSecondary }]}>
-      {activeFilter === 'all' 
+      {activeFilter === 'all'
         ? 'Your call history will appear here'
         : `No ${activeFilter} calls found`
       }
@@ -810,7 +809,7 @@ const CallInsightsModal = ({ visible, insights, calls, onClose, colors }) => (
           <Text style={[styles.sectionTitle, { color: colors.text }]}>
             Overview
           </Text>
-          
+
           <View style={styles.statsGrid}>
             <InsightStat
               label="Total Calls"
@@ -840,7 +839,7 @@ const CallInsightsModal = ({ visible, insights, calls, onClose, colors }) => (
           <Text style={[styles.sectionTitle, { color: colors.text }]}>
             Patterns
           </Text>
-          
+
           <CallPatternChart calls={calls} colors={colors} />
         </FloatingCard>
       </ScrollView>
@@ -926,7 +925,7 @@ const CallPatternChart = ({ calls, colors }) => {
       <Text style={[styles.chartTitle, { color: colors.text }]}>
         Call Activity by Hour
       </Text>
-      
+
       <Svg width={screenWidth - 80} height={120}>
         <Defs>
           <SvgGradient id="chartGradient" x1="0%" y1="0%" x2="0%" y2="100%">
@@ -934,11 +933,11 @@ const CallPatternChart = ({ calls, colors }) => {
             <Stop offset="100%" stopColor={colors.primary} stopOpacity="0.2" />
           </SvgGradient>
         </Defs>
-        
+
         {hourlyData.map((count, hour) => {
           const barHeight = maxCalls > 0 ? (count / maxCalls) * 80 : 0;
           const x = (hour / 24) * (screenWidth - 80);
-          
+
           return (
             <Rect
               key={hour}
@@ -960,41 +959,41 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
   },
-  
+
   header: {
     paddingHorizontal: MeshSpacing.md,
     paddingTop: MeshSpacing.sm,
   },
-  
+
   headerCard: {
     marginBottom: MeshSpacing.sm,
   },
-  
+
   headerContent: {
     paddingVertical: MeshSpacing.sm,
   },
-  
+
   headerTop: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
     marginBottom: MeshSpacing.sm,
   },
-  
+
   headerTitle: {
     fontSize: MeshTypography.sizes.h2,
     fontWeight: MeshTypography.weights.semiBold,
   },
-  
+
   headerActions: {
     flexDirection: 'row',
     alignItems: 'center',
   },
-  
+
   headerAction: {
     marginLeft: MeshSpacing.md,
   },
-  
+
   insightsSummary: {
     flexDirection: 'row',
     justifyContent: 'space-around',
@@ -1002,30 +1001,30 @@ const styles = StyleSheet.create({
     borderTopWidth: 1,
     borderTopColor: getDynamicColor(MeshColors.neutrals.lightGrey, 0.3),
   },
-  
+
   insightItem: {
     alignItems: 'center',
   },
-  
+
   insightValue: {
     fontSize: MeshTypography.sizes.h3,
     fontWeight: MeshTypography.weights.bold,
   },
-  
+
   insightLabel: {
     fontSize: MeshTypography.sizes.caption,
     marginTop: 2,
   },
-  
+
   filterTabs: {
     paddingHorizontal: MeshSpacing.md,
     marginBottom: MeshSpacing.sm,
   },
-  
+
   filterTabsContent: {
     paddingRight: MeshSpacing.md,
   },
-  
+
   filterTab: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -1035,41 +1034,41 @@ const styles = StyleSheet.create({
     marginRight: MeshSpacing.sm,
     backgroundColor: getDynamicColor(MeshColors.neutrals.lightGrey, 0.3),
   },
-  
+
   filterTabText: {
     fontSize: MeshTypography.sizes.bodySmall,
     fontWeight: MeshTypography.weights.medium,
     marginRight: MeshSpacing.xs,
   },
-  
+
   filterTabCount: {
     fontSize: MeshTypography.sizes.caption,
     fontWeight: MeshTypography.weights.medium,
   },
-  
+
   callsList: {
     paddingHorizontal: MeshSpacing.md,
     paddingBottom: MeshSpacing.lg,
   },
-  
+
   callItemContainer: {
     marginBottom: MeshSpacing.sm,
   },
-  
+
   callItem: {
     position: 'relative',
   },
-  
+
   callCard: {
     position: 'relative',
     overflow: 'visible',
   },
-  
+
   missedCallCard: {
     borderWidth: 1,
     borderColor: getDynamicColor(MeshColors.accents.mutedRed, 0.3),
   },
-  
+
   selectionIndicator: {
     position: 'absolute',
     top: -8,
@@ -1083,7 +1082,7 @@ const styles = StyleSheet.create({
     borderWidth: 2,
     borderColor: '#fff',
   },
-  
+
   missedPulse: {
     position: 'absolute',
     top: -4,
@@ -1092,19 +1091,19 @@ const styles = StyleSheet.create({
     bottom: -4,
     borderRadius: MeshBorderRadius.components.card + 4,
   },
-  
+
   callContent: {
     flexDirection: 'row',
     alignItems: 'center',
     paddingVertical: MeshSpacing.xs,
   },
-  
+
   contactSection: {
     flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
   },
-  
+
   contactAvatar: {
     width: 48,
     height: 48,
@@ -1113,52 +1112,52 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginRight: MeshSpacing.md,
   },
-  
+
   contactAvatarText: {
     fontSize: MeshTypography.sizes.h4,
     fontWeight: MeshTypography.weights.semiBold,
   },
-  
+
   contactInfo: {
     flex: 1,
   },
-  
+
   contactName: {
     fontSize: MeshTypography.sizes.body,
     fontWeight: MeshTypography.weights.medium,
     marginBottom: 2,
   },
-  
+
   callMeta: {
     flexDirection: 'row',
     alignItems: 'center',
   },
-  
+
   callTime: {
     fontSize: MeshTypography.sizes.caption,
     marginLeft: MeshSpacing.sm,
   },
-  
+
   callDetails: {
     alignItems: 'flex-end',
     marginRight: MeshSpacing.sm,
   },
-  
+
   callStatus: {
     fontSize: MeshTypography.sizes.bodySmall,
     fontWeight: MeshTypography.weights.medium,
     marginBottom: MeshSpacing.xs,
   },
-  
+
   durationVisualization: {
     marginTop: MeshSpacing.xs,
   },
-  
+
   quickActions: {
     flexDirection: 'row',
     alignItems: 'center',
   },
-  
+
   quickActionButton: {
     width: 36,
     height: 36,
@@ -1168,33 +1167,33 @@ const styles = StyleSheet.create({
     marginLeft: MeshSpacing.xs,
     ...MeshShadows.floating.light,
   },
-  
+
   emptyContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
     paddingVertical: MeshSpacing.xxl,
   },
-  
+
   emptyLoader: {
     marginBottom: MeshSpacing.lg,
   },
-  
+
   emptyTitle: {
     fontSize: MeshTypography.sizes.h3,
     fontWeight: MeshTypography.weights.semiBold,
     marginBottom: MeshSpacing.sm,
   },
-  
+
   emptyDescription: {
     fontSize: MeshTypography.sizes.body,
     textAlign: 'center',
   },
-  
+
   modalContainer: {
     flex: 1,
   },
-  
+
   modalHeader: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -1204,59 +1203,59 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
     borderBottomColor: getDynamicColor(MeshColors.neutrals.mediumGrey, 0.2),
   },
-  
+
   modalTitle: {
     fontSize: MeshTypography.sizes.h3,
     fontWeight: MeshTypography.weights.semiBold,
   },
-  
+
   modalContent: {
     flex: 1,
     paddingHorizontal: MeshSpacing.lg,
   },
-  
+
   insightsCard: {
     marginVertical: MeshSpacing.md,
   },
-  
+
   sectionTitle: {
     fontSize: MeshTypography.sizes.h4,
     fontWeight: MeshTypography.weights.semiBold,
     marginBottom: MeshSpacing.md,
   },
-  
+
   statsGrid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
     justifyContent: 'space-between',
   },
-  
+
   insightStat: {
     width: '48%',
     alignItems: 'center',
     marginBottom: MeshSpacing.md,
   },
-  
+
   insightStatValue: {
     fontSize: MeshTypography.sizes.h2,
     fontWeight: MeshTypography.weights.bold,
   },
-  
+
   insightStatLabel: {
     fontSize: MeshTypography.sizes.caption,
     marginTop: 4,
   },
-  
+
   patternChart: {
     alignItems: 'center',
   },
-  
+
   chartTitle: {
     fontSize: MeshTypography.sizes.bodySmall,
     fontWeight: MeshTypography.weights.medium,
     marginBottom: MeshSpacing.md,
   },
-  
+
   filterOption: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -1265,7 +1264,7 @@ const styles = StyleSheet.create({
     borderRadius: MeshBorderRadius.sm,
     marginVertical: MeshSpacing.xs,
   },
-  
+
   filterOptionText: {
     flex: 1,
     fontSize: MeshTypography.sizes.body,

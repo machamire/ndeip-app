@@ -23,11 +23,10 @@ import Svg, {
   Defs,
   LinearGradient as SvgGradient,
   Stop,
-  AnimatedCircle,
-  AnimatedPath,
-  Pattern,
   Rect,
 } from 'react-native-svg';
+import { AnimatedCircle, AnimatedPath } from '../../utils/AnimatedSvg';
+const Pattern = G;
 
 import { useMeshTheme, useMeshColors, useMeshAnimations } from '../../hooks/useMeshTheme';
 import QuantumLoader from '../ndeip/QuantumLoader';

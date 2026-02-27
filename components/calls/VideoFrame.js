@@ -27,12 +27,11 @@ import Svg, {
   Defs,
   LinearGradient as SvgGradient,
   Stop,
-  Pattern,
   Rect,
   Polygon,
-  AnimatedCircle,
-  AnimatedPath,
 } from 'react-native-svg';
+import { AnimatedCircle, AnimatedPath } from '../../utils/AnimatedSvg';
+const Pattern = G;
 
 import { useMeshTheme, useMeshColors, useMeshAnimations } from '../../hooks/useMeshTheme';
 import { generateUserMesh } from '../../utils/MeshGenerator';
@@ -100,7 +99,7 @@ const VideoFrame = ({
   const [showFilterMenu, setShowFilterMenu] = useState(false);
   const [showQualityMenu, setShowQualityMenu] = useState(false);
   const [videoLoaded, setVideoLoaded] = useState(false);
-  const [aspectRatio, setAspectRatio] = useState(16/9);
+  const [aspectRatio, setAspectRatio] = useState(16 / 9);
   const [connectionQuality, setConnectionQuality] = useState('excellent');
 
   // Animation refs
@@ -123,7 +122,7 @@ const VideoFrame = ({
   useEffect(() => {
     startBorderAnimation();
     startMeshAnimation();
-    
+
     if (isPrimaryView) {
       startPulseAnimation();
     }
@@ -227,7 +226,7 @@ const VideoFrame = ({
   const handleFilterSelect = (filter) => {
     setActiveFilter(filter);
     setShowFilterMenu(false);
-    
+
     if (onFilterChange) {
       onFilterChange(filter);
     }
@@ -236,7 +235,7 @@ const VideoFrame = ({
   // Handle quality selection
   const handleQualitySelect = (newQuality) => {
     setShowQualityMenu(false);
-    
+
     if (onQualityChange) {
       onQualityChange(newQuality);
     }
@@ -283,7 +282,7 @@ const VideoFrame = ({
           <Stop offset="50%" stopColor={colors.secondary} stopOpacity="1" />
           <Stop offset="100%" stopColor={colors.primary} stopOpacity="0.8" />
         </SvgGradient>
-        
+
         <Pattern id="meshBorderPattern" x="0" y="0" width="20" height="20" patternUnits="userSpaceOnUse">
           <Polygon
             points="0,10 10,0 20,10 10,20"
@@ -409,16 +408,16 @@ const VideoFrame = ({
         return (
           <BlurView intensity={80} style={StyleSheet.absoluteFillObject} />
         );
-        
+
       case FILTER_TYPES.MESH_BACKGROUND:
         return renderMeshBackground();
-        
+
       case FILTER_TYPES.AR_MESH:
         return renderARMeshFilter();
-        
+
       case FILTER_TYPES.NEON_OUTLINE:
         return renderNeonOutline();
-        
+
       default:
         return null;
     }
@@ -435,7 +434,7 @@ const VideoFrame = ({
         ]}
         style={StyleSheet.absoluteFillObject}
       />
-      
+
       <Svg
         width={frameDimensions.width}
         height={frameDimensions.height}
@@ -445,11 +444,9 @@ const VideoFrame = ({
         {userMeshPattern.connections?.map((connection, index) => (
           <AnimatedPath
             key={index}
-            d={`M ${connection.from.x * 0.5} ${connection.from.y * 0.5} Q ${
-              connection.controlPoint ? connection.controlPoint.x * 0.5 : (connection.from.x + connection.to.x) * 0.25
-            } ${
-              connection.controlPoint ? connection.controlPoint.y * 0.5 : (connection.from.y + connection.to.y) * 0.25
-            } ${connection.to.x * 0.5} ${connection.to.y * 0.5}`}
+            d={`M ${connection.from.x * 0.5} ${connection.from.y * 0.5} Q ${connection.controlPoint ? connection.controlPoint.x * 0.5 : (connection.from.x + connection.to.x) * 0.25
+              } ${connection.controlPoint ? connection.controlPoint.y * 0.5 : (connection.from.y + connection.to.y) * 0.25
+              } ${connection.to.x * 0.5} ${connection.to.y * 0.5}`}
             stroke={colors.primary}
             strokeWidth="1"
             fill="none"
@@ -482,9 +479,8 @@ const VideoFrame = ({
       {Array.from({ length: 8 }, (_, i) => (
         <AnimatedPath
           key={i}
-          d={`M 0 ${i * (frameDimensions.height / 8)} Q ${frameDimensions.width / 2} ${
-            i * (frameDimensions.height / 8) + Math.sin(meshAnimation._value * Math.PI + i) * 20
-          } ${frameDimensions.width} ${i * (frameDimensions.height / 8)}`}
+          d={`M 0 ${i * (frameDimensions.height / 8)} Q ${frameDimensions.width / 2} ${i * (frameDimensions.height / 8) + Math.sin(meshAnimation._value * Math.PI + i) * 20
+            } ${frameDimensions.width} ${i * (frameDimensions.height / 8)}`}
           stroke="url(#arGradient)"
           strokeWidth="2"
           fill="none"
@@ -512,9 +508,8 @@ const VideoFrame = ({
       </Defs>
 
       <AnimatedPath
-        d={`M 10 10 L ${frameDimensions.width - 10} 10 L ${frameDimensions.width - 10} ${
-          frameDimensions.height - 10
-        } L 10 ${frameDimensions.height - 10} Z`}
+        d={`M 10 10 L ${frameDimensions.width - 10} 10 L ${frameDimensions.width - 10} ${frameDimensions.height - 10
+          } L 10 ${frameDimensions.height - 10} Z`}
         stroke="url(#neonGradient)"
         strokeWidth="4"
         fill="none"
@@ -536,7 +531,7 @@ const VideoFrame = ({
         {/* Top controls */}
         <View style={styles.topControls}>
           <ConnectionIndicator quality={connectionQuality} colors={colors} />
-          
+
           {enableFilters && (
             <TouchableOpacity
               style={[styles.controlButton, { backgroundColor: getDynamicColor(colors.surface, 0.8) }]}
@@ -545,7 +540,7 @@ const VideoFrame = ({
               <MaterialIcons name="filter" size={20} color={colors.text} />
             </TouchableOpacity>
           )}
-          
+
           <TouchableOpacity
             style={[styles.controlButton, { backgroundColor: getDynamicColor(colors.surface, 0.8) }]}
             onPress={() => setShowQualityMenu(true)}
@@ -562,7 +557,7 @@ const VideoFrame = ({
           >
             <MaterialIcons name="picture-in-picture" size={20} color={colors.text} />
           </TouchableOpacity>
-          
+
           <TouchableOpacity
             style={[styles.controlButton, { backgroundColor: getDynamicColor(colors.surface, 0.8) }]}
             onPress={() => onModeChange?.(VIDEO_MODES.FULLSCREEN)}
@@ -594,10 +589,12 @@ const VideoFrame = ({
                 { translateX },
                 { translateY },
                 { scale },
-                { rotate: rotation.interpolate({
-                  inputRange: [0, 1],
-                  outputRange: ['0deg', '360deg'],
-                }) },
+                {
+                  rotate: rotation.interpolate({
+                    inputRange: [0, 1],
+                    outputRange: ['0deg', '360deg'],
+                  })
+                },
               ],
             },
             style,
@@ -629,7 +626,7 @@ const VideoFrame = ({
   return (
     <View style={styles.container}>
       {VideoContainer}
-      
+
       {/* Filter selection modal */}
       <FilterSelectionModal
         visible={showFilterMenu}
@@ -638,7 +635,7 @@ const VideoFrame = ({
         onClose={() => setShowFilterMenu(false)}
         colors={colors}
       />
-      
+
       {/* Quality selection modal */}
       <QualitySelectionModal
         visible={showQualityMenu}
@@ -686,7 +683,7 @@ const FilterSelectionModal = ({ visible, activeFilter, onFilterSelect, onClose, 
         </Text>
         <View style={{ width: 24 }} />
       </View>
-      
+
       <ScrollView style={styles.modalContent}>
         {Object.values(FILTER_TYPES).map((filter) => (
           <TouchableOpacity
@@ -724,7 +721,7 @@ const QualitySelectionModal = ({ visible, currentQuality, onQualitySelect, onClo
         </Text>
         <View style={{ width: 24 }} />
       </View>
-      
+
       <ScrollView style={styles.modalContent}>
         {Object.values(VIDEO_QUALITY).map((quality) => (
           <TouchableOpacity
@@ -813,37 +810,37 @@ const styles = StyleSheet.create({
   container: {
     position: 'relative',
   },
-  
+
   videoFrame: {
     borderRadius: MeshBorderRadius.lg,
     overflow: 'hidden',
     position: 'relative',
     ...MeshShadows.floating.medium,
   },
-  
+
   videoContent: {
     flex: 1,
     position: 'relative',
   },
-  
+
   videoStream: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
   },
-  
+
   streamLabel: {
     fontSize: MeshTypography.sizes.body,
     fontWeight: MeshTypography.weights.medium,
   },
-  
+
   videoPlaceholder: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
     padding: MeshSpacing.lg,
   },
-  
+
   avatarContainer: {
     width: 60,
     height: 60,
@@ -852,18 +849,18 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginBottom: MeshSpacing.md,
   },
-  
+
   avatarText: {
     fontSize: MeshTypography.sizes.h3,
     fontWeight: MeshTypography.weights.bold,
   },
-  
+
   participantName: {
     fontSize: MeshTypography.sizes.body,
     fontWeight: MeshTypography.weights.medium,
     textAlign: 'center',
   },
-  
+
   controlsOverlay: {
     position: 'absolute',
     top: 0,
@@ -873,20 +870,20 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     padding: MeshSpacing.sm,
   },
-  
+
   topControls: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
   },
-  
+
   bottomControls: {
     flexDirection: 'row',
     justifyContent: 'flex-end',
     alignItems: 'center',
     gap: MeshSpacing.sm,
   },
-  
+
   controlButton: {
     width: 36,
     height: 36,
@@ -895,7 +892,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     ...MeshShadows.floating.light,
   },
-  
+
   connectionIndicator: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -903,23 +900,23 @@ const styles = StyleSheet.create({
     paddingVertical: MeshSpacing.xs,
     borderRadius: MeshBorderRadius.sm,
   },
-  
+
   qualityDot: {
     width: 6,
     height: 6,
     borderRadius: 3,
     marginRight: MeshSpacing.xs,
   },
-  
+
   qualityText: {
     fontSize: MeshTypography.sizes.caption,
     fontWeight: MeshTypography.weights.medium,
   },
-  
+
   modalContainer: {
     flex: 1,
   },
-  
+
   modalHeader: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -929,17 +926,17 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
     borderBottomColor: getDynamicColor(MeshColors.neutrals.mediumGrey, 0.2),
   },
-  
+
   modalTitle: {
     fontSize: MeshTypography.sizes.h3,
     fontWeight: MeshTypography.weights.semiBold,
   },
-  
+
   modalContent: {
     flex: 1,
     paddingHorizontal: MeshSpacing.lg,
   },
-  
+
   filterOption: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -948,7 +945,7 @@ const styles = StyleSheet.create({
     marginVertical: MeshSpacing.xs,
     paddingHorizontal: MeshSpacing.md,
   },
-  
+
   filterPreview: {
     width: 40,
     height: 40,
@@ -957,13 +954,13 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginRight: MeshSpacing.md,
   },
-  
+
   filterLabel: {
     flex: 1,
     fontSize: MeshTypography.sizes.body,
     fontWeight: MeshTypography.weights.medium,
   },
-  
+
   qualityOption: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -972,13 +969,13 @@ const styles = StyleSheet.create({
     marginVertical: MeshSpacing.xs,
     paddingHorizontal: MeshSpacing.md,
   },
-  
+
   qualityLabel: {
     fontSize: MeshTypography.sizes.body,
     fontWeight: MeshTypography.weights.medium,
     marginBottom: 2,
   },
-  
+
   qualityDescription: {
     fontSize: MeshTypography.sizes.caption,
     flex: 1,

@@ -13,9 +13,8 @@ import Svg, {
   Defs,
   LinearGradient,
   Stop,
-  AnimatedCircle,
-  AnimatedPath,
 } from 'react-native-svg';
+import { AnimatedCircle, AnimatedPath } from '../../utils/AnimatedSvg';
 import { MeshColors, MeshAnimations, getDynamicColor } from '../../constants/ndeipBrandSystem';
 
 const { width: screenWidth, height: screenHeight } = Dimensions.get('window');
@@ -33,10 +32,10 @@ const QuantumLoader = ({
   const animValue2 = useRef(new Animated.Value(0)).current;
   const animValue3 = useRef(new Animated.Value(0)).current;
   const rotateAnim = useRef(new Animated.Value(0)).current;
-  
+
   // Particle system state
   const [particles, setParticles] = useState([]);
-  
+
   // Size configurations
   const sizeConfig = {
     small: { width: 40, height: 40, dotSize: 4 },
@@ -44,13 +43,13 @@ const QuantumLoader = ({
     large: { width: 80, height: 80, dotSize: 8 },
     fullscreen: { width: screenWidth, height: screenHeight, dotSize: 10 },
   };
-  
+
   const { width, height, dotSize } = sizeConfig[size];
 
   // Start animations
   useEffect(() => {
     if (!visible) return;
-    
+
     const startAnimations = () => {
       switch (type) {
         case 'dots':
@@ -75,9 +74,9 @@ const QuantumLoader = ({
           startDotsAnimation();
       }
     };
-    
+
     startAnimations();
-    
+
     return () => {
       animValue1.stopAnimation();
       animValue2.stopAnimation();
@@ -138,7 +137,7 @@ const QuantumLoader = ({
         ])
       ),
     ]);
-    
+
     sequence.start();
   };
 
@@ -147,7 +146,7 @@ const QuantumLoader = ({
     // Generate particles
     const newParticles = [];
     const particleCount = 12;
-    
+
     for (let i = 0; i < particleCount; i++) {
       newParticles.push({
         id: i,
@@ -156,11 +155,11 @@ const QuantumLoader = ({
         animValue: new Animated.Value(0),
       });
     }
-    
+
     setParticles(newParticles);
-    
+
     // Animate particles
-    const particleAnimations = newParticles.map((particle, index) => 
+    const particleAnimations = newParticles.map((particle, index) =>
       Animated.loop(
         Animated.timing(particle.animValue, {
           toValue: 1,
@@ -171,7 +170,7 @@ const QuantumLoader = ({
         })
       )
     );
-    
+
     Animated.parallel(particleAnimations).start();
   };
 
@@ -192,7 +191,7 @@ const QuantumLoader = ({
         }),
       ])
     ).start();
-    
+
     Animated.loop(
       Animated.sequence([
         Animated.delay(duration / 3),
@@ -209,7 +208,7 @@ const QuantumLoader = ({
         }),
       ])
     ).start();
-    
+
     Animated.loop(
       Animated.sequence([
         Animated.delay((duration / 3) * 2),
@@ -258,7 +257,7 @@ const QuantumLoader = ({
         useNativeDriver: true,
       })
     ).start();
-    
+
     Animated.loop(
       Animated.sequence([
         Animated.timing(animValue1, {
@@ -320,17 +319,17 @@ const QuantumLoader = ({
       inputRange: [0, 1],
       outputRange: [0.5, 1.5],
     });
-    
+
     const dot2Scale = animValue2.interpolate({
       inputRange: [0, 1],
       outputRange: [0.5, 1.5],
     });
-    
+
     const dot3Scale = animValue3.interpolate({
       inputRange: [0, 1],
       outputRange: [0.5, 1.5],
     });
-    
+
     return (
       <View style={{ flexDirection: 'row', alignItems: 'center' }}>
         <Animated.View
@@ -376,16 +375,16 @@ const QuantumLoader = ({
             <Stop offset="100%" stopColor={getDynamicColor(color, 0.3)} stopOpacity="0.3" />
           </LinearGradient>
         </Defs>
-        
+
         {particles.map((particle, index) => {
           const animatedRadius = particle.animValue.interpolate({
             inputRange: [0, 1],
             outputRange: [0, particle.radius],
           });
-          
+
           const x = width / 2 + Math.cos(particle.angle) * animatedRadius._value;
           const y = height / 2 + Math.sin(particle.angle) * animatedRadius._value;
-          
+
           return (
             <AnimatedCircle
               key={particle.id}
@@ -409,32 +408,32 @@ const QuantumLoader = ({
       inputRange: [0, 1],
       outputRange: [0, width / 2],
     });
-    
+
     const wave2Radius = animValue2.interpolate({
       inputRange: [0, 1],
       outputRange: [0, width / 2],
     });
-    
+
     const wave3Radius = animValue3.interpolate({
       inputRange: [0, 1],
       outputRange: [0, width / 2],
     });
-    
+
     const wave1Opacity = animValue1.interpolate({
       inputRange: [0, 1],
       outputRange: [0.7, 0],
     });
-    
+
     const wave2Opacity = animValue2.interpolate({
       inputRange: [0, 1],
       outputRange: [0.7, 0],
     });
-    
+
     const wave3Opacity = animValue3.interpolate({
       inputRange: [0, 1],
       outputRange: [0.7, 0],
     });
-    
+
     return (
       <Svg width={width} height={height}>
         <AnimatedCircle
@@ -473,12 +472,12 @@ const QuantumLoader = ({
       inputRange: [0, 1],
       outputRange: [0.8, 1.2],
     });
-    
+
     const pulseOpacity = animValue1.interpolate({
       inputRange: [0, 1],
       outputRange: [1, 0.3],
     });
-    
+
     return (
       <Animated.View
         style={{
@@ -498,12 +497,12 @@ const QuantumLoader = ({
       inputRange: [0, 1],
       outputRange: ['0deg', '360deg'],
     });
-    
+
     const connectionProgress = animValue1.interpolate({
       inputRange: [0, 1],
       outputRange: [0, 1],
     });
-    
+
     return (
       <Animated.View style={{ transform: [{ rotate: rotation }] }}>
         <Svg width={width} height={height}>
@@ -514,7 +513,7 @@ const QuantumLoader = ({
               <Stop offset="100%" stopColor={color} stopOpacity="1" />
             </LinearGradient>
           </Defs>
-          
+
           {/* Mesh connection lines */}
           <Path
             d={`M ${width * 0.2} ${height * 0.2} Q ${width * 0.5} ${height * 0.1} ${width * 0.8} ${height * 0.2}`}
@@ -530,7 +529,7 @@ const QuantumLoader = ({
             fill="none"
             strokeDasharray={`${connectionProgress._value * 100} ${100 - connectionProgress._value * 100}`}
           />
-          
+
           {/* Connection nodes */}
           <Circle cx={width * 0.2} cy={height * 0.5} r={dotSize} fill={color} />
           <Circle cx={width * 0.8} cy={height * 0.5} r={dotSize} fill={color} />
@@ -544,17 +543,17 @@ const QuantumLoader = ({
       inputRange: [0, 1],
       outputRange: [1, 0.8],
     });
-    
+
     const particleScale = animValue2.interpolate({
       inputRange: [0, 1],
       outputRange: [0, 1.5],
     });
-    
+
     const particleOpacity = animValue2.interpolate({
       inputRange: [0, 1],
       outputRange: [1, 0],
     });
-    
+
     return (
       <View style={{ alignItems: 'center' }}>
         <Animated.View
@@ -567,7 +566,7 @@ const QuantumLoader = ({
             marginBottom: dotSize,
           }}
         />
-        
+
         {/* Particle trail */}
         {[...Array(5)].map((_, index) => (
           <Animated.View
@@ -616,35 +615,35 @@ export const LoaderPresets = {
     color: MeshColors.primaryTeal,
     duration: 1200,
   },
-  
+
   sending: {
     type: 'send',
     size: 'medium',
     color: MeshColors.electricBlue,
     duration: 800,
   },
-  
+
   calling: {
     type: 'connection',
     size: 'large',
     color: MeshColors.electricBlue,
     duration: 2000,
   },
-  
+
   loading: {
     type: 'particles',
     size: 'medium',
     color: MeshColors.electricBlue,
     duration: 1500,
   },
-  
+
   notification: {
     type: 'pulse',
     size: 'small',
     color: MeshColors.accents.success,
     duration: 1000,
   },
-  
+
   splash: {
     type: 'wave',
     size: 'fullscreen',
@@ -656,7 +655,7 @@ export const LoaderPresets = {
 // Utility component for quick loaders
 export const QuickLoader = ({ preset = 'loading', ...props }) => {
   const config = LoaderPresets[preset] || LoaderPresets.loading;
-  
+
   return <QuantumLoader {...config} {...props} />;
 };
 

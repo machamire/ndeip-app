@@ -22,12 +22,11 @@ import Svg, {
   Defs,
   LinearGradient as SvgGradient,
   Stop,
-  AnimatedCircle,
-  AnimatedPath,
-  Pattern,
   Rect,
   Polygon,
 } from 'react-native-svg';
+import { AnimatedCircle, AnimatedPath } from '../utils/AnimatedSvg';
+const Pattern = G;
 
 import { useMeshTheme, useMeshColors, useMeshAnimations } from '../hooks/useMeshTheme';
 import {
@@ -127,7 +126,7 @@ const EncryptionVisualizer = ({
   // Start encryption animation
   const startEncryptionAnimation = () => {
     generateSecurityParticles();
-    
+
     Animated.parallel([
       Animated.loop(
         Animated.sequence([
@@ -204,7 +203,7 @@ const EncryptionVisualizer = ({
   // Start key exchange animation
   const startKeyExchangeAnimation = () => {
     generateKeyExchangeParticles();
-    
+
     Animated.loop(
       Animated.timing(particleAnimation, {
         toValue: 1,
@@ -230,7 +229,7 @@ const EncryptionVisualizer = ({
   // Start handshake animation
   const startHandshakeAnimation = () => {
     generateHandshakeParticles();
-    
+
     Animated.loop(
       Animated.sequence([
         Animated.timing(handshakeAnimation, {
@@ -305,7 +304,7 @@ const EncryptionVisualizer = ({
   const generateSecurityParticles = () => {
     const newParticles = [];
     const particleCount = 12;
-    
+
     for (let i = 0; i < particleCount; i++) {
       newParticles.push({
         id: i,
@@ -315,7 +314,7 @@ const EncryptionVisualizer = ({
         delay: i * 100,
       });
     }
-    
+
     setParticles(newParticles);
   };
 
@@ -323,7 +322,7 @@ const EncryptionVisualizer = ({
   const generateKeyExchangeParticles = () => {
     const newParticles = [];
     const particleCount = 8;
-    
+
     for (let i = 0; i < particleCount; i++) {
       newParticles.push({
         id: i,
@@ -335,14 +334,14 @@ const EncryptionVisualizer = ({
         delay: i * 200,
       });
     }
-    
+
     setParticles(newParticles);
   };
 
   // Generate handshake particles
   const generateHandshakeParticles = () => {
     const newParticles = [];
-    
+
     for (let i = 0; i < 6; i++) {
       newParticles.push({
         id: i,
@@ -352,7 +351,7 @@ const EncryptionVisualizer = ({
         delay: i * 100,
       });
     }
-    
+
     setParticles(newParticles);
   };
 
@@ -495,13 +494,13 @@ const EncryptionVisualizer = ({
           size={16}
           color={statusColor}
         />
-        
+
         {showDetails && (
           <>
             <Text style={[styles.badgeText, { color: colors.text }]}>
               {getStatusText(status)}
             </Text>
-            
+
             <View style={[styles.securityDot, { backgroundColor: securityColor }]} />
           </>
         )}
@@ -525,7 +524,7 @@ const EncryptionVisualizer = ({
           }}
           colors={colors}
         />
-        
+
         {showDetails && (
           <EncryptionDetails
             status={status}
@@ -626,7 +625,7 @@ const MeshShield = ({ size, color, securityLevel }) => (
         <Stop offset="0%" stopColor={color} stopOpacity="0.3" />
         <Stop offset="100%" stopColor={color} stopOpacity="0.1" />
       </SvgGradient>
-      
+
       <Pattern id="meshPattern" x="0" y="0" width="8" height="8" patternUnits="userSpaceOnUse">
         <Polygon
           points="0,4 4,0 8,4 4,8"
@@ -640,16 +639,16 @@ const MeshShield = ({ size, color, securityLevel }) => (
 
     {/* Shield shape */}
     <Path
-      d={`M ${size/2} 4 L ${size*0.8} ${size*0.3} L ${size*0.8} ${size*0.7} L ${size/2} ${size*0.9} L ${size*0.2} ${size*0.7} L ${size*0.2} ${size*0.3} Z`}
+      d={`M ${size / 2} 4 L ${size * 0.8} ${size * 0.3} L ${size * 0.8} ${size * 0.7} L ${size / 2} ${size * 0.9} L ${size * 0.2} ${size * 0.7} L ${size * 0.2} ${size * 0.3} Z`}
       fill="url(#shieldGradient)"
       stroke={color}
       strokeWidth="1"
       opacity="0.6"
     />
-    
+
     {/* Mesh overlay */}
     <Path
-      d={`M ${size/2} 4 L ${size*0.8} ${size*0.3} L ${size*0.8} ${size*0.7} L ${size/2} ${size*0.9} L ${size*0.2} ${size*0.7} L ${size*0.2} ${size*0.3} Z`}
+      d={`M ${size / 2} 4 L ${size * 0.8} ${size * 0.3} L ${size * 0.8} ${size * 0.7} L ${size / 2} ${size * 0.9} L ${size * 0.2} ${size * 0.7} L ${size * 0.2} ${size * 0.3} Z`}
       fill="url(#meshPattern)"
     />
   </Svg>
@@ -691,9 +690,9 @@ const EncryptionAnimation = ({
             <Stop offset="100%" stopColor={colors.secondary} stopOpacity="0.05" />
           </SvgGradient>
         </Defs>
-        
+
         <Rect width="100%" height="100%" fill="url(#bgGradient)" />
-        
+
         {/* Animated mesh grid */}
         {Array.from({ length: 20 }, (_, i) => (
           <AnimatedPath
@@ -778,11 +777,11 @@ const EncryptionDetails = ({ status, securityLevel, colors }) => (
     <Text style={[styles.statusTitle, { color: colors.text }]}>
       {getStatusText(status)}
     </Text>
-    
+
     <Text style={[styles.securityLevel, { color: colors.textSecondary }]}>
       Security Level: {securityLevel.toUpperCase()}
     </Text>
-    
+
     <View style={styles.securityFeatures}>
       <SecurityFeature
         icon="shield-checkmark"
@@ -856,7 +855,7 @@ const HandshakeVisualization = ({ progress, animationValue, particles, colors })
         {/* User nodes */}
         <Circle cx="20" cy="50" r="8" fill={colors.primary} />
         <Circle cx="180" cy="50" r="8" fill={colors.primary} />
-        
+
         {/* Key exchange particles */}
         {particles.map((particle, index) => (
           <AnimatedCircle
@@ -873,7 +872,7 @@ const HandshakeVisualization = ({ progress, animationValue, particles, colors })
       <Text style={[styles.handshakeText, { color: colors.text }]}>
         Establishing Secure Connection...
       </Text>
-      
+
       <Text style={[styles.progressText, { color: colors.textSecondary }]}>
         {Math.round(progress * 100)}% Complete
       </Text>
@@ -911,20 +910,20 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     position: 'relative',
   },
-  
+
   indicatorGlow: {
     position: 'absolute',
     width: '120%',
     height: '120%',
     borderRadius: 999,
   },
-  
+
   iconContainer: {
     justifyContent: 'center',
     alignItems: 'center',
     zIndex: 2,
   },
-  
+
   shieldOverlay: {
     position: 'absolute',
     top: 0,
@@ -933,7 +932,7 @@ const styles = StyleSheet.create({
     bottom: 0,
     zIndex: 1,
   },
-  
+
   badge: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -942,99 +941,99 @@ const styles = StyleSheet.create({
     borderRadius: MeshBorderRadius.sm,
     borderWidth: 1,
   },
-  
+
   badgeText: {
     fontSize: MeshTypography.sizes.caption,
     marginLeft: MeshSpacing.xs,
     marginRight: MeshSpacing.xs,
   },
-  
+
   securityDot: {
     width: 6,
     height: 6,
     borderRadius: 3,
   },
-  
+
   fullscreen: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
   },
-  
+
   animationContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
   },
-  
+
   centralIcon: {
     justifyContent: 'center',
     alignItems: 'center',
     zIndex: 10,
   },
-  
+
   lockContainer: {
     justifyContent: 'center',
     alignItems: 'center',
     zIndex: 3,
   },
-  
+
   shieldContainer: {
     position: 'absolute',
     justifyContent: 'center',
     alignItems: 'center',
     zIndex: 2,
   },
-  
+
   detailsContainer: {
     position: 'absolute',
     bottom: 100,
     alignItems: 'center',
     paddingHorizontal: MeshSpacing.xl,
   },
-  
+
   statusTitle: {
     fontSize: MeshTypography.sizes.h2,
     fontWeight: MeshTypography.weights.semiBold,
     marginBottom: MeshSpacing.sm,
   },
-  
+
   securityLevel: {
     fontSize: MeshTypography.sizes.body,
     marginBottom: MeshSpacing.lg,
   },
-  
+
   securityFeatures: {
     alignItems: 'center',
   },
-  
+
   securityFeature: {
     flexDirection: 'row',
     alignItems: 'center',
     marginVertical: MeshSpacing.xs,
   },
-  
+
   featureLabel: {
     fontSize: MeshTypography.sizes.bodySmall,
     marginLeft: MeshSpacing.sm,
   },
-  
+
   handshake: {
     justifyContent: 'center',
     alignItems: 'center',
     padding: MeshSpacing.lg,
   },
-  
+
   handshakeContainer: {
     alignItems: 'center',
   },
-  
+
   handshakeText: {
     fontSize: MeshTypography.sizes.body,
     fontWeight: MeshTypography.weights.medium,
     marginTop: MeshSpacing.md,
   },
-  
+
   progressText: {
     fontSize: MeshTypography.sizes.bodySmall,
     marginTop: MeshSpacing.xs,

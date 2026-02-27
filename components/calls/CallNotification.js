@@ -32,11 +32,11 @@ import Svg, {
   Defs,
   LinearGradient as SvgGradient,
   Stop,
-  AnimatedCircle,
-  AnimatedPath,
-  Pattern,
   Rect,
 } from 'react-native-svg';
+import { AnimatedCircle, AnimatedPath } from '../../utils/AnimatedSvg';
+// react-native-svg does not export Pattern; use G as container instead
+const Pattern = G;
 
 // Import our mesh components
 import CrystallineMesh from '../ndeip/CrystallineMesh';

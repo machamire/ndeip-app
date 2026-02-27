@@ -21,10 +21,9 @@ import Svg, {
   LinearGradient as SvgGradient,
   Stop,
   Polygon,
-  AnimatedCircle,
-  AnimatedPath,
-  AnimatedPolygon,
 } from 'react-native-svg';
+import { AnimatedCircle, AnimatedPath } from '../../utils/AnimatedSvg';
+const AnimatedPolygon = Animated.createAnimatedComponent(Polygon);
 import {
   MeshColors,
   MeshAnimations,
@@ -73,13 +72,13 @@ const MeshTransition = ({
 
   const initializeParticles = () => {
     const newParticles = [];
-    
+
     for (let i = 0; i < particleCount; i++) {
       const startX = Math.random() * screenWidth;
       const startY = Math.random() * screenHeight;
       const endX = Math.random() * screenWidth;
       const endY = Math.random() * screenHeight;
-      
+
       newParticles.push({
         id: i,
         startX,
@@ -93,20 +92,20 @@ const MeshTransition = ({
         lifespan: 0.5 + Math.random() * 0.5,
       });
     }
-    
+
     setParticles(newParticles);
   };
 
   const initializeMeshNodes = () => {
     const nodes = [];
     const nodeCount = Math.floor(meshDensity * 20);
-    
+
     for (let i = 0; i < nodeCount; i++) {
       const angle = (i / nodeCount) * 2 * Math.PI;
       const radius = (Math.min(screenWidth, screenHeight) * 0.3) * meshDensity;
       const x = screenWidth / 2 + Math.cos(angle) * radius;
       const y = screenHeight / 2 + Math.sin(angle) * radius;
-      
+
       nodes.push({
         id: i,
         x,
@@ -116,7 +115,7 @@ const MeshTransition = ({
         connections: [],
       });
     }
-    
+
     // Create connections between nearby nodes
     nodes.forEach((node, index) => {
       const connectionsCount = 3;
@@ -125,13 +124,13 @@ const MeshTransition = ({
         node.connections.push(nodes[targetIndex]);
       }
     });
-    
+
     setMeshNodes(nodes);
   };
 
   const startTransition = (entering) => {
     setTransitionActive(true);
-    
+
     if (onTransitionStart) {
       onTransitionStart();
     }
@@ -190,7 +189,7 @@ const MeshTransition = ({
   const startSwipeTransition = (targetValue, screenTarget) => {
     // Particles follow swipe gesture
     const swipeDirection = direction === 'forward' ? 1 : -1;
-    
+
     Animated.parallel([
       Animated.timing(transitionProgress, {
         toValue: targetValue,
@@ -236,7 +235,7 @@ const MeshTransition = ({
     // Quantum effect with multiple particle layers
     const quantumLayers = 3;
     const layerAnimations = [];
-    
+
     for (let layer = 0; layer < quantumLayers; layer++) {
       layerAnimations.push(
         Animated.timing(transitionProgress, {
@@ -262,7 +261,7 @@ const MeshTransition = ({
 
   const completeTransition = () => {
     setTransitionActive(false);
-    
+
     if (onTransitionComplete) {
       onTransitionComplete();
     }
@@ -289,10 +288,10 @@ const MeshTransition = ({
         {particles.map((particle) => {
           const progress = transitionProgress._value;
           const particleProgress = particle.animValue._value;
-          
+
           const x = particle.startX + (particle.endX - particle.startX) * particleProgress;
           const y = particle.startY + (particle.endY - particle.startY) * particleProgress;
-          
+
           const opacity = Math.sin(particleProgress * Math.PI) * progress;
           const size = particle.size * (1 + particleProgress * 0.5);
 
@@ -342,15 +341,13 @@ const MeshTransition = ({
               {node.connections.map((connection, connIndex) => {
                 const connX = connection.x + (connection.targetX - connection.x) * morphProgress;
                 const connY = connection.y + (connection.targetY - connection.y) * morphProgress;
-                
+
                 return (
                   <AnimatedPath
                     key={`${node.id}-${connIndex}`}
-                    d={`M ${currentX} ${currentY} Q ${
-                      (currentX + connX) / 2 + Math.sin(morphProgress * Math.PI) * 30
-                    } ${
-                      (currentY + connY) / 2 + Math.cos(morphProgress * Math.PI) * 30
-                    } ${connX} ${connY}`}
+                    d={`M ${currentX} ${currentY} Q ${(currentX + connX) / 2 + Math.sin(morphProgress * Math.PI) * 30
+                      } ${(currentY + connY) / 2 + Math.cos(morphProgress * Math.PI) * 30
+                      } ${connX} ${connY}`}
                     stroke="url(#meshGradient)"
                     strokeWidth="1.5"
                     fill="none"
@@ -408,7 +405,7 @@ const MeshTransition = ({
           const adjustedProgress = Math.max(0, trailProgress - delay);
           const y = (screenHeight / 20) * index;
           const x = swipeX - (index * 10);
-          
+
           return (
             <AnimatedCircle
               key={index}
@@ -457,14 +454,12 @@ const MeshTransition = ({
           return (
             <G key={layerIndex}>
               <AnimatedPolygon
-                points={`${screenWidth/2},${screenHeight/2 - 100 * layerScale} ${
-                  screenWidth/2 + 87 * layerScale
-                },${screenHeight/2 + 50 * layerScale} ${
-                  screenWidth/2 - 87 * layerScale
-                },${screenHeight/2 + 50 * layerScale}`}
+                points={`${screenWidth / 2},${screenHeight / 2 - 100 * layerScale} ${screenWidth / 2 + 87 * layerScale
+                  },${screenHeight / 2 + 50 * layerScale} ${screenWidth / 2 - 87 * layerScale
+                  },${screenHeight / 2 + 50 * layerScale}`}
                 fill={`url(#quantumGradient${(layerIndex % 2) + 1})`}
                 opacity={layerProgress * (1 - layerIndex * 0.3)}
-                transform={`rotate(${rotation} ${screenWidth/2} ${screenHeight/2})`}
+                transform={`rotate(${rotation} ${screenWidth / 2} ${screenHeight / 2})`}
               />
             </G>
           );
@@ -526,14 +521,14 @@ export const SwipeTransition = ({
   const handleGestureStateChange = ({ nativeEvent }) => {
     if (nativeEvent.state === 5) { // END state
       const { translationX: finalX, velocityX } = nativeEvent;
-      
+
       if (Math.abs(finalX) > threshold || Math.abs(velocityX) > 1000) {
         // Trigger transition
         setIsTransitioning(true);
-        
+
         const direction = finalX > 0 ? 'right' : 'left';
         const callback = direction === 'right' ? onSwipeRight : onSwipeLeft;
-        
+
         Animated.timing(translateX, {
           toValue: direction === 'right' ? screenWidth : -screenWidth,
           duration: MeshAnimations.timing.normal,
@@ -576,7 +571,7 @@ export const SwipeTransition = ({
 };
 
 // Screen stack with mesh transitions
-export const MeshScreenStack = ({ 
+export const MeshScreenStack = ({
   screens = [],
   currentIndex = 0,
   transitionType = 'dissolve',
@@ -587,16 +582,16 @@ export const MeshScreenStack = ({
 
   const handleTransition = (newIndex) => {
     if (isTransitioning || newIndex === activeIndex) return;
-    
+
     setIsTransitioning(true);
     const direction = newIndex > activeIndex ? 'forward' : 'backward';
-    
+
     // Start transition
     setTimeout(() => {
       setActiveIndex(newIndex);
       if (onScreenChange) onScreenChange(newIndex);
     }, 400);
-    
+
     setTimeout(() => {
       setIsTransitioning(false);
     }, 800);
@@ -607,7 +602,7 @@ export const MeshScreenStack = ({
       {screens.map((screen, index) => {
         const isActive = index === activeIndex;
         const isPrevious = index === activeIndex - 1 && isTransitioning;
-        
+
         if (!isActive && !isPrevious) return null;
 
         return (
@@ -670,20 +665,20 @@ const styles = StyleSheet.create({
     flex: 1,
     position: 'relative',
   },
-  
+
   previousScreen: {
     zIndex: 1,
   },
-  
+
   currentScreen: {
     flex: 1,
     zIndex: 2,
   },
-  
+
   swipeContainer: {
     flex: 1,
   },
-  
+
   stackContainer: {
     flex: 1,
     position: 'relative',

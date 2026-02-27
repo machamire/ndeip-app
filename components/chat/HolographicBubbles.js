@@ -26,8 +26,8 @@ import Svg, {
   Defs,
   LinearGradient as SvgGradient,
   Stop,
-  AnimatedCircle,
 } from 'react-native-svg';
+import { AnimatedCircle } from '../../utils/AnimatedSvg';
 
 import { useMeshTheme, useMeshColors, useMeshAnimations } from '../../hooks/useMeshTheme';
 import { generateUserMesh } from '../../utils/MeshGenerator';
@@ -76,15 +76,15 @@ const HolographicBubble = ({
 
   // Check if message should be grouped with adjacent messages
   const isGroupedWithPrevious = useMemo(() => {
-    return previousMessage?.isOwn === isOwn && 
-           previousMessage?.type !== 'system' &&
-           (message.timestamp - previousMessage?.timestamp) < 60000; // 1 minute
+    return previousMessage?.isOwn === isOwn &&
+      previousMessage?.type !== 'system' &&
+      (message.timestamp - previousMessage?.timestamp) < 60000; // 1 minute
   }, [previousMessage, isOwn, message.timestamp]);
 
   const isGroupedWithNext = useMemo(() => {
-    return nextMessage?.isOwn === isOwn && 
-           nextMessage?.type !== 'system' &&
-           (nextMessage?.timestamp - message.timestamp) < 60000; // 1 minute
+    return nextMessage?.isOwn === isOwn &&
+      nextMessage?.type !== 'system' &&
+      (nextMessage?.timestamp - message.timestamp) < 60000; // 1 minute
   }, [nextMessage, isOwn, message.timestamp]);
 
   // Handle gesture interactions
@@ -95,12 +95,12 @@ const HolographicBubble = ({
 
   const handleSwipeEnd = ({ nativeEvent }) => {
     const { translationX, translationY, velocityX } = nativeEvent;
-    
+
     if (Math.abs(translationX) > 80 || Math.abs(velocityX) > 800) {
       const direction = translationX > 0 ? 'right' : 'left';
       if (onSwipe) onSwipe(message, direction);
     }
-    
+
     // Reset position with spring animation
     Animated.parallel([
       Animated.spring(translateX, {
@@ -121,7 +121,7 @@ const HolographicBubble = ({
   const handleLongPress = () => {
     setIsPressed(true);
     setShowContextMenu(true);
-    
+
     // 3D press effect
     Animated.parallel([
       Animated.timing(scale, {
@@ -135,13 +135,13 @@ const HolographicBubble = ({
         useNativeDriver: true,
       }),
     ]).start();
-    
+
     if (onLongPress) onLongPress(message);
   };
 
   const handlePressOut = () => {
     setIsPressed(false);
-    
+
     Animated.parallel([
       Animated.spring(scale, {
         toValue: 1,
@@ -155,7 +155,7 @@ const HolographicBubble = ({
         useNativeDriver: true,
       }),
     ]).start();
-    
+
     // Hide context menu after delay
     setTimeout(() => setShowContextMenu(false), 3000);
   };
@@ -164,9 +164,9 @@ const HolographicBubble = ({
   const handle3DTilt = (event) => {
     const { locationX, locationY } = event.nativeEvent;
     const { width, height } = bubbleDimensions;
-    
+
     if (width === 0 || height === 0) return;
-    
+
     const tiltX = ((locationY - height / 2) / height) * -5; // -5 to 5 degrees
     const tiltY = ((locationX - width / 2) / width) * 5;
 
@@ -203,9 +203,9 @@ const HolographicBubble = ({
   const handleReaction = (emoji) => {
     const reactionId = Date.now() + Math.random();
     const animValue = new Animated.Value(0);
-    
+
     setReactionAnimations(prev => [...prev, { id: reactionId, emoji, animValue }]);
-    
+
     Animated.timing(animValue, {
       toValue: 1,
       duration: 2000,
@@ -213,14 +213,14 @@ const HolographicBubble = ({
     }).start(() => {
       setReactionAnimations(prev => prev.filter(r => r.id !== reactionId));
     });
-    
+
     if (onReaction) onReaction(message, emoji);
   };
 
   // Calculate bubble styling
   const bubbleBackgroundColor = isOwn ? colors.primary : colors.surface;
   const textColor = isOwn ? colors.background : colors.text;
-  
+
   const bubbleStyle = [
     styles.bubble,
     {
@@ -290,10 +290,10 @@ const HolographicBubble = ({
               {!isOwn && userMeshPattern && (
                 <MeshOverlay pattern={userMeshPattern} />
               )}
-              
+
               {/* Holographic gradient overlay */}
               <HolographicOverlay isOwn={isOwn} colors={colors} />
-              
+
               {/* Message content */}
               <View style={styles.contentContainer}>
                 <MessageContent
@@ -301,7 +301,7 @@ const HolographicBubble = ({
                   textColor={textColor}
                   colors={colors}
                 />
-                
+
                 {/* Message footer with timestamp and status */}
                 <MessageFooter
                   message={message}
@@ -311,7 +311,7 @@ const HolographicBubble = ({
                   colors={colors}
                 />
               </View>
-              
+
               {/* Reaction particles */}
               {reactionAnimations.map(reaction => (
                 <ReactionParticle
@@ -320,7 +320,7 @@ const HolographicBubble = ({
                   animValue={reaction.animValue}
                 />
               ))}
-              
+
               {/* Context action wheel */}
               {showContextMenu && (
                 <ContextActionWheel
@@ -336,7 +336,7 @@ const HolographicBubble = ({
           </TapGestureHandler>
         </LongPressGestureHandler>
       </PanGestureHandler>
-      
+
       {/* Reactions display */}
       {showReactions && message.reactions && message.reactions.length > 0 && (
         <ReactionsDisplay
@@ -360,16 +360,14 @@ const MeshOverlay = ({ pattern }) => (
           <Stop offset="100%" stopColor={MeshColors.primaryTeal} stopOpacity="0.1" />
         </SvgGradient>
       </Defs>
-      
+
       {/* Render mesh pattern */}
       {pattern.connections?.map((connection, index) => (
         <Path
           key={index}
-          d={`M ${connection.from.x * 0.3} ${connection.from.y * 0.3} Q ${
-            connection.controlPoint ? connection.controlPoint.x * 0.3 : (connection.from.x + connection.to.x) * 0.15
-          } ${
-            connection.controlPoint ? connection.controlPoint.y * 0.3 : (connection.from.y + connection.to.y) * 0.15
-          } ${connection.to.x * 0.3} ${connection.to.y * 0.3}`}
+          d={`M ${connection.from.x * 0.3} ${connection.from.y * 0.3} Q ${connection.controlPoint ? connection.controlPoint.x * 0.3 : (connection.from.x + connection.to.x) * 0.15
+            } ${connection.controlPoint ? connection.controlPoint.y * 0.3 : (connection.from.y + connection.to.y) * 0.15
+            } ${connection.to.x * 0.3} ${connection.to.y * 0.3}`}
           stroke="url(#meshOverlayGradient)"
           strokeWidth="0.5"
           fill="none"
@@ -385,15 +383,15 @@ const HolographicOverlay = ({ isOwn, colors }) => (
     colors={
       isOwn
         ? [
-            getDynamicColor(colors.primary, 1),
-            getDynamicColor(colors.primary, 0.9),
-            getDynamicColor(colors.secondary, 0.1),
-          ]
+          getDynamicColor(colors.primary, 1),
+          getDynamicColor(colors.primary, 0.9),
+          getDynamicColor(colors.secondary, 0.1),
+        ]
         : [
-            getDynamicColor(colors.surface, 1),
-            getDynamicColor(colors.surface, 0.95),
-            getDynamicColor(colors.primary, 0.05),
-          ]
+          getDynamicColor(colors.surface, 1),
+          getDynamicColor(colors.surface, 0.95),
+          getDynamicColor(colors.primary, 0.05),
+        ]
     }
     start={{ x: 0, y: 0 }}
     end={{ x: 1, y: 1 }}
@@ -410,7 +408,7 @@ const MessageContent = ({ message, textColor, colors }) => {
           {message.text}
         </Text>
       );
-      
+
     case 'image':
       return (
         <View style={styles.imageContainer}>
@@ -422,7 +420,7 @@ const MessageContent = ({ message, textColor, colors }) => {
           )}
         </View>
       );
-      
+
     case 'voice':
       return (
         <VoiceMessageContent
@@ -431,7 +429,7 @@ const MessageContent = ({ message, textColor, colors }) => {
           colors={colors}
         />
       );
-      
+
     case 'file':
       return (
         <FileMessageContent
@@ -440,7 +438,7 @@ const MessageContent = ({ message, textColor, colors }) => {
           colors={colors}
         />
       );
-      
+
     case 'location':
       return (
         <LocationMessageContent
@@ -449,7 +447,7 @@ const MessageContent = ({ message, textColor, colors }) => {
           colors={colors}
         />
       );
-      
+
     default:
       return (
         <Text style={[styles.messageText, { color: textColor }]}>
@@ -477,7 +475,7 @@ const VoiceMessageContent = ({ message, textColor, colors }) => {
         useNativeDriver: true,
       }),
     ]).start();
-    
+
     setIsPlaying(!isPlaying);
   };
 
@@ -492,7 +490,7 @@ const VoiceMessageContent = ({ message, textColor, colors }) => {
           />
         </TouchableOpacity>
       </Animated.View>
-      
+
       <View style={styles.waveformContainer}>
         {[...Array(15)].map((_, index) => (
           <View
@@ -508,7 +506,7 @@ const VoiceMessageContent = ({ message, textColor, colors }) => {
           />
         ))}
       </View>
-      
+
       <Text style={[styles.voiceDuration, { color: textColor }]}>
         {Math.floor(message.duration / 60)}:{(message.duration % 60).toString().padStart(2, '0')}
       </Text>
@@ -556,7 +554,7 @@ const MessageFooter = ({ message, isOwn, showDeliveryStatus, textColor, colors }
     <Text style={[styles.timestamp, { color: getDynamicColor(textColor, 0.7) }]}>
       {formatTimestamp(message.timestamp)}
     </Text>
-    
+
     {isOwn && showDeliveryStatus && (
       <View style={styles.deliveryStatus}>
         <DeliveryStatusIndicator
@@ -571,7 +569,7 @@ const MessageFooter = ({ message, isOwn, showDeliveryStatus, textColor, colors }
 // Delivery status indicator
 const DeliveryStatusIndicator = ({ status, colors }) => {
   const iconSize = 12;
-  
+
   switch (status) {
     case 'sending':
       return (
@@ -579,19 +577,19 @@ const DeliveryStatusIndicator = ({ status, colors }) => {
           <Ionicons name="time" size={iconSize} color={getDynamicColor(colors.textColor, 0.5)} />
         </View>
       );
-      
+
     case 'sent':
       return <Ionicons name="checkmark" size={iconSize} color={getDynamicColor(colors.textColor, 0.7)} />;
-      
+
     case 'delivered':
       return <Ionicons name="checkmark-done" size={iconSize} color={getDynamicColor(colors.textColor, 0.7)} />;
-      
+
     case 'read':
       return <Ionicons name="checkmark-done" size={iconSize} color={colors.secondary} />;
-      
+
     case 'failed':
       return <Ionicons name="alert-circle" size={iconSize} color={colors.accents.mutedRed} />;
-      
+
     default:
       return null;
   }
@@ -603,12 +601,12 @@ const ReactionParticle = ({ emoji, animValue }) => {
     inputRange: [0, 1],
     outputRange: [0, -50],
   });
-  
+
   const opacity = animValue.interpolate({
     inputRange: [0, 0.3, 1],
     outputRange: [0, 1, 0],
   });
-  
+
   const scale = animValue.interpolate({
     inputRange: [0, 0.3, 1],
     outputRange: [0.5, 1.2, 0.8],
@@ -632,7 +630,7 @@ const ReactionParticle = ({ emoji, animValue }) => {
 // Context action wheel
 const ContextActionWheel = ({ onAction, onReaction, colors }) => {
   const wheelScale = useRef(new Animated.Value(0)).current;
-  
+
   useEffect(() => {
     Animated.spring(wheelScale, {
       toValue: 1,
@@ -665,7 +663,7 @@ const ContextActionWheel = ({ onAction, onReaction, colors }) => {
         const radius = 60;
         const x = Math.cos(angle) * radius;
         const y = Math.sin(angle) * radius;
-        
+
         return (
           <TouchableOpacity
             key={action.label}
@@ -727,21 +725,21 @@ const styles = StyleSheet.create({
     marginVertical: MeshSpacing.xs,
     maxWidth: screenWidth * 0.75,
   },
-  
+
   ownContainer: {
     alignSelf: 'flex-end',
     marginLeft: screenWidth * 0.25,
   },
-  
+
   otherContainer: {
     alignSelf: 'flex-start',
     marginRight: screenWidth * 0.25,
   },
-  
+
   groupedContainer: {
     marginTop: MeshSpacing.xs / 2,
   },
-  
+
   bubble: {
     borderRadius: MeshBorderRadius.components.messageBubble,
     paddingHorizontal: MeshSpacing.md,
@@ -749,39 +747,39 @@ const styles = StyleSheet.create({
     position: 'relative',
     overflow: 'hidden',
   },
-  
+
   contentContainer: {
     position: 'relative',
     zIndex: 2,
   },
-  
+
   messageText: {
     fontSize: MeshTypography.sizes.body,
     lineHeight: MeshTypography.lineHeights.normal * MeshTypography.sizes.body,
   },
-  
+
   imageContainer: {
     borderRadius: MeshBorderRadius.sm,
     overflow: 'hidden',
   },
-  
+
   messageImage: {
     width: 200,
     height: 150,
     borderRadius: MeshBorderRadius.sm,
   },
-  
+
   imageCaption: {
     fontSize: MeshTypography.sizes.bodySmall,
     marginTop: MeshSpacing.xs,
   },
-  
+
   voiceContainer: {
     flexDirection: 'row',
     alignItems: 'center',
     minWidth: 180,
   },
-  
+
   playButton: {
     width: 32,
     height: 32,
@@ -790,7 +788,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginRight: MeshSpacing.sm,
   },
-  
+
   waveformContainer: {
     flex: 1,
     flexDirection: 'row',
@@ -798,24 +796,24 @@ const styles = StyleSheet.create({
     height: 20,
     marginRight: MeshSpacing.sm,
   },
-  
+
   waveformBar: {
     width: 2,
     marginHorizontal: 1,
     borderRadius: 1,
   },
-  
+
   voiceDuration: {
     fontSize: MeshTypography.sizes.caption,
     minWidth: 40,
   },
-  
+
   fileContainer: {
     flexDirection: 'row',
     alignItems: 'center',
     minWidth: 200,
   },
-  
+
   fileIcon: {
     width: 40,
     height: 40,
@@ -824,27 +822,27 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginRight: MeshSpacing.sm,
   },
-  
+
   fileInfo: {
     flex: 1,
   },
-  
+
   fileName: {
     fontSize: MeshTypography.sizes.body,
     fontWeight: MeshTypography.weights.medium,
   },
-  
+
   fileSize: {
     fontSize: MeshTypography.sizes.caption,
     marginTop: 2,
   },
-  
+
   locationContainer: {
     flexDirection: 'row',
     alignItems: 'center',
     minWidth: 200,
   },
-  
+
   locationIcon: {
     width: 40,
     height: 40,
@@ -853,52 +851,52 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginRight: MeshSpacing.sm,
   },
-  
+
   locationInfo: {
     flex: 1,
   },
-  
+
   locationName: {
     fontSize: MeshTypography.sizes.body,
     fontWeight: MeshTypography.weights.medium,
   },
-  
+
   locationAddress: {
     fontSize: MeshTypography.sizes.caption,
     marginTop: 2,
   },
-  
+
   messageFooter: {
     flexDirection: 'row',
     justifyContent: 'flex-end',
     alignItems: 'center',
     marginTop: MeshSpacing.xs,
   },
-  
+
   timestamp: {
     fontSize: MeshTypography.sizes.caption,
     marginRight: MeshSpacing.xs,
   },
-  
+
   deliveryStatus: {
     marginLeft: MeshSpacing.xs,
   },
-  
+
   sendingIndicator: {
     opacity: 0.6,
   },
-  
+
   reactionParticle: {
     position: 'absolute',
     top: -20,
     right: 20,
     zIndex: 1000,
   },
-  
+
   reactionEmoji: {
     fontSize: 24,
   },
-  
+
   contextWheel: {
     position: 'absolute',
     top: -80,
@@ -909,7 +907,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     zIndex: 1000,
   },
-  
+
   contextAction: {
     position: 'absolute',
     width: 40,
@@ -919,18 +917,18 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     ...MeshShadows.floating.light,
   },
-  
+
   reactionsContainer: {
     flexDirection: 'row',
     flexWrap: 'wrap',
     marginTop: MeshSpacing.xs,
     alignSelf: 'flex-start',
   },
-  
+
   ownReactions: {
     alignSelf: 'flex-end',
   },
-  
+
   reactionBadge: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -941,12 +939,12 @@ const styles = StyleSheet.create({
     marginBottom: MeshSpacing.xs,
     ...MeshShadows.floating.light,
   },
-  
+
   reactionText: {
     fontSize: 14,
     marginRight: 4,
   },
-  
+
   reactionCount: {
     fontSize: MeshTypography.sizes.caption,
     fontWeight: MeshTypography.weights.medium,

@@ -29,11 +29,10 @@ import Svg, {
   Defs,
   LinearGradient as SvgGradient,
   Stop,
-  AnimatedCircle,
-  AnimatedPath,
-  Pattern,
   Rect,
 } from 'react-native-svg';
+import { AnimatedCircle, AnimatedPath } from '../../../utils/AnimatedSvg';
+const Pattern = G;
 
 // Import our mesh components
 import CrystallineMesh from '../../components/ndeip/CrystallineMesh';
@@ -134,7 +133,7 @@ const StatusGallery = ({
         duration: timing.normal,
         useNativeDriver: true,
       }),
-      Animated.stagger(100, 
+      Animated.stagger(100,
         Array.from({ length: 12 }, (_, index) =>
           Animated.timing(gridAnimation, {
             toValue: 1,
@@ -157,7 +156,7 @@ const StatusGallery = ({
         const isRecent = Date.now() - status.timestamp < 3600000; // 1 hour
         const isFromFrequentContact = status.user?.isFrequentContact;
         const hasHighEngagement = status.views > 50 || status.reactions?.length > 10;
-        
+
         return isRecent || isFromFrequentContact || hasHighEngagement;
       })
       .map(status => ({
@@ -166,13 +165,13 @@ const StatusGallery = ({
       }));
 
     setAIHighlights(highlights);
-    
+
     // Start highlight animations
     highlights.forEach((highlight, index) => {
       if (!highlightAnimations.current.has(highlight.id)) {
         const animValue = new Animated.Value(0);
         highlightAnimations.current.set(highlight.id, animValue);
-        
+
         Animated.loop(
           Animated.sequence([
             Animated.timing(animValue, {
@@ -217,7 +216,7 @@ const StatusGallery = ({
   const handleStatusPress = (status, index) => {
     setSelectedStatus({ ...status, index });
     setShowStatusViewer(true);
-    
+
     if (onStatusPress) {
       onStatusPress(status, index);
     }
@@ -237,7 +236,7 @@ const StatusGallery = ({
         ] : []),
       ]
     );
-    
+
     if (onStatusLongPress) {
       onStatusLongPress(status);
     }
@@ -322,7 +321,7 @@ const StatusGallery = ({
               <Stop offset="50%" stopColor={status.isViewed ? colors.neutrals.mediumGrey : colors.secondary} stopOpacity="1" />
               <Stop offset="100%" stopColor={status.isViewed ? colors.neutrals.mediumGrey : colors.primary} stopOpacity="1" />
             </SvgGradient>
-            
+
             <SvgGradient id={`highlight-${status.id}`} x1="0%" y1="0%" x2="100%" y2="100%">
               <Stop offset="0%" stopColor="#FFD700" stopOpacity="1" />
               <Stop offset="100%" stopColor="#FF6B35" stopOpacity="1" />
@@ -438,7 +437,7 @@ const StatusGallery = ({
               {/* Status ring and avatar */}
               <View style={styles.avatarContainer}>
                 {renderStatusRing(status, isHighlighted)}
-                
+
                 <View style={[styles.avatar, { backgroundColor: colors.surface }]}>
                   {status.user?.avatar ? (
                     <Image source={{ uri: status.user.avatar }} style={styles.avatarImage} />
@@ -463,11 +462,11 @@ const StatusGallery = ({
                   <Text style={[styles.userName, { color: colors.text }]} numberOfLines={1}>
                     {status.user?.name || 'Unknown'}
                   </Text>
-                  
+
                   <Text style={[styles.statusTime, { color: colors.textSecondary }]}>
                     {formatStatusTime(status.timestamp)}
                   </Text>
-                  
+
                   {status.isLive && (
                     <View style={[styles.liveIndicator, { backgroundColor: colors.accents.mutedRed }]}>
                       <Text style={[styles.liveText, { color: colors.crystallineWhite }]}>
@@ -522,7 +521,7 @@ const StatusGallery = ({
                       <Circle cx="5" cy="5" r="0.5" fill={colors.primary} opacity="0.2" />
                     </Pattern>
                   </Defs>
-                  
+
                   <Circle
                     cx="40"
                     cy="40"
@@ -586,23 +585,23 @@ const StatusGallery = ({
             <Text style={[styles.headerTitle, { color: colors.text }]}>
               Status
             </Text>
-            
+
             <View style={styles.headerActions}>
               <TouchableOpacity
                 style={styles.headerAction}
                 onPress={() => setViewMode(viewMode === VIEW_MODES.GRID ? VIEW_MODES.LIST : VIEW_MODES.GRID)}
               >
-                <MaterialIcons 
-                  name={viewMode === VIEW_MODES.GRID ? "view-list" : "view-module"} 
-                  size={24} 
-                  color={colors.text} 
+                <MaterialIcons
+                  name={viewMode === VIEW_MODES.GRID ? "view-list" : "view-module"}
+                  size={24}
+                  color={colors.text}
                 />
               </TouchableOpacity>
-              
+
               <TouchableOpacity style={styles.headerAction}>
                 <Ionicons name="search" size={24} color={colors.text} />
               </TouchableOpacity>
-              
+
               <TouchableOpacity style={styles.headerAction}>
                 <MaterialIcons name="more-vert" size={24} color={colors.text} />
               </TouchableOpacity>
@@ -661,17 +660,19 @@ const StatusGallery = ({
                     { translateX },
                     { translateY },
                     { scale },
-                    { rotate: rotation.interpolate({
-                      inputRange: [-Math.PI, Math.PI],
-                      outputRange: ['-180deg', '180deg'],
-                    }) },
+                    {
+                      rotate: rotation.interpolate({
+                        inputRange: [-Math.PI, Math.PI],
+                        outputRange: ['-180deg', '180deg'],
+                      })
+                    },
                   ],
                 },
               ]}
             >
               <FlatList
                 data={allStatuses}
-                renderItem={({ item, index }) => 
+                renderItem={({ item, index }) =>
                   item.isOwnStatus ? renderOwnStatus() : renderStatusItem({ item, index: index - 1 })
                 }
                 keyExtractor={(item) => item.id}
@@ -753,15 +754,15 @@ const EmptyStatusList = ({ colors, onCreateStatus }) => (
       color={colors.primary}
       style={styles.emptyLoader}
     />
-    
+
     <Text style={[styles.emptyTitle, { color: colors.text }]}>
       No Status Updates
     </Text>
-    
+
     <Text style={[styles.emptyDescription, { color: colors.textSecondary }]}>
       Share photos, videos, and thoughts with your contacts
     </Text>
-    
+
     <TouchableOpacity
       style={[styles.createStatusButton, { backgroundColor: colors.primary }]}
       onPress={onCreateStatus}
@@ -868,8 +869,8 @@ const styles = StyleSheet.create({
     marginBottom: MeshSpacing.xs,
   },
 
- 
-// Continuation of StatusGallery.js styles and remaining components
+
+  // Continuation of StatusGallery.js styles and remaining components
 
   aiTitle: {
     fontSize: MeshTypography.sizes.bodySmall,
