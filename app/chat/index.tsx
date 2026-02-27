@@ -237,7 +237,6 @@ function MessageBubble({ message, isDark, isFirst, isLast, onConsume, onKeep }: 
     onConsume: (id: string) => void; onKeep: (id: string) => void;
 }) {
     const sent = message.sent;
-    const statusColor = message.status === 'read' ? NDEIP_COLORS.electricBlue : 'rgba(255,255,255,0.4)';
     const [playing, setPlaying] = useState(false);
     const [progress, setProgress] = useState(0);
     const [showReactionPicker, setShowReactionPicker] = useState(false);
@@ -1040,7 +1039,6 @@ const styles = StyleSheet.create({
     bubbleMeta: { flexDirection: 'row', alignItems: 'center', justifyContent: 'flex-end', marginTop: 4, gap: 4 },
     bubbleTimeSent: { color: 'rgba(255,255,255,0.5)', fontSize: 10 },
     bubbleTimeReceived: { fontSize: 10, marginTop: 4, textAlign: 'right' as any },
-    statusIcons: { flexDirection: 'row', alignItems: 'center' },
     inputArea: {
         flexDirection: 'row',
         alignItems: 'flex-end',

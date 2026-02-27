@@ -12,7 +12,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import FontAwesome from '@expo/vector-icons/FontAwesome';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { NDEIP_COLORS } from '@/constants/Colors';
-import { CallService, ActiveCall } from '@/services/CallService';
+import { CallService } from '@/services/CallService';
 import { ChatService } from '@/services/ChatService';
 import CallConnecting from '@/components/calls/CallConnecting';
 import VideoFrame from '@/components/calls/VideoFrame';

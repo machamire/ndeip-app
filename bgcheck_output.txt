@@ -1,0 +1,53 @@
+﻿=== BACKGROUND PROCESSES USING CPU/RAM ===
+(Excluding system-critical and Antigravity processes)
+
+388.3 MB | CPU: 0s | MsMpEng | No description
+177 MB | CPU: 30.6s | SystemSettings | Settings
+128.9 MB | CPU: 33.6s | Taskmgr | No description
+110.2 MB | CPU: 2.9s | SnippingTool | SnippingTool.exe
+108.4 MB | CPU: 1.8s | SnippingTool | SnippingTool.exe
+102.5 MB | CPU: 13.4s | MicrosoftSecurityApp | MicrosoftSecurityApp.exe
+79.5 MB | CPU: 0s | TouchpointAnalyticsClientService | No description
+71.7 MB | CPU: 0s | SysInfoCap | No description
+59.6 MB | CPU: 0s | MoUsoCoreWorker | No description
+59.5 MB | CPU: 0s | OfficeClickToRun | No description
+55.8 MB | CPU: 1.9s | Widgets | No description
+47.1 MB | CPU: 0s | UninstallHPSA | No description
+46.4 MB | CPU: 1.1s | msedgewebview2 | Microsoft Edge WebView2
+36.4 MB | CPU: 0.4s | ApplicationFrameHost | Application Frame Host
+35.2 MB | CPU: 0.1s | HPMediaNetwork | System Notifications
+33.1 MB | CPU: 0s | msiexec | No description
+29.6 MB | CPU: 0.2s | BridgeCommunication | No description
+28.5 MB | CPU: 0s | Registry | No description
+28 MB | CPU: 0.1s | audiodg | No description
+27.8 MB | CPU: 0s | HPCommRecovery | No description
+25 MB | CPU: 0.8s | igfxEM | igfxEM Module
+23.6 MB | CPU: 0.3s | WidgetService | WidgetService.exe
+23.3 MB | CPU: 0s | NetworkCap | No description
+22 MB | CPU: 0s | OneApp.IGCC.WinService | No description
+22 MB | CPU: 0s | MpDefenderCoreService | No description
+20.6 MB | CPU: 0s | SecurityHealthService | No description
+19.7 MB | CPU: 2.1s | msedgewebview2 | Microsoft Edge WebView2
+19.5 MB | CPU: 0s | SrTasks | No description
+18.6 MB | CPU: 0s | AppHelperCap | No description
+17.6 MB | CPU: 0s | CompatTelRunner | No description
+
+=== STARTUP ITEMS (Task Manager startup tab) ===
+Name: HPSEU_Host_Launcher | Command: C:\Program Files\HP\HP System Event Utility\Host Launcher\HpseuHostLauncher.exe | Location: HKU\S-1-5-21-821045060-994938734-4008368540-1001\SOFTWARE\Microsoft\Windows\CurrentVersion\Run
+Name: GoogleChromeAutoLaunch_9D925B27797D0CB3CD2836C84959D860 | Command: "C:\Program Files\Google\Chrome\Application\chrome.exe" --no-startup-window /prefetch:5 | Location: HKU\S-1-5-21-821045060-994938734-4008368540-1001\SOFTWARE\Microsoft\Windows\CurrentVersion\Run
+Name: SecurityHealth | Command: %windir%\system32\SecurityHealthSystray.exe | Location: HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\Run
+Name: RtkAudUService | Command: "C:\WINDOWS\System32\RtkAudUService64.exe" -background | Location: HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\Run
+
+=== NON-MICROSOFT SERVICES RUNNING ===
+Service: HP Comm Recovery | Name: HP Comm Recover | StartType: Automatic | Path: "C:\Program Files\HPCommRecovery\HPCommRecovery.exe"
+
+=== SCHEDULED TASKS (non-Microsoft, enabled) ===
+Task: CreateExplorerShellUnelevatedTask | Author: ExplorerShellUnelevated | State: Ready
+Task: HP Web Products Detection | Author: HP Inc. | State: Ready
+Task: HPDeviceCheck | Author: HP Inc. | State: Ready
+Task: Backup | Author: $(@%SystemRoot%\system32\AppListBackupLauncher.dll,-600) | State: Ready
+Task: BackupNonMaintenance | Author: $(@%SystemRoot%\system32\AppListBackupLauncher.dll,-600) | State: Ready
+Task: UnifiedConsentSyncTask | Author: $(@%systemRoot%\system32\unifiedconsent.dll,-102) | State: Ready
+Task: MNO Metadata Parser | Author: $(@%SystemRoot%\system32\MbaeParserTask.exe,-1902) | State: Ready
+Task: SpaceManagerTask | Author: $(@%SystemRoot%\system32\spaceman.exe,-2) | State: Ready
+Task: MaintenanceTasks | Author: $(@%SystemRoot%\system32\Windows.StateRepositoryClient.dll,-600) | State: Ready
