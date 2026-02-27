@@ -414,6 +414,11 @@ export const MeshColors = {
     darkGrey: "#4B5563",
     offWhite: "#F9FAFB",
   },
+  meshGradients: {
+    primary: ["#1B4D3E", "#2563EB"],
+    accent: ["#00D9A3", "#0A71EF"],
+    quantum: ["#00F5FF", "#9D4EDD"],
+  },
 };
 
 // ═══════════════════════════════════════════════════════════
@@ -630,6 +635,8 @@ export const MeshAnimations = {
 
 export const MeshTypography = {
   ...Typography,
+  // Alias 'families' for components that use 'families' instead of 'fonts'
+  families: Typography.fonts,
   sizes: {
     ...Typography.sizes,
     h1: 34,
@@ -641,8 +648,19 @@ export const MeshTypography = {
     caption: 13,
     footnote: 12,
     micro: 11,
+    // Additional Spacing-style aliases used by MediaEditor
+    xs: 11,
+    sm: 13,
+    md: 16,
+    lg: 18,
+    xl: 22,
+    xxl: 28,
   },
-  weights: { ...Typography.weights },
+  weights: {
+    ...Typography.weights,
+    // camelCase alias used by QuantumGallery
+    semiBold: Typography.weights.semibold,
+  },
   lineHeights: { ...Typography.lineHeight },
 };
 
@@ -650,6 +668,7 @@ export const MeshSpacing = Spacing;
 
 export const MeshBorderRadius = {
   ...Radii,
+  full: 999,
   components: {
     card: 20,
     cardLarge: 24,
@@ -659,11 +678,20 @@ export const MeshBorderRadius = {
     modal: 24,
     avatar: 999,
     tabBar: 24,
+    messageBubble: 20,
   },
 };
 
 export const MeshShadows = {
   ...Shadows,
+  // Direct medium alias used by MediaEditor
+  medium: {
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.08,
+    shadowRadius: 20,
+    elevation: 6,
+  },
   floating: {
     light: {
       shadowColor: "#000",
