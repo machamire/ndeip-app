@@ -23,8 +23,8 @@ import Svg, {
   LinearGradient as SvgGradient,
   Stop,
   Polygon,
-  Pattern,
 } from 'react-native-svg';
+const Pattern = G;
 
 // Create animated components
 const AnimatedCircle = Animated.createAnimatedComponent(Circle);
@@ -43,7 +43,7 @@ const MeshSplashScreen = ({ onAnimationComplete }) => {
   const particleAnim = useRef(new Animated.Value(0)).current;
   const textAnim = useRef(new Animated.Value(0)).current;
   const meshIntensity = useRef(new Animated.Value(0)).current;
-  
+
   // Logo particle states
   const [logoParticles, setLogoParticles] = useState([]);
   const [showLogo, setShowLogo] = useState(false);
@@ -58,7 +58,7 @@ const MeshSplashScreen = ({ onAnimationComplete }) => {
   const initializeLogoParticles = () => {
     const particles = [];
     const particleCount = 60;
-    
+
     // Generate particles that will form the ndeip logo
     for (let i = 0; i < particleCount; i++) {
       particles.push({
@@ -74,7 +74,7 @@ const MeshSplashScreen = ({ onAnimationComplete }) => {
         color: i < 48 ? MeshColors.primaryTeal : MeshColors.electricBlue, // 'p' will be blue
       });
     }
-    
+
     setLogoParticles(particles);
   };
 
@@ -228,13 +228,13 @@ const MeshSplashScreen = ({ onAnimationComplete }) => {
               <Stop offset="0%" stopColor={MeshColors.primaryTeal} stopOpacity="1" />
               <Stop offset="100%" stopColor={MeshColors.primaryTeal} stopOpacity="0.8" />
             </SvgGradient>
-            
+
             {/* Gradient for 'p' */}
             <SvgGradient id="pGradient" x1="0%" y1="0%" x2="100%" y2="100%">
               <Stop offset="0%" stopColor={MeshColors.electricBlue} stopOpacity="1" />
               <Stop offset="100%" stopColor="#320096" stopOpacity="0.9" />
             </SvgGradient>
-            
+
             {/* Mesh pattern */}
             <Pattern id="logoMesh" x="0" y="0" width="8" height="8" patternUnits="userSpaceOnUse">
               <Polygon
@@ -341,7 +341,7 @@ const MeshSplashScreen = ({ onAnimationComplete }) => {
   return (
     <View style={styles.container}>
       <StatusBar hidden />
-      
+
       {/* Animated Background */}
       <Animated.View
         style={[
@@ -463,7 +463,7 @@ const styles = StyleSheet.create({
 });
 
 // Enhanced splash screen with sound effects (optional)
-export const EnhancedSplashScreen = ({ 
+export const EnhancedSplashScreen = ({
   onAnimationComplete,
   enableSound = false,
   customTagline,

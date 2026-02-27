@@ -18,13 +18,14 @@ import {
 import { LinearGradient } from 'expo-linear-gradient';
 import Svg, {
   Defs,
-  Pattern,
+  G,
   Rect,
   Polygon,
   Circle,
   LinearGradient as SvgGradient,
   Stop,
 } from 'react-native-svg';
+const Pattern = G;
 import {
   MeshColors,
   MeshShadows,
@@ -111,7 +112,7 @@ const FloatingCard = ({
         ])
       );
       floatingAnimation.start();
-      
+
       return () => floatingAnimation.stop();
     }
   }, [animationType]);
@@ -119,7 +120,7 @@ const FloatingCard = ({
   // Handle touch interactions
   const handlePressIn = () => {
     setIsPressed(true);
-    
+
     Animated.parallel([
       Animated.spring(scale, {
         toValue: 0.95,
@@ -141,7 +142,7 @@ const FloatingCard = ({
 
   const handlePressOut = () => {
     setIsPressed(false);
-    
+
     Animated.parallel([
       Animated.spring(scale, {
         toValue: 1,
@@ -191,7 +192,7 @@ const FloatingCard = ({
 
     const { locationX, locationY } = event.nativeEvent;
     const { width, height } = cardDimensions;
-    
+
     const tiltX = ((locationY - height / 2) / height) * -10; // -10 to 10 degrees
     const tiltY = ((locationX - width / 2) / width) * 10;
 
@@ -246,7 +247,7 @@ const FloatingCard = ({
               <Stop offset="50%" stopColor={MeshColors.primaryTeal} stopOpacity="0.05" />
               <Stop offset="100%" stopColor={MeshColors.electricBlue} stopOpacity="0.1" />
             </SvgGradient>
-            
+
             <Pattern
               id={patternId}
               x="0"
@@ -257,11 +258,11 @@ const FloatingCard = ({
             >
               <Polygon
                 points={
-                  variant === 'small' 
+                  variant === 'small'
                     ? "0,10 10,0 20,10 10,20"
                     : variant === 'large'
-                    ? "0,30 30,0 60,30 30,60"
-                    : "0,20 20,0 40,20 20,40"
+                      ? "0,30 30,0 60,30 30,60"
+                      : "0,20 20,0 40,20 20,40"
                 }
                 fill="none"
                 stroke={`url(#${gradientId})`}
@@ -276,7 +277,7 @@ const FloatingCard = ({
               />
             </Pattern>
           </Defs>
-          
+
           <Rect width="100%" height="100%" fill={`url(#${patternId})`} />
         </Svg>
       </Animated.View>
@@ -361,7 +362,7 @@ const FloatingCard = ({
     >
       {renderQuantumBackground()}
       {renderMeshOverlay()}
-      
+
       <View style={styles.contentContainer}>
         {children}
       </View>
@@ -483,8 +484,8 @@ export const QuantumCard = ({ children, ...props }) => (
 );
 
 // Card container for grouped cards
-export const CardContainer = ({ 
-  children, 
+export const CardContainer = ({
+  children,
   spacing = MeshSpacing.md,
   direction = 'vertical', // 'vertical', 'horizontal', 'grid'
   style = {},
@@ -505,8 +506,8 @@ export const CardContainer = ({
 };
 
 // Animated card stack
-export const CardStack = ({ 
-  cards = [], 
+export const CardStack = ({
+  cards = [],
   onCardPress,
   stackOffset = 8,
   maxVisible = 3,
@@ -552,9 +553,9 @@ export const CardStack = ({
 };
 
 // Loading card with mesh animation
-export const LoadingCard = ({ 
+export const LoadingCard = ({
   variant = 'medium',
-  ...props 
+  ...props
 }) => {
   const pulseAnim = useRef(new Animated.Value(0)).current;
 
@@ -573,9 +574,9 @@ export const LoadingCard = ({
         }),
       ])
     );
-    
+
     pulse.start();
-    
+
     return () => pulse.stop();
   }, []);
 
@@ -613,73 +614,73 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
     position: 'relative',
   },
-  
+
   contentContainer: {
     flex: 1,
     zIndex: 10,
   },
-  
+
   chatCard: {
     marginVertical: MeshSpacing.xs,
     maxWidth: screenWidth * 0.8,
   },
-  
+
   ownMessage: {
     alignSelf: 'flex-end',
     marginLeft: screenWidth * 0.2,
   },
-  
+
   otherMessage: {
     alignSelf: 'flex-start',
     marginRight: screenWidth * 0.2,
   },
-  
+
   contactCard: {
     marginVertical: MeshSpacing.xs,
     width: '100%',
   },
-  
+
   statusCard: {
     margin: MeshSpacing.xs,
   },
-  
+
   callCard: {
     marginVertical: MeshSpacing.sm,
     width: '100%',
   },
-  
+
   cardContainer: {
     flex: 1,
   },
-  
+
   horizontalContainer: {
     flexDirection: 'row',
   },
-  
+
   gridContainer: {
     flexDirection: 'row',
     flexWrap: 'wrap',
     justifyContent: 'space-between',
   },
-  
+
   cardStack: {
     position: 'relative',
     alignItems: 'center',
   },
-  
+
   stackedCard: {
     position: 'absolute',
     width: '100%',
   },
-  
+
   loadingCard: {
     opacity: 0.7,
   },
-  
+
   loadingContent: {
     flex: 1,
   },
-  
+
   loadingBar: {
     height: 12,
     backgroundColor: MeshColors.neutrals.lightGrey,
