@@ -399,11 +399,20 @@ export const MeshColors = {
   warning: "#F59E0B",
   error: "#EF4444",
   info: "#3B82F6",
+  crystallineWhite: "#FFFFFF",
+  deepSpace: "#0A0E27",
   accents: {
     success: "#10B981",
     warning: "#F59E0B",
     error: "#EF4444",
+    mutedRed: "#EF4444",
     info: "#3B82F6",
+  },
+  neutrals: {
+    lightGrey: "#E5E7EB",
+    mediumGrey: "#9CA3AF",
+    darkGrey: "#4B5563",
+    offWhite: "#F9FAFB",
   },
 };
 
@@ -426,6 +435,8 @@ export const MeshThemes = {
     error: "#EF4444",
     meshOverlay: "rgba(27, 77, 62, 0.08)",
     crystallineWhite: "#FFFFFF",
+    primaryTeal: "#1B4D3E",
+    electricBlue: "#2563EB",
     accents: {
       success: "#10B981",
       warning: "#F59E0B",
@@ -448,6 +459,8 @@ export const MeshThemes = {
     error: "#EF4444",
     meshOverlay: "rgba(0, 217, 163, 0.08)",
     crystallineWhite: "#FFFFFF",
+    primaryTeal: "#1B4D3E",
+    electricBlue: "#2563EB",
     accents: {
       success: "#10B981",
       warning: "#F59E0B",
@@ -470,6 +483,8 @@ export const MeshThemes = {
     error: "#EF4444",
     meshOverlay: "rgba(0, 245, 255, 0.12)",
     crystallineWhite: "#FFFFFF",
+    primaryTeal: "#1B4D3E",
+    electricBlue: "#2563EB",
     accents: {
       success: "#10B981",
       warning: "#F59E0B",
@@ -600,17 +615,86 @@ export const MeshAnimations = {
     mesh: 1500,
     quantum: 2000,
   },
+  // Spring configs used by FloatingCards and other components
+  springs: {
+    gentle: { tension: 120, friction: 14, useNativeDriver: true },
+    mesh: { tension: 80, friction: 12, useNativeDriver: true },
+    bouncy: { tension: 180, friction: 10, useNativeDriver: true },
+    snappy: { tension: 250, friction: 20, useNativeDriver: true },
+  },
 };
 
 // ═══════════════════════════════════════════════════════════
-// COMPATIBILITY ALIASES
-// Components reference these names; map them to the canonical exports
+// COMPATIBILITY ALIASES — Extended for Mesh* imports
 // ═══════════════════════════════════════════════════════════
 
-export const MeshTypography = Typography;
+export const MeshTypography = {
+  ...Typography,
+  sizes: {
+    ...Typography.sizes,
+    h1: 34,
+    h2: 28,
+    h3: 22,
+    h4: 18,
+    body: 16,
+    bodySmall: 15,
+    caption: 13,
+    footnote: 12,
+    micro: 11,
+  },
+  weights: { ...Typography.weights },
+  lineHeights: { ...Typography.lineHeight },
+};
+
 export const MeshSpacing = Spacing;
-export const MeshBorderRadius = Radii;
-export const MeshShadows = Shadows;
+
+export const MeshBorderRadius = {
+  ...Radii,
+  components: {
+    card: 20,
+    cardLarge: 24,
+    button: 14,
+    buttonLarge: 16,
+    input: 14,
+    modal: 24,
+    avatar: 999,
+    tabBar: 24,
+  },
+};
+
+export const MeshShadows = {
+  ...Shadows,
+  floating: {
+    light: {
+      shadowColor: "#000",
+      shadowOffset: { width: 0, height: 4 },
+      shadowOpacity: 0.06,
+      shadowRadius: 12,
+      elevation: 3,
+    },
+    medium: {
+      shadowColor: "#000",
+      shadowOffset: { width: 0, height: 6 },
+      shadowOpacity: 0.08,
+      shadowRadius: 20,
+      elevation: 6,
+    },
+    heavy: {
+      shadowColor: "#000",
+      shadowOffset: { width: 0, height: 10 },
+      shadowOpacity: 0.12,
+      shadowRadius: 32,
+      elevation: 10,
+    },
+  },
+  pressed: {
+    shadowColor: "#1B4D3E",
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.04,
+    shadowRadius: 4,
+    elevation: 1,
+  },
+};
 
 // ═══════════════════════════════════════════════════════════
 // COMBINED EXPORT
@@ -629,11 +713,10 @@ export const NdeipDesignSystem = {
   meshThemes: MeshThemes,
   meshPatterns: MeshPatterns,
   meshAnimations: MeshAnimations,
-  // Aliases
-  meshTypography: Typography,
-  meshSpacing: Spacing,
-  meshBorderRadius: Radii,
-  meshShadows: Shadows,
+  meshTypography: MeshTypography,
+  meshSpacing: MeshSpacing,
+  meshBorderRadius: MeshBorderRadius,
+  meshShadows: MeshShadows,
 };
 
 export default NdeipDesignSystem;
