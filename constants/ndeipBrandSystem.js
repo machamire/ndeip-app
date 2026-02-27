@@ -425,6 +425,14 @@ export const MeshThemes = {
     warning: "#F59E0B",
     error: "#EF4444",
     meshOverlay: "rgba(27, 77, 62, 0.08)",
+    crystallineWhite: "#FFFFFF",
+    accents: {
+      success: "#10B981",
+      warning: "#F59E0B",
+      error: "#EF4444",
+      mutedRed: "#EF4444",
+      info: "#3B82F6",
+    },
   },
   dark: {
     primary: "#00D9A3",
@@ -439,6 +447,14 @@ export const MeshThemes = {
     warning: "#F59E0B",
     error: "#EF4444",
     meshOverlay: "rgba(0, 217, 163, 0.08)",
+    crystallineWhite: "#FFFFFF",
+    accents: {
+      success: "#10B981",
+      warning: "#F59E0B",
+      error: "#EF4444",
+      mutedRed: "#EF4444",
+      info: "#3B82F6",
+    },
   },
   quantum: {
     primary: "#00F5FF",
@@ -453,6 +469,14 @@ export const MeshThemes = {
     warning: "#F59E0B",
     error: "#EF4444",
     meshOverlay: "rgba(0, 245, 255, 0.12)",
+    crystallineWhite: "#FFFFFF",
+    accents: {
+      success: "#10B981",
+      warning: "#F59E0B",
+      error: "#EF4444",
+      mutedRed: "#EF4444",
+      info: "#3B82F6",
+    },
   },
 };
 
@@ -568,7 +592,25 @@ export const MeshAnimations = {
     intensity: 0.5,
     easing: "linear",
   },
+  // Timing tokens used by useMeshAnimations hook
+  timing: {
+    fast: 150,
+    normal: 250,
+    slow: 400,
+    mesh: 1500,
+    quantum: 2000,
+  },
 };
+
+// ═══════════════════════════════════════════════════════════
+// COMPATIBILITY ALIASES
+// Components reference these names; map them to the canonical exports
+// ═══════════════════════════════════════════════════════════
+
+export const MeshTypography = Typography;
+export const MeshSpacing = Spacing;
+export const MeshBorderRadius = Radii;
+export const MeshShadows = Shadows;
 
 // ═══════════════════════════════════════════════════════════
 // COMBINED EXPORT
@@ -587,6 +629,11 @@ export const NdeipDesignSystem = {
   meshThemes: MeshThemes,
   meshPatterns: MeshPatterns,
   meshAnimations: MeshAnimations,
+  // Aliases
+  meshTypography: Typography,
+  meshSpacing: Spacing,
+  meshBorderRadius: Radii,
+  meshShadows: Shadows,
 };
 
 export default NdeipDesignSystem;
