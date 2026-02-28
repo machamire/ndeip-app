@@ -51,19 +51,24 @@ export default function RootLayout() {
   const [showSplash, setShowSplash] = useState(true);
 
   useEffect(() => {
-    if (error) throw error;
+    if (error) {
+      // Font loading can fail in Expo Go on some devices (e.g. asset download rejected).
+      // Log the error but don't crash — the app works fine with system fonts.
+      console.warn('[RootLayout] Font loading error (non-fatal):', error.message);
+    }
   }, [error]);
 
   useEffect(() => {
-    if (loaded) {
+    if (loaded || error) {
+      // Proceed even if fonts failed to load — the app should still render
       SplashScreen.hideAsync();
       // Show our custom loading screen for a smooth minimum display
       const timer = setTimeout(() => setShowSplash(false), 1000);
       return () => clearTimeout(timer);
     }
-  }, [loaded]);
+  }, [loaded, error]);
 
-  if (!loaded) {
+  if (!loaded && !error) {
     return null;
   }
 
