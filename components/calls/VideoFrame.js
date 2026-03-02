@@ -115,8 +115,15 @@ const VideoFrame = ({
   const scale = useRef(new Animated.Value(1)).current;
   const rotation = useRef(new Animated.Value(0)).current;
 
-  // User mesh pattern
-  const userMeshPattern = generateUserMesh(participant?.id);
+  // User mesh pattern — guard against null/undefined participant ID
+  let userMeshPattern = { nodes: [], connections: [] };
+  try {
+    if (participant?.id) {
+      userMeshPattern = generateUserMesh(participant.id) || userMeshPattern;
+    }
+  } catch (e) {
+    console.warn('[VideoFrame] Mesh generation failed (non-fatal):', e);
+  }
 
   // Initialize animations
   useEffect(() => {

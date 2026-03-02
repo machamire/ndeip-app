@@ -507,7 +507,8 @@ export const MeshThemes = {
 export const MeshPatterns = {
   generateUserMesh: (userId, options = {}) => {
     // Deterministic mesh generation based on userId
-    const seed = userId
+    const safeId = (userId != null ? String(userId) : 'default_user');
+    const seed = safeId
       .split("")
       .reduce((acc, char) => acc + char.charCodeAt(0), 0);
     const density = (options.density || 0.5) * 100;

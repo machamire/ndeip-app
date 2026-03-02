@@ -50,8 +50,12 @@ const CrystallineMesh = ({
 
   // Generate unique mesh pattern for user
   const meshConfig = useMemo(() => {
-    if (userId) {
-      return MeshPatterns.generateUserMesh(userId);
+    if (userId && typeof userId === 'string') {
+      try {
+        return MeshPatterns.generateUserMesh(userId);
+      } catch (e) {
+        console.warn('[CrystallineMesh] Failed to generate user mesh:', e);
+      }
     }
     return {
       density: intensity,

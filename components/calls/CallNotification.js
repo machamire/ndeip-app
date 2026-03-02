@@ -107,8 +107,15 @@ const CallNotification = ({
   const autoDeclineTimer = useRef(null);
   const vibrationTimer = useRef(null);
 
-  // User mesh pattern
-  const callerMeshPattern = generateUserMesh(caller?.id);
+  // User mesh pattern — guard against null/undefined caller ID
+  let callerMeshPattern = { nodes: [], connections: [] };
+  try {
+    if (caller?.id) {
+      callerMeshPattern = generateUserMesh(caller.id) || callerMeshPattern;
+    }
+  } catch (e) {
+    console.warn('[CallNotification] Mesh generation failed (non-fatal):', e);
+  }
 
   // Initialize notification
   useEffect(() => {
@@ -245,7 +252,17 @@ const CallNotification = ({
   // Start ringtone
   const startRingtone = async () => {
     try {
-      const soundSource = customRingtone || require('../../assets/sounds/default_ringtone.mp3');
+      if (!Audio) {
+        // Audio module not available (e.g. on web or import failed)
+        return;
+      }
+
+      // Only use a custom ringtone if provided — the default asset may not exist
+      const soundSource = customRingtone;
+      if (!soundSource) {
+        // No ringtone asset available, skip audio playback
+        return;
+      }
 
       const { sound } = await Audio.Sound.createAsync(soundSource, {
         shouldPlay: true,
@@ -255,7 +272,7 @@ const CallNotification = ({
 
       setRingtoneSound(sound);
     } catch (error) {
-      console.error('Failed to start ringtone:', error);
+      console.warn('Failed to start ringtone (non-fatal):', error);
     }
   };
 
@@ -411,27 +428,34 @@ const CallNotification = ({
   };
 
   // Render background mesh
-  const renderBackgroundMesh = () => (
-    <Animated.View
-      style={[
-        StyleSheet.absoluteFillObject,
-        {
-          opacity: backgroundAnimation.interpolate({
-            inputRange: [0, 1],
-            outputRange: [0.3, 0.7],
-          }),
-        },
-      ]}
-    >
-      <CrystallineMesh
-        variant="quantum"
-        animated={true}
-        intensity={0.8}
-        color={getDynamicColor(colors.primary, 0.4)}
-        interactive={false}
-      />
-    </Animated.View>
-  );
+  const renderBackgroundMesh = () => {
+    try {
+      return (
+        <Animated.View
+          style={[
+            StyleSheet.absoluteFillObject,
+            {
+              opacity: backgroundAnimation.interpolate({
+                inputRange: [0, 1],
+                outputRange: [0.3, 0.7],
+              }),
+            },
+          ]}
+        >
+          <CrystallineMesh
+            variant="quantum"
+            animated={true}
+            intensity={0.8}
+            color={getDynamicColor(colors.primary, 0.4)}
+            interactive={false}
+          />
+        </Animated.View>
+      );
+    } catch (e) {
+      console.warn('[CallNotification] CrystallineMesh render failed (non-fatal):', e);
+      return null;
+    }
+  };
 
   // Render touch ripples
   const renderTouchRipples = () => (

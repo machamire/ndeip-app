@@ -40,7 +40,7 @@ class MeshPatternCache {
     }
 
     this.cache.set(key, value);
-    
+
     // Update access order
     if (!this.accessOrder.includes(key)) {
       this.accessOrder.push(key);
@@ -103,10 +103,10 @@ export class MeshGenerator {
 
     // Generate new pattern
     const pattern = this._generatePattern(userId, config);
-    
+
     // Cache the result
     this.cache.set(cacheKey, pattern);
-    
+
     return pattern;
   }
 
@@ -167,10 +167,10 @@ export class MeshGenerator {
 
     // Generate new pattern
     const pattern = this._generatePattern(`context_${context}`, config);
-    
+
     // Cache the result
     this.cache.set(cacheKey, pattern);
-    
+
     return pattern;
   }
 
@@ -183,7 +183,7 @@ export class MeshGenerator {
    */
   generateAnimatedMesh(identifier, keyframes, options = {}) {
     const cacheKey = `animated_${identifier}_${JSON.stringify(keyframes)}_${JSON.stringify(options)}`;
-    
+
     const cached = this.cache.get(cacheKey);
     if (cached) {
       return cached;
@@ -210,7 +210,7 @@ export class MeshGenerator {
     // Generate paths for connections
     connections.forEach(connection => {
       const { from, to, controlPoint } = connection;
-      
+
       if (controlPoint) {
         // Curved path with control point
         pathString += `M ${from.x} ${from.y} Q ${controlPoint.x} ${controlPoint.y} ${to.x} ${to.y} `;
@@ -232,10 +232,10 @@ export class MeshGenerator {
   generateResponsiveMesh(dimensions, options = {}) {
     const { width, height } = dimensions;
     const aspectRatio = width / height;
-    
+
     // Adjust mesh density based on screen size
     let adjustedDensity = options.density || 0.5;
-    
+
     if (width < 400) {
       // Small screens - reduce density
       adjustedDensity *= 0.7;
@@ -265,7 +265,7 @@ export class MeshGenerator {
    */
   _generatePattern(seed, config) {
     this.seedGenerator.setSeed(seed);
-    
+
     const {
       density,
       complexity,
@@ -281,13 +281,13 @@ export class MeshGenerator {
 
     // Generate nodes
     const nodes = this._generateNodes(primaryNodes, density, screenWidth, screenHeight);
-    
+
     // Generate connections
     const connections = this._generateConnections(nodes, complexity);
-    
+
     // Generate colors
     const colors = this._generateColors(colorScheme, seasonal);
-    
+
     // Apply accessibility modifications
     const accessibleConfig = this._applyAccessibility(
       { nodes, connections, colors, opacity, animationSpeed },
@@ -359,11 +359,11 @@ export class MeshGenerator {
    */
   _generateCircularNodes(count, centerX, centerY, radius) {
     const nodes = [];
-    
+
     for (let i = 0; i < count; i++) {
       const angle = (i / count) * 2 * Math.PI;
       const r = radius * (0.5 + this.seedGenerator.next() * 0.5);
-      
+
       nodes.push({
         id: `primary_${i}`,
         x: centerX + Math.cos(angle) * r,
@@ -373,7 +373,7 @@ export class MeshGenerator {
         animationPhase: (i / count) * Math.PI * 2,
       });
     }
-    
+
     return nodes;
   }
 
@@ -384,12 +384,12 @@ export class MeshGenerator {
   _generateSpiralNodes(count, centerX, centerY, maxRadius) {
     const nodes = [];
     const spiralTurns = 2;
-    
+
     for (let i = 0; i < count; i++) {
       const progress = i / count;
       const angle = progress * spiralTurns * 2 * Math.PI;
       const radius = maxRadius * progress;
-      
+
       nodes.push({
         id: `primary_${i}`,
         x: centerX + Math.cos(angle) * radius,
@@ -399,7 +399,7 @@ export class MeshGenerator {
         animationPhase: angle,
       });
     }
-    
+
     return nodes;
   }
 
@@ -412,16 +412,16 @@ export class MeshGenerator {
     const gridSize = Math.ceil(Math.sqrt(count));
     const cellWidth = width / gridSize;
     const cellHeight = height / gridSize;
-    
+
     for (let i = 0; i < gridSize; i++) {
       for (let j = 0; j < gridSize && nodes.length < count; j++) {
         const baseX = (i + 0.5) * cellWidth;
         const baseY = (j + 0.5) * cellHeight;
-        
+
         // Add some randomness to grid positions
         const offsetX = (this.seedGenerator.next() - 0.5) * cellWidth * 0.3;
         const offsetY = (this.seedGenerator.next() - 0.5) * cellHeight * 0.3;
-        
+
         nodes.push({
           id: `primary_${nodes.length}`,
           x: baseX + offsetX,
@@ -432,7 +432,7 @@ export class MeshGenerator {
         });
       }
     }
-    
+
     return nodes;
   }
 
@@ -442,28 +442,28 @@ export class MeshGenerator {
    */
   _generateOrganicNodes(count, centerX, centerY, maxRadius) {
     const nodes = [];
-    
+
     // Create clusters
     const clusterCount = Math.max(2, Math.floor(count / 4));
     const clusters = [];
-    
+
     for (let i = 0; i < clusterCount; i++) {
       const angle = (i / clusterCount) * 2 * Math.PI;
       const distance = maxRadius * (0.3 + this.seedGenerator.next() * 0.4);
-      
+
       clusters.push({
         x: centerX + Math.cos(angle) * distance,
         y: centerY + Math.sin(angle) * distance,
         radius: maxRadius * (0.2 + this.seedGenerator.next() * 0.3),
       });
     }
-    
+
     // Distribute nodes among clusters
     for (let i = 0; i < count; i++) {
       const cluster = clusters[i % clusters.length];
       const angle = this.seedGenerator.next() * 2 * Math.PI;
       const distance = this.seedGenerator.next() * cluster.radius;
-      
+
       nodes.push({
         id: `primary_${i}`,
         x: cluster.x + Math.cos(angle) * distance,
@@ -474,7 +474,7 @@ export class MeshGenerator {
         cluster: i % clusters.length,
       });
     }
-    
+
     return nodes;
   }
 
@@ -485,11 +485,11 @@ export class MeshGenerator {
   _generateConnections(nodes, complexity) {
     const connections = [];
     const maxDistance = Math.min(screenWidth, screenHeight) * 0.3;
-    
+
     nodes.forEach((node, index) => {
       const connectionCount = Math.min(complexity, nodes.length - 1);
       const nearestNodes = this._findNearestNodes(node, nodes, connectionCount, maxDistance);
-      
+
       nearestNodes.forEach(targetNode => {
         if (targetNode.id !== node.id) {
           const connection = this._createConnection(node, targetNode);
@@ -497,7 +497,7 @@ export class MeshGenerator {
         }
       });
     });
-    
+
     // Remove duplicate connections
     return this._removeDuplicateConnections(connections);
   }
@@ -516,7 +516,7 @@ export class MeshGenerator {
       .filter(d => d.distance <= maxDistance)
       .sort((a, b) => a.distance - b.distance)
       .slice(0, count);
-    
+
     return distances.map(d => d.node);
   }
 
@@ -527,16 +527,16 @@ export class MeshGenerator {
   _createConnection(from, to) {
     const midX = (from.x + to.x) / 2;
     const midY = (from.y + to.y) / 2;
-    
+
     // Add some curve to the connection
     const curvature = 20 + this.seedGenerator.next() * 30;
     const angle = Math.atan2(to.y - from.y, to.x - from.x) + Math.PI / 2;
-    
+
     const controlPoint = {
       x: midX + Math.cos(angle) * curvature,
       y: midY + Math.sin(angle) * curvature,
     };
-    
+
     return {
       id: `${from.id}_${to.id}`,
       from,
@@ -553,16 +553,16 @@ export class MeshGenerator {
    */
   _removeDuplicateConnections(connections) {
     const unique = new Map();
-    
+
     connections.forEach(conn => {
       const key1 = `${conn.from.id}_${conn.to.id}`;
       const key2 = `${conn.to.id}_${conn.from.id}`;
-      
+
       if (!unique.has(key1) && !unique.has(key2)) {
         unique.set(key1, conn);
       }
     });
-    
+
     return Array.from(unique.values());
   }
 
@@ -595,12 +595,12 @@ export class MeshGenerator {
    */
   _generateColorVariations(baseColor, count) {
     const variations = [];
-    
+
     for (let i = 0; i < count; i++) {
       const lightness = 0.3 + (i / count) * 0.4;
       variations.push(getDynamicColor(baseColor, lightness));
     }
-    
+
     return variations;
   }
 
@@ -623,12 +623,12 @@ export class MeshGenerator {
    */
   _applyAccessibility(pattern, accessibility) {
     const { reducedMotion, highContrast } = accessibility;
-    
+
     if (reducedMotion) {
       pattern.animationSpeed *= 3; // Slower animations
       pattern.opacity *= 0.5; // Reduced opacity
     }
-    
+
     if (highContrast) {
       pattern.opacity *= 1.5; // Increased opacity
       pattern.connections.forEach(conn => {
@@ -636,7 +636,7 @@ export class MeshGenerator {
         conn.opacity *= 1.3; // More visible
       });
     }
-    
+
     return pattern;
   }
 
@@ -670,8 +670,10 @@ class SeededRandom {
   }
 
   setSeed(seed) {
-    if (typeof seed === 'string') {
-      this.seed = seed.split('').reduce((a, b) => a + b.charCodeAt(0), 0);
+    if (seed == null) {
+      this.seed = 42; // Safe fallback for null/undefined
+    } else if (typeof seed === 'string') {
+      this.seed = seed.split('').reduce((a, b) => a + b.charCodeAt(0), 0) || 42;
     } else {
       this.seed = seed;
     }
@@ -737,11 +739,11 @@ export const withMeshPerformanceMonitoring = (fn, label) => {
     const start = performance.now();
     const result = fn(...args);
     const end = performance.now();
-    
+
     if (__DEV__) {
       console.log(`[MeshGenerator] ${label}: ${(end - start).toFixed(2)}ms`);
     }
-    
+
     return result;
   };
 };
