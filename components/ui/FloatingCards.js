@@ -25,7 +25,7 @@ import Svg, {
   LinearGradient as SvgGradient,
   Stop,
 } from 'react-native-svg';
-const Pattern = G;
+// Note: react-native-svg does not export Pattern — removed alias.
 import {
   MeshColors,
   MeshShadows,
@@ -248,37 +248,10 @@ const FloatingCard = ({
               <Stop offset="100%" stopColor={MeshColors.electricBlue} stopOpacity="0.1" />
             </SvgGradient>
 
-            <Pattern
-              id={patternId}
-              x="0"
-              y="0"
-              width={variant === 'small' ? "20" : variant === 'large' ? "60" : "40"}
-              height={variant === 'small' ? "20" : variant === 'large' ? "60" : "40"}
-              patternUnits="userSpaceOnUse"
-            >
-              <Polygon
-                points={
-                  variant === 'small'
-                    ? "0,10 10,0 20,10 10,20"
-                    : variant === 'large'
-                      ? "0,30 30,0 60,30 30,60"
-                      : "0,20 20,0 40,20 20,40"
-                }
-                fill="none"
-                stroke={`url(#${gradientId})`}
-                strokeWidth="0.5"
-              />
-              <Circle
-                cx={variant === 'small' ? "10" : variant === 'large' ? "30" : "20"}
-                cy={variant === 'small' ? "10" : variant === 'large' ? "30" : "20"}
-                r={variant === 'small' ? "1" : variant === 'large' ? "3" : "2"}
-                fill={MeshColors.electricBlue}
-                opacity="0.3"
-              />
-            </Pattern>
+            {/* Pattern removed — react-native-svg does not support <Pattern> */}
           </Defs>
 
-          <Rect width="100%" height="100%" fill={`url(#${patternId})`} />
+          <Rect width="100%" height="100%" fill={MeshColors.electricBlue} opacity={0.03} />
         </Svg>
       </Animated.View>
     );

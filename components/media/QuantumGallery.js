@@ -41,7 +41,7 @@ import Svg, {
   Polygon,
 } from 'react-native-svg';
 import { AnimatedCircle, AnimatedPath } from '../../utils/AnimatedSvg';
-const Pattern = G;
+// Note: react-native-svg does not export Pattern — removed alias.
 
 // Import our mesh components
 import CrystallineMesh from '../../components/ndeip/CrystallineMesh';

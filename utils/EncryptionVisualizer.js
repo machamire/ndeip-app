@@ -26,7 +26,7 @@ import Svg, {
   Polygon,
 } from 'react-native-svg';
 import { AnimatedCircle, AnimatedPath } from '../utils/AnimatedSvg';
-const Pattern = G;
+// Note: react-native-svg does not export Pattern — removed alias.
 
 import { useMeshTheme, useMeshColors, useMeshAnimations } from '../hooks/useMeshTheme';
 import {
@@ -626,15 +626,7 @@ const MeshShield = ({ size, color, securityLevel }) => (
         <Stop offset="100%" stopColor={color} stopOpacity="0.1" />
       </SvgGradient>
 
-      <Pattern id="meshPattern" x="0" y="0" width="8" height="8" patternUnits="userSpaceOnUse">
-        <Polygon
-          points="0,4 4,0 8,4 4,8"
-          fill="none"
-          stroke={color}
-          strokeWidth="0.5"
-          opacity="0.4"
-        />
-      </Pattern>
+      {/* Pattern removed — react-native-svg does not support <Pattern> */}
     </Defs>
 
     {/* Shield shape */}
@@ -646,10 +638,11 @@ const MeshShield = ({ size, color, securityLevel }) => (
       opacity="0.6"
     />
 
-    {/* Mesh overlay */}
+    {/* Mesh overlay — direct fill replaces unsupported Pattern */}
     <Path
       d={`M ${size / 2} 4 L ${size * 0.8} ${size * 0.3} L ${size * 0.8} ${size * 0.7} L ${size / 2} ${size * 0.9} L ${size * 0.2} ${size * 0.7} L ${size * 0.2} ${size * 0.3} Z`}
-      fill="url(#meshPattern)"
+      fill={color}
+      opacity={0.05}
     />
   </Svg>
 );

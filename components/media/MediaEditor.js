@@ -42,7 +42,7 @@ import Svg, {
   Polygon,
 } from 'react-native-svg';
 import { AnimatedCircle, AnimatedPath } from '../../utils/AnimatedSvg';
-const Pattern = G;
+// Note: react-native-svg does not export Pattern — using direct fills instead.
 
 // Import our mesh components
 import CrystallineMesh from '../../components/ndeip/CrystallineMesh';
@@ -612,19 +612,10 @@ const MediaEditor = ({
                 <Stop offset="100%" stopColor="#320096" stopOpacity="0.4" />
               </SvgGradient>
 
-              <Pattern id="crystallinePattern" x="0" y="0" width="30" height="30" patternUnits="userSpaceOnUse">
-                <Polygon
-                  points="0,15 15,0 30,15 15,30"
-                  fill="none"
-                  stroke="#00F5FF"
-                  strokeWidth="0.5"
-                  opacity="0.6"
-                />
-                <Circle cx="15" cy="15" r="2" fill="#0A71EF" opacity="0.4" />
-              </Pattern>
+              {/* Pattern removed — react-native-svg does not support <Pattern> */}
             </Defs>
 
-            <Rect width="100%" height="100%" fill="url(#crystallinePattern)" />
+            <Rect width="100%" height="100%" fill="#00F5FF" opacity={0.03} />
 
             {meshPattern.connections?.slice(0, 15).map((connection, index) => (
               <AnimatedPath

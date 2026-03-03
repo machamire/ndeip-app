@@ -26,7 +26,7 @@ import Svg, {
   Rect,
 } from 'react-native-svg';
 import { AnimatedCircle, AnimatedPath } from '../../utils/AnimatedSvg';
-const Pattern = G;
+// Note: react-native-svg does not export Pattern — removed alias.
 
 import { useMeshTheme, useMeshColors, useMeshAnimations } from '../../hooks/useMeshTheme';
 import QuantumLoader from '../ndeip/QuantumLoader';

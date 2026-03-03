@@ -32,7 +32,7 @@ import Svg, {
   Rect,
 } from 'react-native-svg';
 import { AnimatedCircle, AnimatedPath } from '../../../utils/AnimatedSvg';
-const Pattern = G;
+// Note: react-native-svg does not export Pattern — removed alias.
 
 // Import our mesh components
 import CrystallineMesh from '../../components/ndeip/CrystallineMesh';
@@ -327,16 +327,7 @@ const StatusGallery = ({
               <Stop offset="100%" stopColor="#FF6B35" stopOpacity="1" />
             </SvgGradient>
 
-            <Pattern id={`mesh-${status.id}`} x="0" y="0" width="8" height="8" patternUnits="userSpaceOnUse">
-              <Circle cx="4" cy="4" r="0.5" fill={colors.secondary} opacity="0.3" />
-              <Path
-                d="M 2 4 Q 4 2 6 4 Q 4 6 2 4"
-                stroke={colors.primary}
-                strokeWidth="0.3"
-                fill="none"
-                opacity="0.5"
-              />
-            </Pattern>
+            {/* Pattern removed — react-native-svg does not support <Pattern> */}
           </Defs>
 
           {/* Main ring */}
@@ -350,13 +341,13 @@ const StatusGallery = ({
             strokeDasharray={status.isViewed ? "5 5" : undefined}
           />
 
-          {/* Mesh pattern overlay */}
+          {/* Mesh pattern overlay — direct fill replaces unsupported Pattern */}
           <Circle
             cx={ringSize / 2}
             cy={ringSize / 2}
             r={ringSize / 2 - borderWidth - 2}
-            fill={`url(#mesh-${status.id})`}
-            opacity="0.1"
+            fill={colors.secondary}
+            opacity={0.05}
           />
 
           {/* Highlight glow */}
@@ -517,17 +508,15 @@ const StatusGallery = ({
               <View style={[styles.addStatusRing, { borderColor: colors.primary }]}>
                 <Svg width={80} height={80} style={StyleSheet.absoluteFillObject}>
                   <Defs>
-                    <Pattern id="addMeshPattern" x="0" y="0" width="10" height="10" patternUnits="userSpaceOnUse">
-                      <Circle cx="5" cy="5" r="0.5" fill={colors.primary} opacity="0.2" />
-                    </Pattern>
+                    {/* Pattern removed — react-native-svg does not support <Pattern> */}
                   </Defs>
 
                   <Circle
                     cx="40"
                     cy="40"
                     r="35"
-                    fill="url(#addMeshPattern)"
-                    opacity="0.1"
+                    fill={colors.primary}
+                    opacity={0.05}
                   />
                 </Svg>
               </View>

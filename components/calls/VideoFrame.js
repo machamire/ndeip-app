@@ -31,7 +31,7 @@ import Svg, {
   Polygon,
 } from 'react-native-svg';
 import { AnimatedCircle, AnimatedPath } from '../../utils/AnimatedSvg';
-const Pattern = G;
+// Note: react-native-svg does not export Pattern — removed alias.
 
 import { useMeshTheme, useMeshColors, useMeshAnimations } from '../../hooks/useMeshTheme';
 import { generateUserMesh } from '../../utils/MeshGenerator';
@@ -290,15 +290,7 @@ const VideoFrame = ({
           <Stop offset="100%" stopColor={colors.primary} stopOpacity="0.8" />
         </SvgGradient>
 
-        <Pattern id="meshBorderPattern" x="0" y="0" width="20" height="20" patternUnits="userSpaceOnUse">
-          <Polygon
-            points="0,10 10,0 20,10 10,20"
-            fill="none"
-            stroke={colors.primary}
-            strokeWidth="0.5"
-            opacity="0.6"
-          />
-        </Pattern>
+        {/* Pattern removed — react-native-svg does not support <Pattern> */}
       </Defs>
 
       {/* Animated border frame */}
@@ -313,15 +305,12 @@ const VideoFrame = ({
         })}
       />
 
-      {/* Mesh pattern overlay */}
+      {/* Mesh pattern overlay — direct fill replaces unsupported Pattern */}
       <Rect
         width={frameDimensions.width}
         height={frameDimensions.height}
-        fill="url(#meshBorderPattern)"
-        opacity={meshAnimation.interpolate({
-          inputRange: [0, 1],
-          outputRange: [0.1, 0.3],
-        })}
+        fill={colors.primary}
+        opacity={0.03}
       />
 
       {/* Corner indicators */}

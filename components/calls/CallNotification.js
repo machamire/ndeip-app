@@ -35,8 +35,8 @@ import Svg, {
   Rect,
 } from 'react-native-svg';
 import { AnimatedCircle, AnimatedPath } from '../../utils/AnimatedSvg';
-// react-native-svg does not export Pattern; use G as container instead
-const Pattern = G;
+// Note: react-native-svg does not export Pattern.
+// We use a direct fill instead of <Pattern> for mesh overlays.
 
 // Import our mesh components
 import CrystallineMesh from '../ndeip/CrystallineMesh';
@@ -51,6 +51,21 @@ import {
   MeshShadows,
   getDynamicColor,
 } from '../../constants/ndeipBrandSystem';
+
+// ── Import safety guards ────────────────────────────────────
+// Prevents a hard crash if any import resolves to undefined.
+const _assertDefined = (comp, name) => {
+  if (comp === undefined || comp === null) {
+    console.error(`[CallNotification] MISSING COMPONENT: ${name}. The app may render incorrectly.`);
+  }
+};
+_assertDefined(AnimatedCircle, 'AnimatedCircle');
+_assertDefined(AnimatedPath, 'AnimatedPath');
+_assertDefined(CrystallineMesh, 'CrystallineMesh');
+_assertDefined(QuantumLoader, 'QuantumLoader');
+_assertDefined(Svg, 'Svg');
+_assertDefined(LinearGradient, 'LinearGradient');
+_assertDefined(BlurView, 'BlurView');
 
 const { width: screenWidth, height: screenHeight } = Dimensions.get('window');
 
@@ -526,16 +541,8 @@ const CallNotification = ({
             <Stop offset="100%" stopColor={colors.primary} stopOpacity="0.8" />
           </SvgGradient>
 
-          <Pattern id="avatarMeshPattern" x="0" y="0" width="20" height="20" patternUnits="userSpaceOnUse">
-            <Circle cx="10" cy="10" r="1" fill={colors.secondary} opacity="0.3" />
-            <Path
-              d="M 5 10 Q 10 5 15 10 Q 10 15 5 10"
-              stroke={colors.primary}
-              strokeWidth="0.5"
-              fill="none"
-              opacity="0.5"
-            />
-          </Pattern>
+          {/* Pattern element removed — react-native-svg does not support <Pattern>.
+             Using a direct semi-transparent Circle fill below instead. */}
         </Defs>
 
         {/* Outer mesh ring */}
@@ -552,13 +559,13 @@ const CallNotification = ({
           })}
         />
 
-        {/* Mesh pattern overlay */}
+        {/* Mesh pattern overlay — simple semi-transparent fill (replaces unsupported Pattern) */}
         <Circle
           cx="100"
           cy="100"
           r="90"
-          fill="url(#avatarMeshPattern)"
-          opacity="0.1"
+          fill={colors.secondary}
+          opacity={0.05}
         />
 
         {/* Connection nodes */}

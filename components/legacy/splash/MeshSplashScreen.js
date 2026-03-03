@@ -24,7 +24,7 @@ import Svg, {
   Stop,
   Polygon,
 } from 'react-native-svg';
-const Pattern = G;
+// Note: react-native-svg does not export Pattern — removed alias.
 
 // Create animated components
 const AnimatedCircle = Animated.createAnimatedComponent(Circle);
@@ -236,15 +236,7 @@ const MeshSplashScreen = ({ onAnimationComplete }) => {
             </SvgGradient>
 
             {/* Mesh pattern */}
-            <Pattern id="logoMesh" x="0" y="0" width="8" height="8" patternUnits="userSpaceOnUse">
-              <Polygon
-                points="0,4 4,0 8,4 4,8"
-                fill="none"
-                stroke="white"
-                strokeWidth="0.5"
-                opacity="0.3"
-              />
-            </Pattern>
+            {/* Pattern removed — react-native-svg does not support <Pattern> */}
           </Defs>
 
           {/* Letter 'n' */}
@@ -255,7 +247,7 @@ const MeshSplashScreen = ({ onAnimationComplete }) => {
             />
             <Path
               d="M10 45 L10 15 L15 15 L15 35 L25 15 L30 15 L30 45 L25 45 L25 25 L15 45 Z"
-              fill="url(#logoMesh)"
+              fill="rgba(255,255,255,0.08)"
             />
           </G>
 
@@ -267,7 +259,7 @@ const MeshSplashScreen = ({ onAnimationComplete }) => {
             />
             <Path
               d="M35 45 L35 15 L45 15 Q55 15 55 30 Q55 45 45 45 Z M40 20 L40 40 L45 40 Q50 40 50 30 Q50 20 45 20 Z"
-              fill="url(#logoMesh)"
+              fill="rgba(255,255,255,0.08)"
             />
           </G>
 
@@ -279,7 +271,7 @@ const MeshSplashScreen = ({ onAnimationComplete }) => {
             />
             <Path
               d="M60 45 L60 15 L80 15 L80 20 L65 20 L65 27 L78 27 L78 32 L65 32 L65 40 L80 40 L80 45 Z"
-              fill="url(#logoMesh)"
+              fill="rgba(255,255,255,0.08)"
             />
           </G>
 
@@ -292,7 +284,7 @@ const MeshSplashScreen = ({ onAnimationComplete }) => {
             />
             <Path
               d="M85 45 L85 20 L90 20 L90 45 Z"
-              fill="url(#logoMesh)"
+              fill="rgba(255,255,255,0.08)"
             />
           </G>
 
@@ -304,7 +296,7 @@ const MeshSplashScreen = ({ onAnimationComplete }) => {
             />
             <Path
               d="M95 55 L95 15 L105 15 Q115 15 115 25 Q115 35 105 35 L100 35 L100 55 Z M100 20 L100 30 L105 30 Q110 30 110 25 Q110 20 105 20 Z"
-              fill="url(#logoMesh)"
+              fill="rgba(255,255,255,0.08)"
             />
           </G>
         </Svg>
